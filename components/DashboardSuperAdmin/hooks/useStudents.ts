@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { studentsDataGlobal, addStudent as addStudentToShared } from '../../../data/sharedData'; // Adjust path if needed
+import React, { useState, useEffect, useCallback } from 'react';
+import { studentsDataGlobal, addStudent as addStudentToShared } from '../../../data/sharedData';
+import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
 
 export interface Student {
-    id: number;
+    id: string | number;
     nis: string;
     nama: string;
     ttl: string;
@@ -21,27 +22,125 @@ export interface Student {
 }
 
 export const useStudents = () => {
-    // Initialize from LocalStorage or Fallback
     const [students, setStudents] = useState<Student[]>(() => {
         const saved = localStorage.getItem('students_data_v10');
         return saved ? JSON.parse(saved) : studentsDataGlobal;
     });
+    const [loading, setLoading] = useState(false);
 
-    // Auto-save effect
-    React.useEffect(() => {
-        localStorage.setItem('students_data_v10', JSON.stringify(students));
-    }, [students]);
+    const fetchStudents = useCallback(async () => {
+        if (!isSupabaseConfigured()) return;
 
-    const addNewStudent = (student: Student) => {
-        setStudents(prev => [...prev, student]);
+        setLoading(true);
+        try {
+            // Fetch students with their class names
+            const { data, error } = await supabase
+                .from('students')
+                .select('*, classes(*)');
+
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+                const mappedData: Student[] = data.map(s => ({
+                    id: s.id,
+                    nis: s.nis,
+                    nama: s.full_name,
+                    ttl: `${s.birth_place || '-'}, ${s.birth_date || '-'}`,
+                    kelas: s.classes?.name || '-',
+                    tingkat: s.classes?.grade_level || 1,
+                    paralel: (s.classes?.name || '').replace(/[0-9]/g, ''),
+                    ayah: s.parent_name || '-',
+                    ibu: '-', // Original schema doesn't split father/mother
+                    jobAyah: '-',
+                    jobIbu: '-',
+                    username: s.nis,
+                    gender: s.gender,
+                    status: s.status
+                }));
+                setStudents(mappedData);
+                localStorage.setItem('students_data_v10', JSON.stringify(mappedData));
+            }
+        } catch (err) {
+            console.error('Error fetching students:', err);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchStudents();
+    }, [fetchStudents]);
+
+    useEffect(() => {
+        if (!loading) {
+            localStorage.setItem('students_data_v10', JSON.stringify(students));
+        }
+    }, [students, loading]);
+
+    const addNewStudent = async (student: Student) => {
+        if (isSupabaseConfigured()) {
+            try {
+                // We need class_id. For now let's try to find it by name or leave null
+                const { data: classData } = await supabase
+                    .from('classes')
+                    .select('id')
+                    .eq('name', student.kelas)
+                    .single();
+
+                const { data, error } = await supabase
+                    .from('students')
+                    .insert([{
+                        nis: student.nis,
+                        full_name: student.nama,
+                        parent_name: student.ayah,
+                        class_id: classData?.id || null,
+                        gender: student.gender as any,
+                        status: 'active'
+                    }])
+                    .select();
+
+                if (error) throw error;
+                if (data) {
+                    const created = { ...student, id: data[0].id };
+                    setStudents(prev => [...prev, created]);
+                    return created;
+                }
+            } catch (err) {
+                console.error('Error adding student to Supabase:', err);
+                setStudents(prev => [...prev, student]);
+            }
+        } else {
+            setStudents(prev => [...prev, student]);
+        }
     };
 
-    const updateStudent = (id: number, updates: Partial<Student>) => {
-        setStudents(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    const updateStudent = async (id: string | number, updates: Partial<Student>) => {
+        if (isSupabaseConfigured() && typeof id === 'string') {
+            try {
+                const dbUpdates: any = {};
+                if (updates.nama) dbUpdates.full_name = updates.nama;
+                if (updates.nis) dbUpdates.nis = updates.nis;
+                if (updates.ayah) dbUpdates.parent_name = updates.ayah;
+                if (updates.gender) dbUpdates.gender = updates.gender;
+
+                const { error } = await supabase
+                    .from('students')
+                    .update(dbUpdates)
+                    .eq('id', id);
+
+                if (error) throw error;
+                setStudents(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+            } catch (err) {
+                console.error('Error updating student in Supabase:', err);
+                setStudents(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+            }
+        } else {
+            setStudents(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+        }
     };
 
-    // Batch update for promotion
     const updateStudents = (updatedStudents: Student[]) => {
+        // Bulk update logic (locally for now, or implement one by one for Supabase)
         setStudents(prev => {
             const newStudents = [...prev];
             updatedStudents.forEach(updated => {
@@ -54,12 +153,10 @@ export const useStudents = () => {
         });
     };
 
-    // --- STATE management extracted from DashboardSuperAdmin ---
     const [selectedStudent, setSelectedStudent] = useState<any>(null);
     const [showAddStudentModal, setShowAddStudentModal] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit' | 'view'>('add');
 
-    // --- HANDLERS extracted from DashboardSuperAdmin ---
     const handleViewStudent = (studentData: any) => {
         setSelectedStudent(studentData);
         setModalMode('view');
@@ -81,14 +178,25 @@ export const useStudents = () => {
         setShowAddStudentModal(true);
     };
 
-    const handleDelete = (name: string) => {
+    const handleDelete = async (student: any) => {
+        const id = student.id;
+        const name = student.nama;
         if (confirm(`Apakah Anda yakin ingin menghapus data ${name}?`)) {
-            setStudents(prev => prev.filter(s => s.nama !== name));
+            if (isSupabaseConfigured() && typeof id === 'string') {
+                try {
+                    const { error } = await supabase.from('students').delete().eq('id', id);
+                    if (error) throw error;
+                    setStudents(prev => prev.filter(s => s.id !== id));
+                } catch (err) {
+                    console.error('Error deleting student from Supabase:', err);
+                }
+            } else {
+                setStudents(prev => prev.filter(s => s.id !== id));
+            }
         }
     };
 
     const handleDownloadTemplate = () => {
-        // Mock download logic
         alert("Mengunduh template Excel...");
     };
 
@@ -104,17 +212,16 @@ export const useStudents = () => {
     };
 
     const handleSaveData = () => {
-        // Mock save logic
         alert("Data berhasil disimpan ke database!");
     };
 
     return {
         students,
         setStudents,
+        loading,
         addNewStudent,
         updateStudent,
         updateStudents,
-        // New exports
         selectedStudent,
         setSelectedStudent,
         showAddStudentModal,
@@ -127,6 +234,7 @@ export const useStudents = () => {
         handleDelete,
         handleDownloadTemplate,
         handleUploadClick,
-        handleSaveData
+        handleSaveData,
+        refreshStudents: fetchStudents
     };
 };

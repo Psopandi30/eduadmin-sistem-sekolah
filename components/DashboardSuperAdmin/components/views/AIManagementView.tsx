@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Key, Settings, Eye, EyeOff, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
-import { supabase } from '../../../../src/lib/supabase';
+import { Plus, Edit, Trash2, Key, Settings, Eye, EyeOff, CheckCircle, XCircle, RefreshCw, AlertTriangle } from 'lucide-react';
+import { supabase, isSupabaseConfigured, getSupabaseConfigError } from '../../../../src/lib/supabase';
 
 interface AIProvider {
   id: string;
@@ -59,6 +59,10 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
   }, []);
 
   const loadData = async () => {
+    if (!isSupabaseConfigured()) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [providersRes, keysRes] = await Promise.all([
@@ -242,6 +246,25 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
         </button>
       </div>
 
+      {!isSupabaseConfigured() && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex flex-col items-center text-center">
+          <AlertTriangle className="w-12 h-12 text-amber-500 mb-4" />
+          <h3 className="text-lg font-bold text-amber-900 mb-2">Supabase Belum Terkonfigurasi</h3>
+          <p className="text-amber-700 max-w-md mb-4">
+            {getSupabaseConfigError()}
+          </p>
+          <div className="bg-white p-4 rounded-xl border border-amber-100 text-sm text-left w-full max-w-md">
+            <p className="font-bold mb-2">Cara Memperbaiki:</p>
+            <ol className="list-decimal list-inside space-y-1 text-gray-600">
+              <li>Buka file <code className="bg-gray-100 px-1 rounded">.env.local</code></li>
+              <li>Isi <code className="bg-gray-100 px-1 rounded">VITE_SUPABASE_URL</code> dengan URL proyek Anda</li>
+              <li>Isi <code className="bg-gray-100 px-1 rounded">VITE_SUPABASE_ANON_KEY</code> dengan Anon Key Anda</li>
+              <li>Restart server development</li>
+            </ol>
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
@@ -253,11 +276,10 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                activeTab === tab.id
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
@@ -390,7 +412,7 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
                 <input
                   type="text"
                   value={providerForm.name}
-                  onChange={(e) => setProviderForm({...providerForm, name: e.target.value})}
+                  onChange={(e) => setProviderForm({ ...providerForm, name: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded-lg"
                   placeholder="e.g., Google Gemini 1.5 Flash"
                 />
@@ -399,7 +421,7 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
                 <label className="block text-sm font-medium mb-1">Tipe Provider</label>
                 <select
                   value={providerForm.provider_type}
-                  onChange={(e) => setProviderForm({...providerForm, provider_type: e.target.value as any})}
+                  onChange={(e) => setProviderForm({ ...providerForm, provider_type: e.target.value as any })}
                   className="w-full p-2 border border-gray-300 rounded-lg"
                 >
                   <option value="gemini">Google Gemini</option>
@@ -415,7 +437,7 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
                 <input
                   type="text"
                   value={providerForm.model_name}
-                  onChange={(e) => setProviderForm({...providerForm, model_name: e.target.value})}
+                  onChange={(e) => setProviderForm({ ...providerForm, model_name: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded-lg"
                   placeholder="e.g., gemini-1.5-flash"
                 />
@@ -424,7 +446,7 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
                 <label className="block text-sm font-medium mb-1">Deskripsi</label>
                 <textarea
                   value={providerForm.description}
-                  onChange={(e) => setProviderForm({...providerForm, description: e.target.value})}
+                  onChange={(e) => setProviderForm({ ...providerForm, description: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded-lg"
                   rows={3}
                   placeholder="Deskripsi provider..."
@@ -479,7 +501,7 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
                 <input
                   type="password"
                   value={keyForm.api_key}
-                  onChange={(e) => setKeyForm({...keyForm, api_key: e.target.value})}
+                  onChange={(e) => setKeyForm({ ...keyForm, api_key: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded-lg"
                   placeholder="Masukkan API key..."
                 />
@@ -489,7 +511,7 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
                 <input
                   type="datetime-local"
                   value={keyForm.expires_at}
-                  onChange={(e) => setKeyForm({...keyForm, expires_at: e.target.value})}
+                  onChange={(e) => setKeyForm({ ...keyForm, expires_at: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded-lg"
                 />
               </div>

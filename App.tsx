@@ -37,6 +37,7 @@ import { useStudents } from './components/DashboardSuperAdmin/hooks/useStudents'
 import { useTeachers } from './components/DashboardSuperAdmin/hooks/useTeachers';
 import { useClasses } from './components/DashboardSuperAdmin/hooks/useClasses';
 import { useSubjects } from './components/DashboardSuperAdmin/hooks/useSubjects';
+import { supabase, isSupabaseConfigured } from './src/lib/supabase';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('beranda');
@@ -47,6 +48,52 @@ const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // --- PERSISTENT SESSION CHECK ---
+  useEffect(() => {
+    const checkSession = async () => {
+      if (!isSupabaseConfigured()) return;
+
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profile) {
+            setUserRole(profile.role);
+            setCurrentUser({
+              id: session.user.id,
+              nama: profile.full_name,
+              email: profile.email,
+              role: profile.role,
+              avatar: profile.avatar_url || 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=100&auto=format&fit=crop'
+            });
+            setIsLoggedIn(true);
+          }
+        } catch (e) {
+          console.error("Session profile sync error", e);
+        }
+      }
+    };
+
+    checkSession();
+
+    // Listen for auth changes
+    if (isSupabaseConfigured()) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!session) {
+          handleLogout();
+        }
+      });
+
+      return () => subscription.unsubscribe();
+    }
+  }, []);
 
   // --- INTEGRATED DATA HOOKS ---
   const { students } = useStudents();
@@ -100,7 +147,10 @@ const App: React.FC = () => {
     setIsLoggedIn(true);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (isSupabaseConfigured()) {
+      await supabase.auth.signOut();
+    }
     setIsLoggedIn(false);
     setUserRole('');
     setCurrentUser(null);

@@ -4,17 +4,33 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
-}
+// Helper to check if credentials are valid (not placeholders)
+const isConfigured =
+  supabaseUrl &&
+  supabaseAnonKey &&
+  !supabaseUrl.includes('[PROJECT-ID]') &&
+  !supabaseUrl.includes('your-project-id') &&
+  !supabaseAnonKey.includes('[YOUR-ANON-KEY]') &&
+  !supabaseAnonKey.includes('your-supabase-anon-key');
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  }
-})
+// Create a safe client or null
+export const supabase = isConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
+  })
+  : null as any;
+
+// Helper to check if Supabase is properly configured
+export const isSupabaseConfigured = () => !!isConfigured;
+export const getSupabaseConfigError = () => {
+  if (!supabaseUrl || !supabaseAnonKey) return 'Missing Supabase environment variables in .env.local';
+  if (!isConfigured) return 'Supabase environment variables are still using placeholder values';
+  return null;
+};
 
 // Database Types (generated from schema)
 export type Database = {

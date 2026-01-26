@@ -1,7 +1,107 @@
 import { GoogleGenAI } from '@google/genai';
+import { supabase } from '../src/lib/supabase';
 
-// Inisialisasi Google Gemini AI
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+// Cache untuk API key dan client
+let geminiClient: GoogleGenAI | null = null;
+let cachedApiKey: string | null = null;
+
+/**
+ * Mendapatkan API key aktif dari database
+ */
+async function getActiveApiKey(providerType: string = 'gemini'): Promise<string> {
+  try {
+    // Cek cache terlebih dahulu
+    if (cachedApiKey) {
+      return cachedApiKey;
+    }
+
+    // Query API key aktif dari database
+    const { data, error } = await supabase
+      .from('ai_api_keys')
+      .select(`
+        encrypted_key,
+        ai_providers!inner(provider_type)
+      `)
+      .eq('is_active', true)
+      .eq('ai_providers.provider_type', providerType)
+      .order('last_used_at', { ascending: false, nullsFirst: true })
+      .limit(1)
+      .single();
+
+    if (error || !data) {
+      // Fallback ke environment variables jika database belum siap
+      const envKey = process.env.GEMINI_API_KEY;
+      if (envKey && envKey !== 'your_gemini_api_key_here') {
+        cachedApiKey = envKey;
+        return envKey;
+      }
+      throw new Error('Tidak ada API key aktif untuk provider Gemini');
+    }
+
+    // Decrypt API key (dalam implementasi nyata, gunakan proper encryption)
+    // Untuk sekarang, asumsikan key tersimpan dalam plain text
+    cachedApiKey = data.encrypted_key;
+    return cachedApiKey;
+
+  } catch (error) {
+    console.error('Error getting API key:', error);
+    throw new Error('Gagal mendapatkan API key dari database');
+  }
+}
+
+/**
+ * Mendapatkan atau membuat Gemini client
+ */
+async function getGeminiClient(): Promise<GoogleGenAI> {
+  if (!geminiClient) {
+    const apiKey = await getActiveApiKey('gemini');
+    geminiClient = new GoogleGenAI({ apiKey });
+  }
+  return geminiClient;
+}
+
+/**
+ * Simpan chat session ke database
+ */
+export async function saveChatSession(userId: string, message: string, response: string): Promise<void> {
+  try {
+    // Buat session baru atau dapatkan yang existing
+    const { data: session, error: sessionError } = await supabase
+      .from('ai_chat_sessions')
+      .insert({
+        user_id: userId,
+        provider_type: 'gemini',
+        title: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (sessionError) {
+      console.warn('Failed to create chat session:', sessionError);
+      return;
+    }
+
+    // Simpan pesan user
+    await supabase.from('ai_chat_messages').insert({
+      session_id: session.id,
+      role: 'user',
+      content: message,
+      created_at: new Date().toISOString()
+    });
+
+    // Simpan respons AI
+    await supabase.from('ai_chat_messages').insert({
+      session_id: session.id,
+      role: 'assistant',
+      content: response,
+      created_at: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.warn('Failed to save chat session:', error);
+  }
+}
 
 export interface GeminiMessage {
   role: 'user' | 'model';
@@ -21,10 +121,8 @@ export interface ChatSession {
  */
 export async function sendToGemini(message: string, history: GeminiMessage[] = []): Promise<string> {
   try {
-    // Validasi API key
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY tidak ditemukan. Silakan tambahkan API key ke file .env.local');
-    }
+    // Dapatkan Gemini client dengan API key dari database
+    const genAI = await getGeminiClient();
 
     // Konfigurasi request
     const contents = [
@@ -75,6 +173,9 @@ export async function sendToGemini(message: string, history: GeminiMessage[] = [
 
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text || 'Maaf, saya tidak dapat memproses permintaan Anda saat ini.';
 
+    // Update usage count setelah berhasil
+    await updateApiKeyUsage();
+
     return text;
 
   } catch (error) {
@@ -82,11 +183,11 @@ export async function sendToGemini(message: string, history: GeminiMessage[] = [
 
     // Handle berbagai jenis error
     if (error instanceof Error) {
-      if (error.message.includes('API_KEY')) {
-        return '❌ API Key Google Gemini belum dikonfigurasi. Silakan hubungi administrator untuk mengatur API key.';
+      if (error.message.includes('API_KEY') || error.message.includes('Tidak ada API key')) {
+        return '❌ API Key Google Gemini belum dikonfigurasi. Silakan hubungi administrator untuk mengatur API key di menu Manajemen AI.';
       }
       if (error.message.includes('quota') || error.message.includes('limit')) {
-        return '❌ Kuota API Google Gemini telah habis. Silakan coba lagi nanti.';
+        return '❌ Kuota API Google Gemini telah habis. Administrator akan mengatur API key baru di menu Manajemen AI.';
       }
       if (error.message.includes('network') || error.message.includes('fetch')) {
         return '❌ Tidak dapat terhubung ke server AI. Periksa koneksi internet Anda.';

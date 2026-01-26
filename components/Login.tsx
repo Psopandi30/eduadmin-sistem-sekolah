@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, Lock, ArrowRight } from 'lucide-react';
 import { studentsDataGlobal, classesDataGlobal, teachersDataGlobal } from '../data/sharedData';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 
 interface LoginProps {
     onLogin: (role: string, userData: any) => void;
@@ -16,11 +17,61 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setIsLoading(true);
 
+        // 1. ATTEMPT SUPABASE AUTH (IF CONFIGURED)
+        if (isSupabaseConfigured()) {
+            try {
+                // Determine if username is email. If not, we might need a lookup or just try email login.
+                const email = username.includes('@') ? username : `${username}@eduadmin.com`; // Fallback format
+
+                const { data, error: authError } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (authError) {
+                    // If auth fails, try legacy/fallback check before giving up
+                    handleLegacyLogin();
+                    return;
+                }
+
+                if (data.user) {
+                    // Fetch profile to get role
+                    const { data: profile, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', data.user.id)
+                        .single();
+
+                    if (profileError) throw profileError;
+
+                    onLogin(profile.role, {
+                        id: data.user.id,
+                        nama: profile.full_name,
+                        email: profile.email,
+                        role: profile.role,
+                        avatar: profile.avatar_url || 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=100&auto=format&fit=crop'
+                    });
+                    setIsLoading(false);
+                    return;
+                }
+            } catch (err: any) {
+                console.error("Auth error:", err);
+                setError(err.message || "Gagal melakukan login database");
+                setIsLoading(false);
+                return;
+            }
+        } else {
+            // IF NOT CONFIGURED, USE LEGACY
+            handleLegacyLogin();
+        }
+    };
+
+    const handleLegacyLogin = () => {
         // Simulate network delay for effect
         setTimeout(() => {
             // 1. Check for Student/Parent Login (Linked to Data Siswa)
@@ -91,7 +142,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
 
             // If no match found
             if (username && password) {
-                setError('Username atau password salah!');
+                setError('Username atau password salah! (Database belum terhubung)');
             } else {
                 setError('Mohon isi username dan password');
             }
