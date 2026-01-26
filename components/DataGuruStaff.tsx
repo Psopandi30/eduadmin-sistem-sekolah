@@ -92,13 +92,13 @@ const DataGuruStaff: React.FC<DataGuruStaffProps> = ({
 
   // --- JABATAN ---
   const [jabatanList, setJabatanList] = useState([
-    { no: 1, kode: 'JBT-001', nama: 'Kepala Sekolah', kategori: 'Struktural', jumlah: '1 Orang', akses: 'Super Admin' },
-    { no: 2, kode: 'JBT-002', nama: 'Guru Kelas', kategori: 'Pendidik', jumlah: '12 Orang', akses: 'Guru' },
-    { no: 3, kode: 'JBT-003', nama: 'Guru Mata Pelajaran', kategori: 'Pendidik', jumlah: '8 Orang', akses: 'Guru' },
-    { no: 4, kode: 'JBT-004', nama: 'Staff Tata Usaha', kategori: 'Tenaga Kependidikan', jumlah: '3 Orang', akses: 'Staff' },
+    { no: 1, kode: 'JBT-001', nama: 'Kepala Sekolah', kategori: 'Struktural', jumlah: '1 Orang', akses: 'Super Admin', roleCode: 'ks' },
+    { no: 2, kode: 'JBT-002', nama: 'Guru Kelas', kategori: 'Pendidik', jumlah: '12 Orang', akses: 'Guru', roleCode: 'wk' },
+    { no: 3, kode: 'JBT-003', nama: 'Guru Mata Pelajaran', kategori: 'Pendidik', jumlah: '8 Orang', akses: 'Guru', roleCode: 'gm' },
+    { no: 4, kode: 'JBT-004', nama: 'Staff Tata Usaha', kategori: 'Tenaga Kependidikan', jumlah: '3 Orang', akses: 'Staff', roleCode: 'admin' },
   ]);
   const [isJabatanModalOpen, setIsJabatanModalOpen] = useState(false);
-  const [jabatanForm, setJabatanForm] = useState({ id: null as number | null, nama: '', kategori: '', akses: '' });
+  const [jabatanForm, setJabatanForm] = useState({ id: null as number | null, nama: '', kategori: '', akses: '', roleCode: '' });
 
   // --- STAF ---
   // Using shared state or fallback (though fallback shouldn't be reached if App passes it)
@@ -181,12 +181,22 @@ const DataGuruStaff: React.FC<DataGuruStaffProps> = ({
   };
 
   // --- JABATAN HANDLERS ---
+  const getRoleCodeFromAkses = (akses: string): string => {
+    switch (akses) {
+      case 'Super Admin': return 'admin';
+      case 'Admin': return 'admin';
+      case 'Guru': return 'gm'; // Default ke Guru Mata Pelajaran
+      case 'Staff': return 'admin'; // Staff menggunakan admin role
+      default: return '';
+    }
+  };
+
   const handleOpenAddJabatan = () => {
-    setJabatanForm({ id: null, nama: '', kategori: '', akses: '' });
+    setJabatanForm({ id: null, nama: '', kategori: '', akses: '', roleCode: '' });
     setIsJabatanModalOpen(true);
   };
   const handleEditJabatan = (item: any) => {
-    setJabatanForm({ id: item.no, nama: item.nama, kategori: item.kategori, akses: item.akses });
+    setJabatanForm({ id: item.no, nama: item.nama, kategori: item.kategori, akses: item.akses, roleCode: item.roleCode || '' });
     setIsJabatanModalOpen(true);
   };
   const handleSaveJabatan = () => {
@@ -522,7 +532,12 @@ const DataGuruStaff: React.FC<DataGuruStaffProps> = ({
               <div className="p-6 space-y-4">
                 <div className="space-y-1"><label className="text-sm font-bold text-slate-700">Nama Jabatan</label><input type="text" className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={jabatanForm.nama} onChange={e => setJabatanForm({ ...jabatanForm, nama: e.target.value })} /></div>
                 <div className="space-y-1"><label className="text-sm font-bold text-slate-700">Kategori</label><select className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={jabatanForm.kategori} onChange={e => setJabatanForm({ ...jabatanForm, kategori: e.target.value })}><option value="">Pilih Kategori</option><option value="Struktural">Struktural</option><option value="Pendidik">Pendidik</option><option value="Tenaga Kependidikan">Tenaga Kependidikan</option></select></div>
-                <div className="space-y-1"><label className="text-sm font-bold text-slate-700">Akses Sistem</label><select className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={jabatanForm.akses} onChange={e => setJabatanForm({ ...jabatanForm, akses: e.target.value })}><option value="">Pilih Akses</option><option value="Super Admin">Super Admin</option><option value="Admin">Admin</option><option value="Guru">Guru</option><option value="Staff">Staff</option></select></div>
+                <div className="space-y-1"><label className="text-sm font-bold text-slate-700">Akses Sistem</label><select className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={jabatanForm.akses} onChange={e => {
+                  const akses = e.target.value;
+                  const roleCode = getRoleCodeFromAkses(akses);
+                  setJabatanForm({ ...jabatanForm, akses, roleCode });
+                }}><option value="">Pilih Akses</option><option value="Super Admin">Super Admin</option><option value="Admin">Admin</option><option value="Guru">Guru</option><option value="Staff">Staff</option></select></div>
+                <div className="space-y-1"><label className="text-sm font-bold text-slate-700">Role Code</label><select className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={jabatanForm.roleCode} onChange={e => setJabatanForm({ ...jabatanForm, roleCode: e.target.value })}><option value="">Pilih Role Code</option><option value="admin">admin (Super Admin)</option><option value="ks">ks (Kepala Sekolah)</option><option value="gm">gm (Guru Mata Pelajaran)</option><option value="wk">wk (Wali Kelas)</option><option value="gb">gb (Guru Bimbel)</option></select></div>
               </div>
               <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
                 <button onClick={() => setIsJabatanModalOpen(false)} className="px-4 py-2 text-slate-600 font-bold hover:bg-white rounded-lg border border-transparent hover:border-slate-200">Batal</button>
