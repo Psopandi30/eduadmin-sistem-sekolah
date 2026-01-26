@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronRight, Send, Bot, User, RefreshCw, Clock, MessageSquare, Plus, Trash2, Sparkles, AlertCircle, ArrowLeft } from 'lucide-react';
+import { sendToGemini, generateChatTitle, type GeminiMessage } from '../utils/geminiService';
 
 interface BelajarAISiswaProps {
     onBack: () => void;
@@ -29,6 +30,7 @@ const BelajarAISiswa: React.FC<BelajarAISiswaProps> = ({ onBack }) => {
         }
     ]);
     const [isTyping, setIsTyping] = useState(false);
+    const [chatHistory, setChatHistory] = useState<GeminiMessage[]>([]);
     const [history, setHistory] = useState<ChatSession[]>([
         { id: '1', title: 'Belajar Rumus Pythagoras', date: new Date(Date.now() - 86400000) },
         { id: '2', title: 'Ide Cerita Pendek Hewan', date: new Date(Date.now() - 172800000) },
@@ -54,38 +56,54 @@ const BelajarAISiswa: React.FC<BelajarAISiswaProps> = ({ onBack }) => {
         };
 
         setMessages(prev => [...prev, userMessage]);
+        const currentInput = input;
         setInput('');
         setIsTyping(true);
 
-        // Simulate AI Response (In real impl, call Google Gemini / Groq API here)
+        // Jika ini pesan pertama setelah reset, buat session baru
+        if (chatHistory.length === 0 && messages.length === 2) { // 2 karena welcome message + user message
+            handleNewChat(currentInput);
+        }
+
         try {
-            // Mock delay
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // Panggil Google Gemini API
+            const aiResponseText = await sendToGemini(currentInput, chatHistory);
+
+            // Update chat history untuk Gemini
+            const newHistory: GeminiMessage[] = [
+                ...chatHistory,
+                { role: 'user', parts: currentInput },
+                { role: 'model', parts: aiResponseText }
+            ];
+            setChatHistory(newHistory);
 
             const aiResponse: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: generateMockResponse(userMessage.content),
+                content: aiResponseText,
                 timestamp: new Date()
             };
 
             setMessages(prev => [...prev, aiResponse]);
         } catch (error) {
-            console.error(error);
+            console.error('Error in handleSend:', error);
+
+            const errorMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: 'Maaf, terjadi kesalahan saat memproses pesan Anda. Silakan coba lagi.',
+                timestamp: new Date()
+            };
+
+            setMessages(prev => [...prev, errorMessage]);
         } finally {
             setIsTyping(false);
         }
     };
 
-    const generateMockResponse = (query: string): string => {
-        const lower = query.toLowerCase();
-        if (lower.includes('matematika') || lower.includes('hitung')) return "Tentu! Matematika itu asyik. Mau belajar topik apa? Penjumlahan, perkalian, atau pecahan?";
-        if (lower.includes('puisi')) return "Bunga mawar merah merona,\nDi taman indah mempesona.\nBelajar itu sungguh berguna,\nAgar masa depan cerah berwarna.";
-        if (lower.includes('terima kasih')) return "Sama-sama! Semangat belajar ya!";
-        return "Pertanyaan yang menarik! Saya sedang mensimulasikan jawaban AI. Nanti jika API sudah terhubung, saya bisa menjawab lebih detail tentang '" + query + "'.";
-    };
+    const handleNewChat = (firstMessage?: string) => {
+        const title = firstMessage ? generateChatTitle(firstMessage) : 'Belajar Bersama AI';
 
-    const handleNewChat = () => {
         setMessages([
             {
                 id: Date.now().toString(),
@@ -94,6 +112,17 @@ const BelajarAISiswa: React.FC<BelajarAISiswaProps> = ({ onBack }) => {
                 timestamp: new Date()
             }
         ]);
+        setChatHistory([]); // Reset chat history untuk Gemini
+
+        // Tambahkan ke history jika ada firstMessage
+        if (firstMessage) {
+            const newSession: ChatSession = {
+                id: Date.now().toString(),
+                title: title,
+                date: new Date()
+            };
+            setHistory(prev => [newSession, ...prev]);
+        }
     };
 
     return (

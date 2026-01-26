@@ -599,6 +599,158 @@ WHERE e.expense_date >= CURRENT_DATE - INTERVAL '30 days'
 GROUP BY e.expense_date;
 
 -- =========================================
+-- 15. AI PROVIDERS & API KEYS MANAGEMENT
+-- =========================================
+
+-- AI Provider types enum
+CREATE TYPE ai_provider_type AS ENUM ('gemini', 'openai', 'groq', 'anthropic', 'socratic', 'custom');
+
+-- AI Providers table
+CREATE TABLE public.ai_providers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL, -- Display name (e.g., "Google Gemini", "ChatGPT", "Groq")
+    provider_type ai_provider_type NOT NULL,
+    base_url TEXT, -- For custom providers
+    model_name TEXT NOT NULL, -- Model identifier (e.g., "gemini-1.5-flash", "gpt-4", "llama2-70b")
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    max_tokens INTEGER DEFAULT 4096,
+    temperature DECIMAL(3,2) DEFAULT 0.7,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- API Keys table (encrypted storage)
+CREATE TABLE public.ai_api_keys (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    provider_id UUID REFERENCES public.ai_providers(id) ON DELETE CASCADE,
+    api_key TEXT NOT NULL, -- Will be encrypted
+    is_active BOOLEAN DEFAULT true,
+    usage_count INTEGER DEFAULT 0,
+    last_used_at TIMESTAMP WITH TIME ZONE,
+    expires_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- AI Chat Sessions table
+CREATE TABLE public.ai_chat_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    provider_id UUID REFERENCES public.ai_providers(id) ON DELETE SET NULL,
+    session_title TEXT,
+    message_count INTEGER DEFAULT 0,
+    total_tokens INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- AI Chat Messages table
+CREATE TABLE public.ai_chat_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID REFERENCES public.ai_chat_sessions(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+    content TEXT NOT NULL,
+    tokens_used INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- System settings for AI
+CREATE TABLE public.ai_system_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    setting_key TEXT UNIQUE NOT NULL,
+    setting_value TEXT,
+    setting_type TEXT DEFAULT 'string' CHECK (setting_type IN ('string', 'number', 'boolean', 'json')),
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Insert default AI providers
+INSERT INTO public.ai_providers (name, provider_type, model_name, description, max_tokens, temperature) VALUES
+('Google Gemini 1.5 Flash', 'gemini', 'gemini-1.5-flash', 'Google Gemini 1.5 Flash - Cepat dan akurat untuk edukasi', 4096, 0.7),
+('Google Gemini 1.5 Pro', 'gemini', 'gemini-1.5-pro', 'Google Gemini 1.5 Pro - Model paling canggih dari Google', 8192, 0.7),
+('ChatGPT 4', 'openai', 'gpt-4', 'OpenAI GPT-4 - Model terdepan untuk percakapan', 8192, 0.7),
+('ChatGPT 3.5 Turbo', 'openai', 'gpt-3.5-turbo', 'OpenAI GPT-3.5 Turbo - Cepat dan efisien', 4096, 0.7),
+('Groq Llama 2 70B', 'groq', 'llama2-70b-4096', 'Groq Llama 2 70B - Sangat cepat untuk inferensi', 4096, 0.7),
+('Groq Mixtral 8x7B', 'groq', 'mixtral-8x7b-32768', 'Groq Mixtral 8x7B - Model mixture of experts', 32768, 0.7),
+('Claude 3 Sonnet', 'anthropic', 'claude-3-sonnet-20240229', 'Anthropic Claude 3 Sonnet - Balanced performance', 4096, 0.7),
+('Claude 3 Haiku', 'anthropic', 'claude-3-haiku-20240307', 'Anthropic Claude 3 Haiku - Cepat dan efisien', 4096, 0.7),
+('Socratic by Google', 'socratic', 'socratic-v1', 'Socratic by Google - Spesialis untuk pembelajaran', 4096, 0.7);
+
+-- Insert default system settings
+INSERT INTO public.ai_system_settings (setting_key, setting_value, setting_type, description) VALUES
+('default_provider', 'gemini-1.5-flash', 'string', 'Provider AI default yang digunakan'),
+('max_tokens_per_request', '2048', 'number', 'Batas maksimal token per request'),
+('rate_limit_per_minute', '10', 'number', 'Batas request per menit per user'),
+('enable_chat_history', 'true', 'boolean', 'Aktifkan penyimpanan riwayat chat'),
+('system_prompt_education', 'Kamu adalah asisten AI pembelajaran yang ramah dan membantu untuk siswa sekolah dasar di Indonesia...', 'string', 'System prompt untuk mode edukasi');
+
+-- =========================================
+-- RLS POLICIES FOR AI TABLES
+-- =========================================
+
+-- AI Providers: Only admins can manage
+ALTER TABLE public.ai_providers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "AI providers are viewable by all authenticated users" ON public.ai_providers
+    FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "AI providers are manageable by admins only" ON public.ai_providers
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND role = 'admin'
+        )
+    );
+
+-- API Keys: Only admins can manage, encrypted storage
+ALTER TABLE public.ai_api_keys ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "API keys are manageable by admins only" ON public.ai_api_keys
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND role = 'admin'
+        )
+    );
+
+-- AI Chat Sessions: Users can only access their own sessions
+ALTER TABLE public.ai_chat_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their own chat sessions" ON public.ai_chat_sessions
+    FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own chat sessions" ON public.ai_chat_sessions
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own chat sessions" ON public.ai_chat_sessions
+    FOR UPDATE USING (auth.uid() = user_id);
+
+-- AI Chat Messages: Users can only access messages from their sessions
+ALTER TABLE public.ai_chat_messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view messages from their sessions" ON public.ai_chat_messages
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.ai_chat_sessions
+            WHERE id = session_id AND user_id = auth.uid()
+        )
+    );
+CREATE POLICY "Users can create messages in their sessions" ON public.ai_chat_messages
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.ai_chat_sessions
+            WHERE id = session_id AND user_id = auth.uid()
+        )
+    );
+
+-- AI System Settings: Only admins can manage
+ALTER TABLE public.ai_system_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "AI settings are viewable by all authenticated users" ON public.ai_system_settings
+    FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "AI settings are manageable by admins only" ON public.ai_system_settings
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid() AND role = 'admin'
+        )
+    );
+
+-- =========================================
 -- END OF SCHEMA
 -- =========================================
 

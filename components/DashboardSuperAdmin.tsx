@@ -48,6 +48,7 @@ import JadwalPelajaranView from './DashboardSuperAdmin/components/views/JadwalPe
 import AbsensiView from './DashboardSuperAdmin/components/views/AbsensiView';
 
 import SettingsView from './DashboardSuperAdmin/components/views/SettingsView';
+import AIManagementView from './DashboardSuperAdmin/components/views/AIManagementView';
 import { useStudents } from './DashboardSuperAdmin/hooks/useStudents';
 import { useTeachers } from './DashboardSuperAdmin/hooks/useTeachers';
 import { useClasses } from './DashboardSuperAdmin/hooks/useClasses';
@@ -2784,6 +2785,13 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout }) => {
 
                     {/* --- VIEW: PENGATURAN --- */}
                     {activeView === 'settings' && <SettingsView />}
+
+                    {/* --- VIEW: AI MANAGEMENT --- */}
+                    {activeView === 'ai_management' && (
+                        <div className="bg-white rounded-[2.5rem] p-6 h-full shadow-sm animate-in fade-in overflow-hidden">
+                            <AIManagementView onBack={() => setActiveView('dashboard')} />
+                        </div>
+                    )}
 
 
 

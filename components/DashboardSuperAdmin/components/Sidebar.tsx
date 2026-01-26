@@ -51,6 +51,7 @@ const menuItems: MenuItem[] = [
     { id: 'pengumuman', label: 'Pengumuman', icon: <Megaphone size={20} /> },
     { id: 'laporan', label: 'Laporan', icon: <FileText size={20} /> },
     { id: 'multimedia', label: 'Manajemen Multimedia', icon: <Video size={20} /> },
+    { id: 'ai_management', label: 'Manajemen AI', icon: <BookHeart size={20} /> },
     { id: 'settings', label: 'Pengaturan', icon: <Settings size={20} /> },
 ];
 
