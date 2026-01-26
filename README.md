@@ -42,11 +42,23 @@ Sistem informasi lengkap untuk pengelolaan sekolah dasar (SD) yang mencakup mana
    npm install
    ```
 
-3. **Setup environment variables**:
-   - Copy `.env.example` ke `.env.local`
-   - Isi `GEMINI_API_KEY` dengan API key Google Gemini Anda
+4. **Setup Supabase Database**:
+   - Buat project baru di [Supabase](https://supabase.com)
+   - Jalankan SQL script dari `supabase_schema.sql` di SQL Editor
+   - Jalankan migration script dari `supabase_migration.sql`
+   - Copy environment variables ke `.env.local`
 
-4. **Jalankan development server**:
+5. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+6. **Setup environment variables**:
+   - Copy `.env.example` ke `.env.local`
+   - Isi `VITE_SUPABASE_URL` dan `VITE_SUPABASE_ANON_KEY`
+   - Isi `GEMINI_API_KEY` untuk fitur AI
+
+7. **Jalankan development server**:
    ```bash
    npm run dev
    ```

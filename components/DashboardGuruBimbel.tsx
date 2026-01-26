@@ -15,14 +15,12 @@ import {
     LogOut,
     ChevronRight,
     Megaphone,
-    Search,
-    Library
+    Search
 } from 'lucide-react';
 
 import AlQuranSiswa from './AlQuranSiswa';
 import ChannelSekolahSiswa from './ChannelSekolahSiswa';
 import BelajarAISiswa from './BelajarAISiswa';
-import PerpustakaanSiswa from './PerpustakaanSiswa';
 import NotifikasiSiswa from './NotifikasiSiswa';
 import InputMateriBimbelLengkap from './InputMateriBimbelLengkap';
 import NotepadGuru from './NotepadGuru';
@@ -40,7 +38,7 @@ interface DashboardGuruBimbelProps {
 
 const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogout, schoolName = "SD Normal Islam Samarinda" }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [activeView, setActiveView] = useState<'home' | 'jadwal' | 'kehadiran' | 'nilai' | 'latihan' | 'quran' | 'channel' | 'ai' | 'informasi' | 'library' | 'notepad' | 'notifikasi' | 'profile'>('home');
+    const [activeView, setActiveView] = useState<'home' | 'jadwal' | 'kehadiran' | 'nilai' | 'latihan' | 'quran' | 'channel' | 'ai' | 'informasi' | 'notepad' | 'notifikasi' | 'profile'>('home');
 
     const { tutoringClasses, addSession } = useTutoring();
 
@@ -63,7 +61,6 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
         { id: 'quran', label: 'Al Quran', icon: <Book size={24} />, color: 'bg-green-600' },
         { id: 'channel', label: 'Chanel sekolah ku', icon: <Tv size={24} />, color: 'bg-red-600' },
         { id: 'ai', label: 'Belajar dengan ku', icon: <Bot size={24} />, color: 'bg-cyan-500' },
-        { id: 'library', label: 'Perpustakaan', icon: <Library size={24} />, color: 'bg-fuchsia-500' },
         { id: 'notepad', label: 'Notepad', icon: <StickyNote size={24} />, color: 'bg-amber-500' },
         { id: 'informasi', label: 'Informasi', icon: <Megaphone size={24} />, color: 'bg-orange-500' },
     ];
@@ -158,7 +155,6 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
                                                 else if (item.id === 'quran') setActiveView('quran');
                                                 else if (item.id === 'channel') setActiveView('channel');
                                                 else if (item.id === 'ai') setActiveView('ai');
-                                                else if (item.id === 'library') setActiveView('library');
                                             }}
                                             className="flex flex-col items-center gap-3 group w-full"
                                         >
@@ -192,8 +188,6 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
                             <NotepadGuru onBack={() => setActiveView('home')} />
                         ) : activeView === 'ai' ? (
                             <BelajarAISiswa onBack={() => setActiveView('home')} />
-                        ) : activeView === 'library' ? (
-                            <PerpustakaanSiswa onBack={() => setActiveView('home')} />
                         ) : activeView === 'notifikasi' ? (
                             <NotifikasiSiswa onBack={() => setActiveView('home')} />
                         ) : activeView === 'profile' ? (

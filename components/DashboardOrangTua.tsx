@@ -18,8 +18,7 @@ import {
     LogOut,
     ChevronRight,
     Search,
-    Wallet,
-    Library
+    Wallet
 } from 'lucide-react';
 
 import JadwalPelajaran from './JadwalPelajaran';
@@ -36,7 +35,6 @@ import BelajarAISiswa from './BelajarAISiswa';
 import GameEdukasiSiswa from './GameEdukasiSiswa';
 import ProfilAkun from './ProfilAkun';
 import NotifikasiSiswa from './NotifikasiSiswa';
-import PerpustakaanSiswa from './PerpustakaanSiswa';
 
 interface DashboardOrangTuaProps {
     user: any;
@@ -50,7 +48,7 @@ import { announcementDataGlobal } from '../data/sharedData';
 
 const DashboardOrangTua: React.FC<DashboardOrangTuaProps> = ({ user, onLogout, schoolName = "SD IT EduAdmin" }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [activeView, setActiveView] = useState<'home' | 'jadwal' | 'ujian' | 'hasil' | 'absen' | 'bayar' | 'tabungan' | 'bimbingan' | 'latihan' | 'quran' | 'channel' | 'ai' | 'library' | 'profile' | 'notifikasi'>('home');
+    const [activeView, setActiveView] = useState<'home' | 'jadwal' | 'ujian' | 'hasil' | 'absen' | 'bayar' | 'tabungan' | 'bimbingan' | 'latihan' | 'quran' | 'channel' | 'ai' | 'profile' | 'notifikasi'>('home');
 
     // Sync Announcements
     const [announcements, setAnnouncements] = useState(announcementDataGlobal);
@@ -82,7 +80,6 @@ const DashboardOrangTua: React.FC<DashboardOrangTuaProps> = ({ user, onLogout, s
         { id: 'quran', label: 'Al Quran', icon: <Book size={24} />, color: 'bg-green-600' },
         { id: 'channel', label: 'Channel Sekolah', icon: <Tv size={24} />, color: 'bg-red-600' },
         { id: 'ai', label: 'Belajar AI', icon: <Bot size={24} />, color: 'bg-cyan-500' },
-        { id: 'library', label: 'Perpustakaan', icon: <Library size={24} />, color: 'bg-fuchsia-500' },
     ];
 
     return (
@@ -161,7 +158,6 @@ const DashboardOrangTua: React.FC<DashboardOrangTuaProps> = ({ user, onLogout, s
                                                 else if (item.id === 'quran') setActiveView('quran');
                                                 else if (item.id === 'channel') setActiveView('channel');
                                                 else if (item.id === 'ai') setActiveView('ai');
-                                                else if (item.id === 'library') setActiveView('library');
                                             }}
                                             className="flex flex-col items-center gap-3 group w-full"
                                         >
@@ -198,8 +194,6 @@ const DashboardOrangTua: React.FC<DashboardOrangTuaProps> = ({ user, onLogout, s
                             <ChannelSekolahSiswa onBack={() => setActiveView('home')} />
                         ) : activeView === 'ai' ? (
                             <BelajarAISiswa onBack={() => setActiveView('home')} />
-                        ) : activeView === 'library' ? (
-                            <PerpustakaanSiswa onBack={() => setActiveView('home')} />
                         ) : activeView === 'profile' ? (
                             <ProfilAkun user={user} onLogout={onLogout} onBack={() => setActiveView('home')} />
                         ) : activeView === 'notifikasi' ? (

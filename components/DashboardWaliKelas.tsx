@@ -17,7 +17,6 @@ import {
     ChevronRight,
     Megaphone,
     Search,
-    Library,
     FileSpreadsheet,
     FileText
 } from 'lucide-react';
@@ -25,7 +24,6 @@ import {
 import AlQuranSiswa from './AlQuranSiswa';
 import ChannelSekolahSiswa from './ChannelSekolahSiswa';
 import BelajarAISiswa from './BelajarAISiswa';
-import PerpustakaanSiswa from './PerpustakaanSiswa';
 import NotifikasiSiswa from './NotifikasiSiswa';
 import JadwalMengajarGuru from './JadwalMengajarGuru';
 import KehadiranSiswaGuru from './KehadiranSiswaGuru';
@@ -45,7 +43,7 @@ interface DashboardWaliKelasProps {
 
 const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout, schoolName = "SD Normal Islam Samarinda" }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [activeView, setActiveView] = useState<'home' | 'jadwal' | 'kehadiran' | 'nilai' | 'deskripsi' | 'raport' | 'latihan' | 'quran' | 'channel' | 'ai' | 'informasi' | 'library' | 'notepad' | 'notifikasi' | 'profile'>('home');
+    const [activeView, setActiveView] = useState<'home' | 'jadwal' | 'kehadiran' | 'nilai' | 'deskripsi' | 'raport' | 'latihan' | 'quran' | 'channel' | 'ai' | 'informasi' | 'notepad' | 'notifikasi' | 'profile'>('home');
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -63,7 +61,6 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
         { id: 'quran', label: 'Al Quran', icon: <Book size={24} />, color: 'bg-green-600' },
         { id: 'channel', label: 'Channel sekolah ku', icon: <Tv size={24} />, color: 'bg-red-600' },
         { id: 'ai', label: 'Belajar dengan ku', icon: <Bot size={24} />, color: 'bg-cyan-500' },
-        { id: 'library', label: 'Perpustakaan', icon: <Library size={24} />, color: 'bg-fuchsia-500' },
         { id: 'notepad', label: 'Notepad', icon: <StickyNote size={24} />, color: 'bg-amber-500' },
         { id: 'informasi', label: 'Informasi', icon: <Megaphone size={24} />, color: 'bg-orange-500' },
     ];
@@ -230,8 +227,6 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
                             <ChannelSekolahSiswa onBack={() => setActiveView('home')} />
                         ) : activeView === 'ai' ? (
                             <BelajarAISiswa onBack={() => setActiveView('home')} />
-                        ) : activeView === 'library' ? (
-                            <PerpustakaanSiswa onBack={() => setActiveView('home')} />
                         ) : activeView === 'notifikasi' ? (
                             <NotifikasiSiswa onBack={() => setActiveView('home')} />
                         ) : activeView === 'profile' ? (
