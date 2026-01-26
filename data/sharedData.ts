@@ -94,7 +94,9 @@ export const schoolSettingsGlobal = {
     nipPrincipal: "",
     academicYear: "2025/2026",
     semester: "Ganjil",
-    appName: "EduAdmin"
+    appName: "EduAdmin",
+    logo: "",
+    icon: ""
 };
 
 // --- 8. DATA TABUNGAN (GLOBAL SYNC) ---

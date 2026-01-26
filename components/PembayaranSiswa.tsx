@@ -16,8 +16,8 @@ const PembayaranSiswa: React.FC<PembayaranSiswaProps> = ({ onBack, user }) => {
         const loadFinanceData = () => {
             const studentName = user?.studentName || user?.nama;
 
-            // 1. Load History
-            const rawHistory = localStorage.getItem('payments_data_v1');
+            // 1. Load History (Sync with Admin v10)
+            const rawHistory = localStorage.getItem('payments_data_v10');
             const allHistory = rawHistory ? JSON.parse(rawHistory) : paymentHistoryGlobal;
             const myHistory = allHistory.filter((p: any) =>
                 p.studentName === studentName || String(p.studentId) === String(user?.id)
@@ -25,8 +25,8 @@ const PembayaranSiswa: React.FC<PembayaranSiswaProps> = ({ onBack, user }) => {
             myHistory.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
             setHistoryData(myHistory);
 
-            // 2. Load Bills from Admin useFinance
-            const rawBills = localStorage.getItem('finance_student_bills_v2');
+            // 2. Load Bills from Admin useFinance (Sync with Admin v10)
+            const rawBills = localStorage.getItem('finance_student_bills_v10');
             if (rawBills) {
                 const allBills = JSON.parse(rawBills);
                 const myUnpaid = allBills.filter((b: any) =>

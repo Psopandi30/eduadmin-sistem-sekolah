@@ -43,52 +43,98 @@ const ERapor: React.FC<RaporViewProps> = ({ setActiveView }) => {
         return defaultVal;
     };
 
-    // Mock Data for the selected student's report
-    // In a real app, this would be fetched based on selectedStudentId
-    const reportData = {
-        schoolName: schoolSettingsGlobal.name,
-        schoolAddress: schoolSettingsGlobal.address,
-        studentName: selectedStudentId ? studentsDataGlobal.find(s => s.id === selectedStudentId)?.nama || "Nama Siswa" : "Nama Siswa",
-        nis: selectedStudentId ? studentsDataGlobal.find(s => s.id === selectedStudentId)?.nis || "123456" : "123456",
-        nisn: "0012345678",
-        class: selectedClass,
-        semester: selectedSemester,
-        year: schoolSettingsGlobal.academicYear || "2025/2026",
-        subjects: [
-            { id: 1, name: "Pendidikan Agama dan Budi Pekerti", k_nilai: 85, k_predikat: "B", k_desc: getDynamicDesc('k', "Baik dalam pemahaman"), s_nilai: 86, s_predikat: "B", s_desc: getDynamicDesc('s', "Terampil mempraktikkan") },
-            { id: 2, name: "Pendidikan Pancasila", k_nilai: 90, k_predikat: "A", k_desc: "Sangat baik", s_nilai: 90, s_predikat: "A", s_desc: "Sangat terampil" },
-            { id: 3, name: "Bahasa Indonesia", k_nilai: 78, k_predikat: "A", k_desc: "Baik", s_nilai: 80, s_predikat: "B", s_desc: "Cukup terampil" },
-            { id: 4, name: "Matematika", k_nilai: 82, k_predikat: "B", k_desc: "Perlu bimbingan di perkalian", s_nilai: 85, s_predikat: "B", s_desc: "Terampil berhitung" },
-            { id: 5, name: "Ilmu Pengetahuan Alam dan Sosial", k_nilai: 88, k_predikat: "A", k_desc: "Sangat memahami materi", s_nilai: 88, s_predikat: "A", s_desc: "Sangat terampil" },
-            { id: 6, name: "Seni Budaya", k_nilai: 92, k_predikat: "A", k_desc: "Sangat kreatif", s_nilai: 95, s_predikat: "A", s_desc: "Hasil karya memuaskan" },
-            { id: 7, name: "Pendidikan Jasmani", k_nilai: 85, k_predikat: "B", k_desc: "Bugar dan aktif", s_nilai: 87, s_predikat: "A", s_desc: "Terampil olahraga" },
-            { id: 8, name: "Bahasa Inggris", k_nilai: 94, k_predikat: "A", k_desc: "Excellent", s_nilai: 92, s_predikat: "A", s_desc: "Fluent speaking" },
-        ],
-        attitudes: [
-            { id: 1, type: "Spiritual", desc: "Ananda sangat taat beribadah, selalu berdoa sebelum dan sesudah belajar, serta berperilaku jujur dan santun." },
-            { id: 2, type: "Sosial", desc: "Ananda memiliki sikap sosial yang baik, peduli terhadap teman, disiplin, dan bertanggung jawab dalam tugas piket." }
-        ],
-        extracurriculars: [
-            { id: 1, name: "Pramuka", desc: "Aktif dan disiplin dalam kegiatan kepramukaan." },
-            { id: 2, name: "Futsal", desc: "Memiliki bakat yang baik dalam olahraga futsal." }
-        ],
-        attendance: {
-            sakit: 1,
-            izin: 0,
-            alpha: 0
-        },
-        personalities: [
-            { aspect: "Kerapihan", desc: "Baik" },
-            { aspect: "Kedisiplinan", desc: "Sangat Baik" },
-            { aspect: "Kesehatan", desc: "Sehat" },
-        ],
-        summary: {
-            total: 1250,
-            average: 87.5,
-            final: "A"
-        },
-        decision: "NAIK KE KELAS: 2 (DUA)",
-        date: "20 Desember 2025"
+    // --- REAL DATA INTEGRATION ---
+    const getRealReportData = () => {
+        const student = studentsDataGlobal.find(s => s.id === selectedStudentId);
+        if (!student) return null;
+
+        const subjectListRaw = localStorage.getItem('subjects_data_v2');
+        const subjectsData = subjectListRaw ? JSON.parse(subjectListRaw) : [];
+
+        const subjectsWithGrades = subjectsData.map((sub: any) => {
+            const storageKey = `grades_v2_${selectedClass}_${sub.name}_${selectedSemester}`;
+            const savedGrades = localStorage.getItem(storageKey);
+            let k_nilai = 0;
+            let predikat = 'D';
+            let desc = '-';
+
+            if (savedGrades) {
+                try {
+                    const parsed = JSON.parse(savedGrades);
+                    const record = parsed.find((g: any) => g.studentId === selectedStudentId);
+                    if (record) {
+                        k_nilai = record.finalScore || 0;
+                        predikat = record.predicate || 'D';
+                        desc = record.description || '-';
+                    }
+                } catch (e) {
+                    console.error("Error building report for " + sub.name, e);
+                }
+            }
+
+            return {
+                id: sub.id,
+                name: sub.name,
+                k_nilai: k_nilai,
+                k_predikat: predikat,
+                k_desc: desc,
+                s_nilai: k_nilai, // Simplified: mirrors knowledge for now
+                s_predikat: predikat,
+                s_desc: desc
+            };
+        });
+
+        // Pull Supplementary Data (from Wali Kelas)
+        const suppKey = `rapor_supp_${selectedClass}_${selectedStudentId}_${selectedSemester}`;
+        const savedSupp = localStorage.getItem(suppKey);
+        const supp = savedSupp ? JSON.parse(savedSupp) : {
+            attitudes: [
+                { id: 1, type: "Spiritual", desc: "Ananda sangat taat beribadah dan berperilaku jujur." },
+                { id: 2, type: "Sosial", desc: "Ananda memiliki sikap sosial yang baik dan disiplin." }
+            ],
+            extracurriculars: [{ id: 1, name: "-", desc: "-" }],
+            attendance: { sakit: 0, izin: 0, alpha: 0 },
+            personalities: [
+                { aspect: "Kerapihan", desc: "Baik" },
+                { aspect: "Kedisiplinan", desc: "Baik" },
+                { aspect: "Kesehatan", desc: "Sehat" },
+            ],
+            note: "Pertahankan prestasimu dan tingkatkan belajarmu."
+        };
+
+        return {
+            schoolName: schoolSettingsGlobal.name,
+            schoolAddress: schoolSettingsGlobal.address,
+            studentName: student.nama,
+            nis: student.nis,
+            nisn: student.nisn || "0012345678",
+            class: selectedClass,
+            semester: selectedSemester,
+            year: schoolSettingsGlobal.academicYear || "2025/2026",
+            subjects: subjectsWithGrades,
+            attitudes: supp.attitudes,
+            extracurriculars: supp.extracurriculars,
+            attendance: supp.attendance,
+            personalities: supp.personalities,
+            summary: {
+                total: subjectsWithGrades.reduce((acc: number, s: any) => acc + s.k_nilai, 0),
+                average: subjectsWithGrades.length > 0 ? (subjectsWithGrades.reduce((acc: number, s: any) => acc + s.k_nilai, 0) / subjectsWithGrades.length).toFixed(1) : 0,
+                final: subjectsWithGrades.length > 0 && (subjectsWithGrades.reduce((acc: number, s: any) => acc + s.k_nilai, 0) / subjectsWithGrades.length) >= 75 ? "A" : "B"
+            },
+            decision: selectedSemester.includes('Genap') ? `NAIK KE KELAS: ${parseInt(selectedClass) + 1} (${(parseInt(selectedClass) + 1).toString()})` : "",
+            date: "20 Desember 2025",
+            note: supp.note
+        };
+    };
+
+    const reportData = getRealReportData() || {
+        studentName: "Pilih Siswa",
+        subjects: [],
+        attitudes: [],
+        extracurriculars: [],
+        personalities: [],
+        attendance: { sakit: 0, izin: 0, alpha: 0 },
+        summary: { total: 0, average: 0, final: "-" }
     };
 
     const componentRef = useRef<HTMLDivElement>(null);

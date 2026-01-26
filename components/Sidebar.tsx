@@ -43,9 +43,10 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   isOpen: boolean;
   toggleSidebar: () => void;
+  schoolSettings?: any;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, toggleSidebar }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, toggleSidebar, schoolSettings }) => {
   const menuItems = [
     { id: 'beranda', label: 'Beranda', icon: <LayoutDashboard size={18} /> },
     { id: 'data-siswa', label: 'Data Siswa dan kelas', icon: <Users size={18} /> },
@@ -80,10 +81,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, togg
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-5 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#004AAD] rounded-full flex items-center justify-center text-white font-bold text-xs">
-            LOGO
+          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-[#004AAD] font-bold text-xs overflow-hidden border border-slate-200">
+            {schoolSettings?.logo ? (
+              <img src={schoolSettings.logo} alt="Logo" className="w-full h-full object-contain" />
+            ) : (
+              "LOGO"
+            )}
           </div>
-          <h1 className="font-bold text-[#004AAD] text-sm">Nama Sekolah</h1>
+          <h1 className="font-bold text-[#004AAD] text-sm truncate flex-1">{schoolSettings?.name || "Nama Sekolah"}</h1>
           <button onClick={toggleSidebar} className="ml-auto lg:hidden text-slate-400">
             <X size={20} />
           </button>

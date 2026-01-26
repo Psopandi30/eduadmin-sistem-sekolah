@@ -1,23 +1,56 @@
 import React, { useState } from 'react';
-import { ChevronLeft, Plus, Video, FileText, HelpCircle, Save, Trash2, Edit2, PlayCircle, CheckCircle } from 'lucide-react';
+import { ChevronLeft, Plus, Video, FileText, HelpCircle, Save, Trash2, Edit2, PlayCircle, CheckCircle, Book, Link } from 'lucide-react';
+import { useTutoring } from './DashboardSuperAdmin/hooks/useTutoring';
+import { toast } from 'react-hot-toast';
 
 interface InputMateriBimbelLengkapProps {
     onBack: () => void;
+    classes: any[];
 }
 
-const InputMateriBimbelLengkap: React.FC<InputMateriBimbelLengkapProps> = ({ onBack }) => {
-    // Mode: 'list', 'create_session', 'create_quiz'
+const InputMateriBimbelLengkap: React.FC<InputMateriBimbelLengkapProps> = ({ onBack, classes }) => {
+    const { addSession } = useTutoring();
     const [view, setView] = useState('list');
 
     // Form States
+    const [selectedClassId, setSelectedClassId] = useState<number | ''>('');
     const [sessionTitle, setSessionTitle] = useState('');
     const [videoUrl, setVideoUrl] = useState('');
     const [materialLink, setMaterialLink] = useState('');
+    const [meetingLink, setMeetingLink] = useState('');
 
     // Quiz Builder State
     const [questions, setQuestions] = useState<any[]>([
         { id: 1, type: 'pg', question: '', options: ['', '', '', ''], correctAnswer: 0 }
     ]);
+
+    const handleSave = () => {
+        if (!selectedClassId || !sessionTitle) {
+            toast.error("Mohon pilih kelas dan isi judul sesi");
+            return;
+        }
+
+        const newSession = {
+            id: Date.now(),
+            title: sessionTitle,
+            date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+            youtubeId: videoUrl,
+            driveLink: materialLink,
+            meetingLink: meetingLink,
+            quizQuestions: questions
+        };
+
+        addSession(Number(selectedClassId), newSession);
+        toast.success("Sesi Bimbel berhasil diterbitkan!");
+        setView('list');
+
+        // Reset Form
+        setSessionTitle('');
+        setVideoUrl('');
+        setMaterialLink('');
+        setMeetingLink('');
+        setQuestions([{ id: 1, type: 'pg', question: '', options: ['', '', '', ''], correctAnswer: 0 }]);
+    };
 
     const addQuestion = () => {
         setQuestions([...questions, { id: Date.now(), type: 'pg', question: '', options: ['', '', '', ''], correctAnswer: 0 }]);
@@ -39,6 +72,8 @@ const InputMateriBimbelLengkap: React.FC<InputMateriBimbelLengkapProps> = ({ onB
         const newQuestions = questions.filter((_, i) => i !== index);
         setQuestions(newQuestions);
     };
+
+    const currentClass = classes.find(c => c.id === Number(selectedClassId));
 
     return (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col h-full">
@@ -73,32 +108,56 @@ const InputMateriBimbelLengkap: React.FC<InputMateriBimbelLengkapProps> = ({ onB
                         </button>
 
                         <div className="space-y-4">
-                            <h3 className="font-bold text-slate-700">Daftar Sesi Aktif</h3>
-                            {/* Dummy Existing Sessions */}
-                            {[1, 2].map((i) => (
-                                <div key={i} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between group hover:border-blue-200 transition-colors">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-blue-50 text-[#004AAD] rounded-xl flex items-center justify-center font-bold text-lg">
-                                            {i}
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-slate-800">Aljabar Dasar & Pola Bilangan</h4>
-                                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
-                                                <span className="flex items-center gap-1"><Video size={12} /> Ada Video</span>
-                                                <span className="flex items-center gap-1"><FileText size={12} /> Ada Materi</span>
-                                                <span className="flex items-center gap-1"><HelpCircle size={12} /> 10 Soal</span>
-                                            </div>
-                                        </div>
+                            <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                                <Book size={18} className="text-[#004AAD]" />
+                                Daftar Sesi Aktif per Kelas
+                            </h3>
+                            {classes.map((cls) => (
+                                <div key={cls.id} className="space-y-3">
+                                    <div className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold w-fit">
+                                        {cls.title}
                                     </div>
-                                    <button className="p-2 text-slate-400 hover:text-[#004AAD] transition-colors">
-                                        <Edit2 size={20} />
-                                    </button>
+                                    {cls.sessions.length === 0 ? (
+                                        <p className="text-xs text-slate-400 italic pl-2">Belum ada sesi di kelas ini.</p>
+                                    ) : (
+                                        cls.sessions.map((session: any, sIdx: number) => (
+                                            <div key={session.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between group hover:border-blue-200 transition-colors ml-2">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 bg-blue-50 text-[#004AAD] rounded-xl flex items-center justify-center font-bold text-sm">
+                                                        {sIdx + 1}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-slate-800 text-sm">{session.title}</h4>
+                                                        <div className="flex items-center gap-3 text-[10px] text-slate-500 mt-1">
+                                                            <span className="flex items-center gap-1"><Video size={10} /> {session.youtubeId ? 'Ada Video' : 'No Video'}</span>
+                                                            <span className="flex items-center gap-1"><FileText size={10} /> {session.driveLink ? 'Ada Materi' : 'No Materi'}</span>
+                                                            <span className="flex items-center gap-1"><Link size={10} className="text-blue-500" /> {session.meetingLink ? 'Ada Zoom/Meet' : 'No Meet'}</span>
+                                                            <span className="flex items-center gap-1"><HelpCircle size={10} /> {session.quizQuestions?.length || 0} Soal</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             ))}
                         </div>
                     </div>
                 ) : (
-                    <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 pb-10">
+
+                        {/* 0. Pilih Kelas */}
+                        <div className="bg-white p-6 rounded-3xl border border-blue-100 shadow-sm bg-blue-50/30">
+                            <label className="block text-sm font-bold text-blue-800 mb-2">Pilih Program Kelas</label>
+                            <select
+                                value={selectedClassId}
+                                onChange={(e) => setSelectedClassId(Number(e.target.value))}
+                                className="w-full p-3 bg-white border border-blue-200 rounded-xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20"
+                            >
+                                <option value="">-- Pilih Kelas --</option>
+                                {classes.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                            </select>
+                        </div>
 
                         {/* 1. Detail Sesi */}
                         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
@@ -120,7 +179,7 @@ const InputMateriBimbelLengkap: React.FC<InputMateriBimbelLengkapProps> = ({ onB
                                 <div>
                                     <label className="block text-sm font-bold text-slate-600 mb-1">Link Video YouTube (Embed ID)</label>
                                     <div className="flex gap-2">
-                                        <div className="p-3 bg-slate-100 rounded-xl text-slate-500 font-mono text-sm select-none">youtube.com/embed/</div>
+                                        <div className="p-3 bg-slate-100 rounded-xl text-slate-500 font-mono text-xs select-none flex items-center">youtube.com/embed/</div>
                                         <input
                                             type="text"
                                             value={videoUrl}
@@ -138,6 +197,18 @@ const InputMateriBimbelLengkap: React.FC<InputMateriBimbelLengkapProps> = ({ onB
                                         onChange={(e) => setMaterialLink(e.target.value)}
                                         className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-blue-600 underline text-sm focus:outline-none focus:ring-2 focus:ring-[#004AAD]/20"
                                         placeholder="https://drive.google.com/file/d/..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-600 mb-1 flex items-center gap-1 text-blue-600">
+                                        <Link size={14} /> Link Zoom / Google Meet
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={meetingLink}
+                                        onChange={(e) => setMeetingLink(e.target.value)}
+                                        className="w-full p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-800 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                        placeholder="https://zoom.us/j/... atau https://meet.google.com/..."
                                     />
                                 </div>
                             </div>
@@ -197,8 +268,8 @@ const InputMateriBimbelLengkap: React.FC<InputMateriBimbelLengkapProps> = ({ onB
                                                         <button
                                                             onClick={() => updateQuestion(qIdx, 'correctAnswer', oIdx)}
                                                             className={`w-6 h-6 rounded-full border flex items-center justify-center text-xs font-bold transition-colors ${q.correctAnswer === oIdx
-                                                                    ? 'bg-green-500 border-green-500 text-white'
-                                                                    : 'bg-white border-slate-300 text-slate-400 hover:border-green-300'
+                                                                ? 'bg-green-500 border-green-500 text-white'
+                                                                : 'bg-white border-slate-300 text-slate-400 hover:border-green-300'
                                                                 }`}
                                                         >
                                                             {String.fromCharCode(65 + oIdx)}
@@ -223,10 +294,7 @@ const InputMateriBimbelLengkap: React.FC<InputMateriBimbelLengkapProps> = ({ onB
                         {/* Save Button */}
                         <div className="pt-4 pb-8">
                             <button
-                                onClick={() => {
-                                    alert('Sesi dan Latihan Soal berhasil disimpan!');
-                                    setView('list');
-                                }}
+                                onClick={handleSave}
                                 className="w-full py-4 bg-green-500 text-white rounded-2xl font-bold shadow-lg shadow-green-200 hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
                             >
                                 <CheckCircle size={20} /> Simpan Sesi & Terbitkan

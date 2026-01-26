@@ -68,6 +68,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                 if (role === 'Wali Kelas' || role === 'Guru Kelas') roleCode = 'wk';
                 if (role === 'Guru Bimbel') roleCode = 'gb';
                 if (role === 'Kepala Sekolah') roleCode = 'ks';
+                if (['Wakil Kurikulum', 'Staff Tata Usaha', 'Operator Data'].includes(role)) roleCode = 'admin';
 
                 onLogin(roleCode, {
                     nama: teacherAccount.nama,

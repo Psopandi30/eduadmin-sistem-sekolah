@@ -13,13 +13,22 @@ const JadwalUjian: React.FC<JadwalUjianProps> = ({ onBack, user }) => {
 
     const studentClass = user?.studentClass || user?.kelas || '1A';
 
-    // 1. Get Master Exam Schedule
-    // Default to the first one available or 'published' if we had a status field (mock assumes active)
-    const masterExam = examsDataGlobal[0];
+    // 1. Get Master Exam Schedule (Filter for published status)
+    const masterExam = examsDataGlobal.find(e => e.status === 'published') || examsDataGlobal[0];
 
     // 2. Filter Items for Class and Day
     const items = masterExam ? masterExam.items
-        .filter(item => item.classId === studentClass && item.day === selectedDay)
+        .filter(item => {
+            // If user is a student/parent, filter by class
+            if (user?.role === 'Orang Tua' || user?.role === 'Siswa' || user?.studentClass) {
+                return item.classId === studentClass && item.day === selectedDay;
+            }
+            // If user is a teacher, show their subjects across all classes (for the teacher view)
+            if (user?.role === 'Guru' || user?.nip) {
+                return item.teacherName === user.nama && item.day === selectedDay;
+            }
+            return item.classId === studentClass && item.day === selectedDay;
+        })
         .sort((a, b) => a.timeSlotId - b.timeSlotId) : [];
 
     // 3. Get Daily Info (Uniform & Notes from standard or specific exam notes)

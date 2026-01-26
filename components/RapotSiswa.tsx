@@ -18,58 +18,93 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
     ];
 
     const [subjects, setSubjects] = useState<any[]>([]);
+    const [isEditing, setIsEditing] = useState(false);
 
+    // Supplementary Data State
+    const [suppData, setSuppData] = useState({
+        attitudes: [
+            { id: 1, type: "Spiritual", desc: "" },
+            { id: 2, type: "Sosial", desc: "" }
+        ],
+        extracurriculars: [{ id: 1, name: "", desc: "" }],
+        attendance: { sakit: 0, izin: 0, alpha: 0 },
+        personalities: [
+            { aspect: "Kerapihan", desc: "Baik" },
+            { aspect: "Kedisiplinan", desc: "Baik" },
+            { aspect: "Kesehatan", desc: "Sehat" },
+        ],
+        note: "",
+        decision: "Naik Ke Kelas" // Default decision
+    });
+
+    // Load Grades and Supplementary Data
     useEffect(() => {
+        const studentId = user?.studentId || user?.id || 4; // Mock student if needed for testing
+        const currentSemesterFull = selectedSemester === 'Semester 1' ? '1 (Ganjil)' : '2 (Genap)';
+
+        // 1. Load Grades
         const loadGrades = () => {
-            const currentSemesterFull = selectedSemester === 'Semester 1' ? '1 (Ganjil)' : '2 (Genap)';
             const loadedSubjects: any[] = [];
-
             subjectList.forEach((subj, index) => {
-                // Key format from NilaiView: grades_v1_${selectedClass}_${selectedSubject}_${selectedSemester}
-                const key = `grades_v1_${selectedClass}_${subj}_${currentSemesterFull}`;
+                const key = `grades_v2_${selectedClass}_${subj}_${currentSemesterFull}`;
                 const localData = localStorage.getItem(key);
-
-                let daily = 0;
-                let exam = 0;
-                let report = 0;
-                let teacher = 'Guru Mapel'; // Placeholder or fetch if available
+                let daily = 0, exam = 0, report = 0;
 
                 if (localData) {
                     try {
                         const parsed = JSON.parse(localData);
-                        // Find student data
-                        // Matching by Name is safest if NIS isn't strictly passed, but mostly User has Name
                         const studentRow = parsed.find((s: any) => s.studentName === user?.studentName || s.studentName === user?.nama);
-
                         if (studentRow) {
                             daily = studentRow.avgSumatif || 0;
-                            // Exam: Take max of PAS/PAT or just specific field? 
-                            // NilaiView logic uses max, but let's just show PAS (Sem 1) or PAT (Sem 2) if we want specific
-                            // Or just use the weighted calculation components if we want to reverse engineer.
-                            // Let's use 'pts' + 'pas' average or just 'pas' for simplicity in this view
                             exam = Math.max(studentRow.pas || 0, studentRow.pat || 0, studentRow.ujisn || 0);
                             report = studentRow.finalScore || 0;
                         }
-                    } catch (e) {
-                        console.error("Error parsing grades for " + subj, e);
-                    }
+                    } catch (e) { console.error("Error parsing grades", e); }
                 }
-
-                loadedSubjects.push({
-                    id: index + 1,
-                    name: subj,
-                    teacher: teacher,
-                    daily: daily,
-                    exam: exam,
-                    report: report
-                });
+                loadedSubjects.push({ id: index + 1, name: subj, daily, exam, report });
             });
-
             setSubjects(loadedSubjects);
         };
 
+        // 2. Load Supplementary Data (The Pipeline Hook)
+        const loadSupp = () => {
+            const suppKey = `rapor_supp_${selectedClass}_${studentId}_${currentSemesterFull}`;
+            const saved = localStorage.getItem(suppKey);
+            if (saved) {
+                setSuppData(JSON.parse(saved));
+            } else {
+                // Reset to default if no data
+                setSuppData({
+                    attitudes: [
+                        { id: 1, type: "Spiritual", desc: "Ananda sangat taat beribadah dan berperilaku jujur." },
+                        { id: 2, type: "Sosial", desc: "Ananda memiliki sikap sosial yang baik dan disiplin." }
+                    ],
+                    extracurriculars: [{ id: 1, name: "-", desc: "-" }],
+                    attendance: { sakit: 0, izin: 0, alpha: 0 },
+                    personalities: [
+                        { aspect: "Kerapihan", desc: "Baik" },
+                        { aspect: "Kedisiplinan", desc: "Baik" },
+                        { aspect: "Kesehatan", desc: "Sehat" },
+                    ],
+                    note: "Pertahankan prestasimu dan tingkatkan belajarmu.",
+                    decision: "Naik Ke Kelas"
+                });
+            }
+        };
+
         loadGrades();
+        loadSupp();
     }, [selectedClass, selectedSemester, user]);
+
+    const handleSaveSupp = () => {
+        const studentId = user?.studentId || user?.id || 4;
+        const currentSemesterFull = selectedSemester === 'Semester 1' ? '1 (Ganjil)' : '2 (Genap)';
+        const suppKey = `rapor_supp_${selectedClass}_${studentId}_${currentSemesterFull}`;
+
+        localStorage.setItem(suppKey, JSON.stringify(suppData));
+        setIsEditing(false);
+        alert("Data pelengkap rapor berhasil disimpan!");
+    };
 
     // Calculate Averages
     const averageDaily = subjects.length > 0 ? Math.round(subjects.reduce((acc, curr) => acc + curr.daily, 0) / subjects.length) : 0;
@@ -86,6 +121,14 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
                 <div className="flex-1">
                     <h3 className="font-bold text-slate-800 text-lg">Nilai Rapot Persemester</h3>
                 </div>
+                {!isEditing && (
+                    <button
+                        onClick={() => setIsEditing(true)}
+                        className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all"
+                    >
+                        Kelola Data
+                    </button>
+                )}
             </div>
 
             <div className="p-6 flex-1 overflow-y-auto">
@@ -147,35 +190,168 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
                     </div>
                 </div>
 
-                {/* Subject List */}
-                <div className="space-y-3 pb-20">
-                    {subjects.map((subject) => (
-                        <div key={subject.id} className="border border-slate-300 rounded-2xl p-4 bg-white shadow-sm">
-                            <div className="flex justify-between items-start mb-2">
-                                <div>
-                                    <p className="text-[10px] text-slate-500 font-bold mb-0.5">Mata pelajaran</p>
-                                    <h4 className="font-bold text-slate-800 text-sm">{subject.id}. {subject.name}</h4>
-                                    <p className="text-[10px] text-slate-500">{subject.teacher}</p>
+                {/* Subject List - Only show in View Mode */}
+                {!isEditing && (
+                    <div className="space-y-3 pb-20">
+                        {subjects.map((subject) => (
+                            <div key={subject.id} className="border border-slate-300 rounded-2xl p-4 bg-white shadow-sm">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <p className="text-[10px] text-slate-500 font-bold mb-0.5">Mata pelajaran</p>
+                                        <h4 className="font-bold text-slate-800 text-sm">{subject.id}. {subject.name}</h4>
+                                        <p className="text-[10px] text-slate-500">{subject.teacher}</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-6 mt-1 text-center">
+                                    <div>
+                                        <p className="text-[10px] text-slate-500 font-bold mb-0.5">Nilai Harian</p>
+                                        <p className="text-sm font-bold text-slate-800">{subject.daily}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-slate-500 font-bold mb-0.5">Ujian</p>
+                                        <p className="text-sm font-bold text-slate-800">{subject.exam}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-slate-500 font-bold mb-0.5">Rapot</p>
+                                        <p className="text-sm font-extrabold text-slate-900">{subject.report}</p>
+                                    </div>
                                 </div>
                             </div>
+                        ))}
+                    </div>
+                )}
 
-                            <div className="flex justify-end gap-6 mt-1 text-center">
-                                <div>
-                                    <p className="text-[10px] text-slate-500 font-bold mb-0.5">Nilai Harian</p>
-                                    <p className="text-sm font-bold text-slate-800">{subject.daily}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] text-slate-500 font-bold mb-0.5">Ujian</p>
-                                    <p className="text-sm font-bold text-slate-800">{subject.exam}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] text-slate-500 font-bold mb-0.5">Rapot</p>
-                                    <p className="text-sm font-extrabold text-slate-900">{subject.report}</p>
-                                </div>
+                {/* Edit Mode: Supplementary Data Management */}
+                {isEditing && (
+                    <div className="space-y-6 pb-20 animate-in slide-in-from-bottom duration-300">
+                        {/* 1. SIKAP */}
+                        <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                            <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <span className="w-6 h-6 bg-blue-600 text-white rounded-lg flex items-center justify-center text-xs">A</span>
+                                Pengisian Sikap
+                            </h4>
+                            <div className="space-y-4">
+                                {suppData.attitudes.map((att, idx) => (
+                                    <div key={idx}>
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">Deskripsi {att.type}</label>
+                                        <textarea
+                                            value={att.desc}
+                                            onChange={(e) => {
+                                                const newAtt = [...suppData.attitudes];
+                                                newAtt[idx].desc = e.target.value;
+                                                setSuppData({ ...suppData, attitudes: newAtt });
+                                            }}
+                                            className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm focus:border-blue-500 outline-none transition-all h-20"
+                                            placeholder={`Tulis deskripsi sikap ${att.type.toLowerCase()}...`}
+                                        />
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                    ))}
-                </div>
+
+                        {/* 2. EKSTRAKURIKULER */}
+                        <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                            <div className="flex justify-between items-center mb-4">
+                                <h4 className="font-bold text-slate-800 flex items-center gap-2">
+                                    <span className="w-6 h-6 bg-emerald-600 text-white rounded-lg flex items-center justify-center text-xs">B</span>
+                                    Ekstrakurikuler
+                                </h4>
+                                <button
+                                    onClick={() => setSuppData({ ...suppData, extracurriculars: [...suppData.extracurriculars, { id: Date.now(), name: '', desc: '' }] })}
+                                    className="text-[10px] font-bold text-emerald-600 uppercase hover:underline"
+                                >
+                                    + Tambah
+                                </button>
+                            </div>
+                            <div className="space-y-3">
+                                {suppData.extracurriculars.map((eks, idx) => (
+                                    <div key={eks.id} className="flex gap-2">
+                                        <input
+                                            value={eks.name}
+                                            onChange={(e) => {
+                                                const newEks = [...suppData.extracurriculars];
+                                                newEks[idx].name = e.target.value;
+                                                setSuppData({ ...suppData, extracurriculars: newEks });
+                                            }}
+                                            placeholder="Nama Ekskul"
+                                            className="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl text-sm"
+                                        />
+                                        <input
+                                            value={eks.desc}
+                                            onChange={(e) => {
+                                                const newEks = [...suppData.extracurriculars];
+                                                newEks[idx].desc = e.target.value;
+                                                setSuppData({ ...suppData, extracurriculars: newEks });
+                                            }}
+                                            placeholder="Keterangan/Predikat"
+                                            className="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl text-sm"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 3. ABSENSI */}
+                        <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                            <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <span className="w-6 h-6 bg-orange-600 text-white rounded-lg flex items-center justify-center text-xs">C</span>
+                                Rekap Ketidakhadiran
+                            </h4>
+                            <div className="grid grid-cols-3 gap-3">
+                                {(['sakit', 'izin', 'alpha'] as const).map(type => (
+                                    <div key={type}>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase text-center block mb-1">{type}</label>
+                                        <input
+                                            type="number"
+                                            value={suppData.attendance[type]}
+                                            onChange={(e) => setSuppData({ ...suppData, attendance: { ...suppData.attendance, [type]: parseInt(e.target.value) || 0 } })}
+                                            className="w-full p-2.5 text-center bg-white border border-slate-200 rounded-xl text-sm font-bold"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 4. CATATAN WALI KELAS */}
+                        <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                            <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <span className="w-6 h-6 bg-purple-600 text-white rounded-lg flex items-center justify-center text-xs">D</span>
+                                Catatan Wali Kelas
+                            </h4>
+                            <textarea
+                                value={suppData.note}
+                                onChange={(e) => setSuppData({ ...suppData, note: e.target.value })}
+                                className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm focus:border-purple-500 outline-none transition-all h-24"
+                                placeholder="Write notes for parents..."
+                            />
+                        </div>
+
+                        {/* 5. KEPUTUSAN KENAIKAN/KELULUSAN */}
+                        <div className="bg-blue-50 p-5 rounded-2xl border border-blue-200">
+                            <h4 className="font-bold text-blue-800 mb-4 flex items-center gap-2">
+                                <span className="w-6 h-6 bg-blue-600 text-white rounded-lg flex items-center justify-center text-xs">E</span>
+                                Keputusan Kenaikan/Kelulusan
+                            </h4>
+                            <select
+                                value={suppData.decision}
+                                onChange={(e) => setSuppData({ ...suppData, decision: e.target.value })}
+                                className="w-full p-3 bg-white border border-blue-200 rounded-xl text-sm font-bold text-blue-700 focus:border-blue-500 outline-none appearance-none"
+                            >
+                                <option value="Naik Ke Kelas">Naik Ke Kelas</option>
+                                <option value="Tinggal Di Kelas">Tinggal Di Kelas</option>
+                                <option value="Lulus">Lulus (Untuk Kelas 6)</option>
+                                <option value="Tidak Lulus">Tidak Lulus (Untuk Kelas 6)</option>
+                            </select>
+                        </div>
+
+                        {/* Form Actions */}
+                        <div className="flex gap-3">
+                            <button onClick={() => setIsEditing(false)} className="flex-1 py-3 bg-slate-200 text-slate-600 font-bold rounded-2xl">Batal</button>
+                            <button onClick={handleSaveSupp} className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-2xl shadow-lg shadow-blue-100">Simpan Perubahan</button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Footer - Average */}

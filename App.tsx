@@ -30,7 +30,7 @@ import DashboardGuruBimbel from './components/DashboardGuruBimbel';
 import DashboardSuperAdmin from './components/DashboardSuperAdmin';
 import DashboardKepalaSekolah from './components/DashboardKepalaSekolah';
 
-import { schoolSettingsGlobal } from './data/sharedData';
+import { schoolSettingsGlobal, updateAnnouncementsGlobal } from './data/sharedData';
 
 
 import { useStudents } from './components/DashboardSuperAdmin/hooks/useStudents';
@@ -109,6 +109,20 @@ const App: React.FC = () => {
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
+  // --- INITIALIZE GLOBAL DATA ---
+  useEffect(() => {
+    // Sync Announcements from LocalStorage to Global State once on load
+    const savedAnnouncements = localStorage.getItem('announcements_data_v10');
+    if (savedAnnouncements) {
+      try {
+        updateAnnouncementsGlobal(JSON.parse(savedAnnouncements));
+      } catch (e) {
+        console.error("Failed to sync announcements", e);
+      }
+    }
+  }, []);
+
+
   // --- ATTENDANCE STATE SYNC ---
   const [attendanceData, setAttendanceData] = useState<Record<string, Record<string, 'H' | 'S' | 'I' | 'A'>>>(() => {
     const saved = localStorage.getItem('attendance_data_v1_legacy');
@@ -126,16 +140,40 @@ const App: React.FC = () => {
   const [customColumnsData, setCustomColumnsData] = useState<Record<string, string[]>>({});
 
   // --- SETTINGS STATE ---
-  const [schoolSettings, setSchoolSettings] = useState({
-    name: schoolSettingsGlobal.name,
-    address: schoolSettingsGlobal.address,
-    accreditation: 'A',
-    principal: schoolSettingsGlobal.principal,
-    academicYear: schoolSettingsGlobal.academicYear,
-    bannerImage: '', // Placeholder for dynamic banner
-    logo: '',
-    icon: ''
+  const [schoolSettings, setSchoolSettings] = useState(() => {
+    const saved = localStorage.getItem('school_settings_v10');
+    if (saved) return JSON.parse(saved);
+    return {
+      name: schoolSettingsGlobal.name,
+      address: schoolSettingsGlobal.address,
+      accreditation: 'A',
+      principal: schoolSettingsGlobal.principal,
+      academicYear: schoolSettingsGlobal.academicYear,
+      bannerImage: '',
+      logo: schoolSettingsGlobal.logo || '',
+      icon: schoolSettingsGlobal.icon || ''
+    };
   });
+
+  // Persist Settings & Update Favicon
+  useEffect(() => {
+    localStorage.setItem('school_settings_v10', JSON.stringify(schoolSettings));
+
+    // Global sync for legacy components
+    Object.assign(schoolSettingsGlobal, schoolSettings);
+
+    // Update Favicon dynamically
+    if (schoolSettings.icon) {
+      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+      link.href = schoolSettings.icon;
+    }
+  }, [schoolSettings]);
+
 
   if (!isLoggedIn) {
     return (
@@ -164,6 +202,7 @@ const App: React.FC = () => {
         setActiveTab={setActiveTab}
         isOpen={isSidebarOpen}
         toggleSidebar={toggleSidebar}
+        schoolSettings={schoolSettings}
       />
 
       <div className="flex-1 flex flex-col min-w-0">

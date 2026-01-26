@@ -5,9 +5,10 @@ import { subjectsDataGlobal } from '../../../../data/sharedData';
 
 interface RaporSettingsViewProps {
     setActiveView: (view: string) => void;
+    showOnlyDeskripsi?: boolean;
 }
 
-const RaporSettingsView: React.FC<RaporSettingsViewProps> = ({ setActiveView }) => {
+const RaporSettingsView: React.FC<RaporSettingsViewProps> = ({ setActiveView, showOnlyDeskripsi = false }) => {
     const [activeTab, setActiveTab] = useState<'deskripsi' | 'resmi' | 'yayasan'>('deskripsi');
     const [selectedGroup, setSelectedGroup] = useState('Semua');
     const [selectedSubject, setSelectedSubject] = useState('');
@@ -151,18 +152,22 @@ const RaporSettingsView: React.FC<RaporSettingsViewProps> = ({ setActiveView }) 
                 >
                     Master Deskripsi
                 </button>
-                <button
-                    onClick={() => setActiveTab('resmi')}
-                    className={`px-6 py-3 font-bold text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'resmi' ? 'border-[#004AAD] text-[#004AAD]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                    Edit Rapor Resmi
-                </button>
-                <button
-                    onClick={() => setActiveTab('yayasan')}
-                    className={`px-6 py-3 font-bold text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'yayasan' ? 'border-[#004AAD] text-[#004AAD]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                    Edit Rapor Yayasan
-                </button>
+                {!showOnlyDeskripsi && (
+                    <>
+                        <button
+                            onClick={() => setActiveTab('resmi')}
+                            className={`px-6 py-3 font-bold text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'resmi' ? 'border-[#004AAD] text-[#004AAD]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                        >
+                            Edit Rapor Resmi
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('yayasan')}
+                            className={`px-6 py-3 font-bold text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === 'yayasan' ? 'border-[#004AAD] text-[#004AAD]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                        >
+                            Edit Rapor Yayasan
+                        </button>
+                    </>
+                )}
             </div>
 
             {/* --- CONTENT --- */}

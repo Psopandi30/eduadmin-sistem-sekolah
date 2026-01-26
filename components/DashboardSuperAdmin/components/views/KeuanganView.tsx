@@ -60,6 +60,9 @@ const KeuanganView: React.FC<KeuanganViewProps> = ({ students: rawStudents }) =>
         waTemplate: 'Assalamualaikum Bapak/Ibu Wali Murid, kami informasikan tagihan SPP bulan ini sebesar *{nominal}*. Terima kasih.'
     });
 
+    // State for uploaded Bill Excel file
+    const [uploadedBillFile, setUploadedBillFile] = useState<File | null>(null);
+
     const handleDownloadBillTemplate = () => {
         // Simple CSV generation for Bill Template
         const headers = ['NO', 'NIS', 'NAMA SISWA', 'KELAS', 'JENIS TAGIHAN', 'NOMINAL', 'BULAN/TAHUN'];
@@ -354,36 +357,73 @@ const KeuanganView: React.FC<KeuanganViewProps> = ({ students: rawStudents }) =>
                     </div>
 
                     {/* Import Section */}
-                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center justify-between">
-                        <div>
-                            <h4 className="font-bold text-blue-800 text-sm">Import Data Tagihan (Excel)</h4>
-                            <p className="text-xs text-blue-600">Gunakan fitur ini untuk upload tagihan massal dari file Excel.</p>
+                    <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div>
+                                <h4 className="font-bold text-blue-800 text-sm">Import Data Tagihan (Excel)</h4>
+                                <p className="text-xs text-blue-600">Gunakan fitur ini untuk upload tagihan massal dari file Excel.</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={handleDownloadBillTemplate}
+                                    className="flex items-center gap-2 px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors"
+                                >
+                                    <Download size={16} /> Template
+                                </button>
+                                <label className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 cursor-pointer">
+                                    <UploadIcon size={16} /> Pilih File
+                                    <input
+                                        type="file"
+                                        accept=".xlsx, .xls, .csv"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            if (e.target.files && e.target.files[0]) {
+                                                setUploadedBillFile(e.target.files[0]);
+                                                toast.success(`File ${e.target.files[0].name} terpilih!`);
+                                            }
+                                        }}
+                                    />
+                                </label>
+                            </div>
                         </div>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={handleDownloadBillTemplate}
-                                className="flex items-center gap-2 px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors"
-                            >
-                                <Download size={16} /> Template
-                            </button>
-                            <label className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 cursor-pointer">
-                                <UploadIcon size={16} /> Upload & Save
-                                <input
-                                    type="file"
-                                    accept=".xlsx, .xls"
-                                    className="hidden"
-                                    onChange={(e) => {
-                                        if (e.target.files && e.target.files[0]) {
-                                            toast.success(`Data dari ${e.target.files[0].name} berhasil diimport!`);
-                                            // Mock processing
-                                            setTimeout(() => {
-                                                handleGenerateBills(); // Reuse generate logic as mock import
-                                            }, 1000);
-                                        }
+
+                        {/* Show selected file and save button */}
+                        {uploadedBillFile && (
+                            <div className="mt-4 p-4 bg-white rounded-2xl border border-blue-200 animate-in fade-in slide-in-from-top-2">
+                                <div className="flex items-center justify-between gap-3 mb-3">
+                                    <div className="flex items-center gap-3 truncate">
+                                        <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                                            <FileText size={20} className="text-blue-600" />
+                                        </div>
+                                        <div className="truncate">
+                                            <p className="text-sm font-bold text-slate-700 truncate">{uploadedBillFile.name}</p>
+                                            <p className="text-[10px] text-slate-400">{(uploadedBillFile.size / 1024).toFixed(1)} KB</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setUploadedBillFile(null)}
+                                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        const loadingToast = toast.loading('Memproses data tagihan...');
+                                        // Mock processing
+                                        setTimeout(() => {
+                                            toast.dismiss(loadingToast);
+                                            handleGenerateBills(); // Reuse generate logic as mock import
+                                            toast.success(`Berhasil mengimport data tagihan dari ${uploadedBillFile.name}`);
+                                            setUploadedBillFile(null);
+                                        }, 1500);
                                     }}
-                                />
-                            </label>
-                        </div>
+                                    className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all"
+                                >
+                                    <CheckCircle size={18} /> Simpan Data Tagihan
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Table Tagihan */}

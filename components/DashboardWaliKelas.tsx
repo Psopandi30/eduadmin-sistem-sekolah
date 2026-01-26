@@ -17,7 +17,9 @@ import {
     ChevronRight,
     Megaphone,
     Search,
-    Library
+    Library,
+    FileSpreadsheet,
+    FileText
 } from 'lucide-react';
 
 import AlQuranSiswa from './AlQuranSiswa';
@@ -32,6 +34,8 @@ import MateriLatihanGuru from './MateriLatihanGuru';
 import NotepadGuru from './NotepadGuru';
 import ProfilGuru from './ProfilGuru';
 import InformasiWaliKelas from './InformasiWaliKelas';
+import RapotSiswa from './RapotSiswa';
+import RaporSettingsView from './DashboardSuperAdmin/components/views/RaporSettingsView';
 
 interface DashboardWaliKelasProps {
     user: any;
@@ -41,7 +45,7 @@ interface DashboardWaliKelasProps {
 
 const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout, schoolName = "SD Normal Islam Samarinda" }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [activeView, setActiveView] = useState<'home' | 'jadwal' | 'kehadiran' | 'nilai' | 'latihan' | 'quran' | 'channel' | 'ai' | 'informasi' | 'library' | 'notepad' | 'notifikasi' | 'profile'>('home');
+    const [activeView, setActiveView] = useState<'home' | 'jadwal' | 'kehadiran' | 'nilai' | 'deskripsi' | 'raport' | 'latihan' | 'quran' | 'channel' | 'ai' | 'informasi' | 'library' | 'notepad' | 'notifikasi' | 'profile'>('home');
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -53,6 +57,8 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
         { id: 'jadwal', label: 'Jadwal Mengajar', icon: <Calendar size={24} />, color: 'bg-blue-500' },
         { id: 'kehadiran', label: 'Absensi Siswa', icon: <UserCheck size={24} />, color: 'bg-teal-500' },
         { id: 'nilai', label: 'Input Nilai', icon: <FolderInput size={24} />, color: 'bg-indigo-500' },
+        { id: 'deskripsi', label: 'Master Deskripsi', icon: <FileText size={24} />, color: 'bg-amber-600' },
+        { id: 'raport', label: 'E-Rapor', icon: <FileSpreadsheet size={24} />, color: 'bg-emerald-600' },
         { id: 'latihan', label: 'Materi dan Latihan', icon: <BookOpen size={24} />, color: 'bg-rose-500' },
         { id: 'quran', label: 'Al Quran', icon: <Book size={24} />, color: 'bg-green-600' },
         { id: 'channel', label: 'Channel sekolah ku', icon: <Tv size={24} />, color: 'bg-red-600' },
@@ -135,6 +141,8 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
                                                 if (item.id === 'jadwal') setActiveView('jadwal');
                                                 else if (item.id === 'kehadiran') setActiveView('kehadiran');
                                                 else if (item.id === 'nilai') setActiveView('nilai');
+                                                else if (item.id === 'deskripsi') setActiveView('deskripsi');
+                                                else if (item.id === 'raport') setActiveView('raport');
                                                 else if (item.id === 'latihan') setActiveView('latihan');
                                                 else if (item.id === 'notepad') setActiveView('notepad');
                                                 else if (item.id === 'informasi') setActiveView('informasi');
@@ -166,29 +174,32 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
                                     Informasi Sekolah
                                 </h3>
                                 <div className="space-y-4">
-                                    {announcements.map((info) => (
-                                        <div key={info.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md hover:border-blue-200 transition-all group cursor-pointer relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-bl-full -mr-8 -mt-8 opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
-                                            <div className="flex gap-3 mb-2 relative z-10">
-                                                <div className="w-1.5 rounded-full bg-[#004AAD] h-5 mt-0.5"></div>
-                                                <div className="flex-1">
-                                                    <h4 className="font-bold text-slate-800 text-sm md:text-base line-clamp-1 group-hover:text-[#004AAD] transition-colors">{info.title}</h4>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">{info.publishDate}</span>
-                                                        {((info as any).time) && <span className="text-[10px] text-slate-400">• {(info as any).time}</span>}
+                                    {announcements
+                                        .filter(a => a.status === 'Terbit')
+                                        .filter(a => a.target === 'Semua' || a.target === 'Guru')
+                                        .map((info) => (
+                                            <div key={info.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md hover:border-blue-200 transition-all group cursor-pointer relative overflow-hidden">
+                                                <div className="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-bl-full -mr-8 -mt-8 opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
+                                                <div className="flex gap-3 mb-2 relative z-10">
+                                                    <div className="w-1.5 rounded-full bg-[#004AAD] h-5 mt-0.5"></div>
+                                                    <div className="flex-1">
+                                                        <h4 className="font-bold text-slate-800 text-sm md:text-base line-clamp-1 group-hover:text-[#004AAD] transition-colors">{info.title}</h4>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">{info.publishDate}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
+                                                <p className="text-xs md:text-sm text-slate-600 leading-relaxed pl-4.5 mb-4 relative z-10 line-clamp-3">
+                                                    {info.content}
+                                                </p>
+                                                <div className="flex items-center justify-end pl-4.5 relative z-10">
+                                                    <button className="text-[#004AAD] text-xs font-bold flex items-center gap-1 hover:gap-2 transition-all">
+                                                        Selengkapnya <ChevronRight size={14} />
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <p className="text-xs md:text-sm text-slate-600 leading-relaxed pl-4.5 mb-4 relative z-10 line-clamp-3">
-                                                {info.content}
-                                            </p>
-                                            <div className="flex items-center justify-end pl-4.5 relative z-10">
-                                                <button className="text-[#004AAD] text-xs font-bold flex items-center gap-1 hover:gap-2 transition-all">
-                                                    Selengkapnya <ChevronRight size={14} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        ))}
+
                                 </div>
                             </div>
                         </div>
@@ -201,6 +212,12 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
                             <KehadiranSiswaGuru user={user} onBack={() => setActiveView('home')} />
                         ) : activeView === 'nilai' ? (
                             <InputNilaiGuru user={user} onBack={() => setActiveView('home')} />
+                        ) : activeView === 'deskripsi' ? (
+                            <div className="bg-white rounded-[2.5rem] p-6 h-full shadow-sm animate-in fade-in overflow-hidden">
+                                <RaporSettingsView setActiveView={() => setActiveView('home')} showOnlyDeskripsi={true} />
+                            </div>
+                        ) : activeView === 'raport' ? (
+                            <RapotSiswa onBack={() => setActiveView('home')} user={user} />
                         ) : activeView === 'latihan' ? (
                             <MateriLatihanGuru user={user} onBack={() => setActiveView('home')} />
                         ) : activeView === 'notepad' ? (

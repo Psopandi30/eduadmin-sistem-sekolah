@@ -1,46 +1,23 @@
 import React, { useState } from 'react';
-import { ChevronLeft, Clock, MapPin, User, BookOpen, ChevronRight, PlayCircle, FileText, Video, Download } from 'lucide-react';
+import { ChevronLeft, Clock, MapPin, User, BookOpen, ChevronRight, PlayCircle, FileText, Video, Download, Link } from 'lucide-react';
 import CBTSiswa from './CBTSiswa';
+import { useTutoring } from './DashboardSuperAdmin/hooks/useTutoring';
 
 interface BimbinganBelajarSiswaProps {
     onBack: () => void;
+    user?: any;
 }
 
-const BimbinganBelajarSiswa: React.FC<BimbinganBelajarSiswaProps> = ({ onBack }) => {
+const BimbinganBelajarSiswa: React.FC<BimbinganBelajarSiswaProps> = ({ onBack, user }) => {
+    const { tutoringClasses } = useTutoring();
     const [view, setView] = useState<'list' | 'detail' | 'session'>('list');
     const [selectedClass, setSelectedClass] = useState<any>(null);
     const [selectedSession, setSelectedSession] = useState<any>(null);
     const [showCBT, setShowCBT] = useState(false);
 
-    // Dummy Data Kelas
-    const classes = [
-        {
-            id: 1,
-            title: 'Matematika - Persiapan Olimpiade',
-            teacher: 'Bpk. Hendra Mathematics',
-            schedule: 'Senin & Kamis, 16:00 - 17:30',
-            room: 'Ruang 3B',
-            status: 'Aktif',
-            description: 'Kelas intensif persiapan olimpiade matematika tingkat kota untuk siswa kelas 5-6. Fokus pada pemecahan masalah logika dan analisis.',
-            sessions: [
-                { id: 101, title: 'Pertemuan 1: Aljabar Dasar & Pola Bilangan', date: 'Senin, 13 Okt 2025', type: 'video', youtubeId: 'dQw4w9WgXcQ', driveLink: '#' }, // Example ID
-                { id: 102, title: 'Pertemuan 2: Geometri Bangun Datar', date: 'Kamis, 16 Okt 2025', type: 'video', youtubeId: 'VIDEO_ID_HERE', driveLink: '#' },
-                { id: 103, title: 'Pertemuan 3: Logika Matematika', date: 'Senin, 20 Okt 2025', type: 'video', youtubeId: 'VIDEO_ID_HERE', driveLink: '#' },
-            ]
-        },
-        {
-            id: 2,
-            title: 'English Club Conversation',
-            teacher: 'Ms. Sarah Johnson',
-            schedule: 'Rabu, 15:00 - 16:30',
-            room: 'Lab Bahasa',
-            status: 'Aktif',
-            description: 'Practice speaking English with confidence through fun activities and roleplays.',
-            sessions: [
-                { id: 201, title: 'Session 1: Introduction & Greetings', date: 'Rabu, 15 Okt 2025', type: 'video', youtubeId: 'VIDEO_ID_HERE', driveLink: '#' },
-            ]
-        }
-    ];
+    // Filter classes if user info exists (Simulasi: Siswa hanya lihat kelas mereka)
+    // Untuk demo, kita tampilkan semua kelas yang 'Aktif'
+    const classes = tutoringClasses;
 
     const handleClassClick = (cls: any) => {
         setSelectedClass(cls);
@@ -155,9 +132,16 @@ const BimbinganBelajarSiswa: React.FC<BimbinganBelajarSiswaProps> = ({ onBack })
                                         </div>
                                         <div className="flex-1">
                                             <h5 className="font-bold text-slate-800 text-sm group-hover:text-[#004AAD] transition-colors">{session.title}</h5>
-                                            <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                                                <Clock size={12} /> {session.date}
-                                            </p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-xs text-slate-400 flex items-center gap-1">
+                                                    <Clock size={12} /> {session.date}
+                                                </span>
+                                                {session.meetingLink && (
+                                                    <span className="flex items-center gap-1 text-[9px] font-bold bg-blue-600 text-white px-2 py-0.5 rounded-full animate-pulse shadow-sm shadow-blue-200">
+                                                        <Video size={10} /> LIVE MEET
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                         <ChevronRight size={18} className="text-slate-300 group-hover:text-[#004AAD]" />
                                     </div>
@@ -186,6 +170,25 @@ const BimbinganBelajarSiswa: React.FC<BimbinganBelajarSiswaProps> = ({ onBack })
                             <div className="flex items-center gap-2 text-sm text-slate-500">
                                 <Clock size={16} /> <span>{selectedSession.date}</span>
                             </div>
+
+                            {/* Meeting Link Button */}
+                            {selectedSession.meetingLink && (
+                                <a
+                                    href={selectedSession.meetingLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-full bg-[#004AAD] border border-blue-700 hover:bg-blue-800 transition-all p-4 rounded-xl flex items-center gap-3 text-white shadow-lg shadow-blue-200 group animate-bounce-subtle"
+                                >
+                                    <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                                        <Video size={20} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-bold text-sm">Join Zoom / Google Meet</h4>
+                                        <p className="text-xs text-blue-100">Klik untuk bergabung ke pertemuan daring</p>
+                                    </div>
+                                    <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                </a>
+                            )}
 
                             {/* Materi Button */}
                             <a

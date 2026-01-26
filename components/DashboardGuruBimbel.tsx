@@ -30,6 +30,7 @@ import ProfilGuru from './ProfilGuru';
 import JadwalBimbelGuru from './JadwalBimbelGuru';
 import KehadiranBimbelGuru from './KehadiranBimbelGuru';
 import InputNilaiBimbelGuru from './InputNilaiBimbelGuru';
+import { useTutoring } from './DashboardSuperAdmin/hooks/useTutoring';
 
 interface DashboardGuruBimbelProps {
     user: any;
@@ -40,6 +41,13 @@ interface DashboardGuruBimbelProps {
 const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogout, schoolName = "SD Normal Islam Samarinda" }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [activeView, setActiveView] = useState<'home' | 'jadwal' | 'kehadiran' | 'nilai' | 'latihan' | 'quran' | 'channel' | 'ai' | 'informasi' | 'library' | 'notepad' | 'notifikasi' | 'profile'>('home');
+
+    const { tutoringClasses, addSession } = useTutoring();
+
+    // Prediksi kelas yang diajar oleh guru ini (Simulasi filter)
+    const myTutoringClasses = tutoringClasses.filter(c =>
+        c.teacher.includes(user?.nama || '') || user?.role === 'admin'
+    );
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -176,7 +184,10 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
                         ) : activeView === 'nilai' ? (
                             <InputNilaiBimbelGuru onBack={() => setActiveView('home')} />
                         ) : activeView === 'latihan' ? (
-                            <InputMateriBimbelLengkap onBack={() => setActiveView('home')} />
+                            <InputMateriBimbelLengkap
+                                onBack={() => setActiveView('home')}
+                                classes={myTutoringClasses}
+                            />
                         ) : activeView === 'notepad' ? (
                             <NotepadGuru onBack={() => setActiveView('home')} />
                         ) : activeView === 'ai' ? (

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'react-hot-toast';
 import {
     Settings,
     School,
@@ -9,7 +10,7 @@ import {
     UserCog,
     Palette,
     Save,
-    Image,
+    Image as ImageIcon,
     Shield,
     History,
     Lock,
@@ -85,7 +86,6 @@ const Pengaturan: React.FC<PengaturanProps> = ({ schoolSettings, setSchoolSettin
             logo: schoolProfile.logo,
             icon: schoolProfile.icon
         };
-        setSchoolSettings(newSettings);
 
         // Sync to Global for RaporView
         Object.assign(schoolSettingsGlobal, {
@@ -95,27 +95,31 @@ const Pengaturan: React.FC<PengaturanProps> = ({ schoolSettings, setSchoolSettin
             academicYear: schoolProfile.academicYear,
         });
 
-        alert('Profil sekolah berhasil disimpan!');
+        toast.success('Profil sekolah berhasil disimpan!');
         addLog('Update profil sekolah');
+
+        if (typeof setSchoolSettings === 'function') {
+            setSchoolSettings(newSettings);
+        }
     };
 
     const handleSaveAdmin = () => {
-        alert('Data administrator berhasil diperbarui!');
+        toast.success('Data administrator berhasil diperbarui!');
         addLog('Update data administrator');
     };
 
     const handlePasswordChange = () => {
         if (security.newPass !== security.confirmPass) {
-            alert('Konfirmasi password tidak cocok (Prototype Only)');
+            toast.error('Konfirmasi password tidak cocok!');
             return;
         }
-        alert('Password berhasil diubah!');
+        toast.success('Password berhasil diubah!');
         setSecurity({ ...security, oldPass: '', newPass: '', confirmPass: '' });
         addLog('Ubah password akun');
     };
 
     const handleSaveAppearance = () => {
-        alert('Pengaturan tampilan disimpan!');
+        toast.success('Pengaturan tampilan disimpan!');
         addLog('Ubah tampilan aplikasi');
     };
 
@@ -127,6 +131,24 @@ const Pengaturan: React.FC<PengaturanProps> = ({ schoolSettings, setSchoolSettin
         };
         setLogs([newLog, ...logs]);
     };
+
+    // Reset Profile to Initial Values
+    const handleResetProfil = () => {
+        setSchoolProfile({
+            name: schoolSettings?.name || '',
+            address: schoolSettings?.address || '',
+            accreditation: schoolSettings?.accreditation || 'A',
+            principal: schoolSettings?.principal || '',
+            academicYear: schoolSettings?.academicYear || '2025/2026',
+            status: 'Swasta',
+            logo: schoolSettings?.logo || null,
+            icon: schoolSettings?.icon || null
+        });
+        toast.success('Data profil berhasil direset!');
+    };
+
+    // Preview Kop Laporan
+    const [showKopPreview, setShowKopPreview] = useState(false);
 
     // Helper: Image Compression
     const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> => {
@@ -176,7 +198,7 @@ const Pengaturan: React.FC<PengaturanProps> = ({ schoolSettings, setSchoolSettin
                         {/* Upload Logo & Icon - COMPACT VERSION */}
                         <div>
                             <h3 className="text-xl font-bold text-slate-800 border-b border-slate-100 pb-4 mb-6 flex items-center gap-2">
-                                <Image className="text-blue-600" /> Logo & Ikon Aplikasi
+                                <ImageIcon className="text-blue-600" /> Logo & Ikon Aplikasi
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Logo */}
@@ -199,9 +221,11 @@ const Pengaturan: React.FC<PengaturanProps> = ({ schoolSettings, setSchoolSettin
                                                     try {
                                                         const compressed = await compressImage(file, 500, 0.8);
                                                         setSchoolProfile({ ...schoolProfile, logo: compressed });
+                                                        toast.success('Logo berhasil diupload!');
                                                     } catch (error) {
                                                         console.error("Compression failed", error);
                                                         setSchoolProfile({ ...schoolProfile, logo: URL.createObjectURL(file) });
+                                                        toast.success('Logo berhasil diupload!');
                                                     }
                                                 }
                                             }} />
@@ -229,9 +253,11 @@ const Pengaturan: React.FC<PengaturanProps> = ({ schoolSettings, setSchoolSettin
                                                     try {
                                                         const compressed = await compressImage(file, 128, 0.9);
                                                         setSchoolProfile({ ...schoolProfile, icon: compressed });
+                                                        toast.success('Ikon berhasil diupload!');
                                                     } catch (error) {
                                                         console.error("Compression failed", error);
                                                         setSchoolProfile({ ...schoolProfile, icon: URL.createObjectURL(file) });
+                                                        toast.success('Ikon berhasil diupload!');
                                                     }
                                                 }
                                             }} />
@@ -311,16 +337,48 @@ const Pengaturan: React.FC<PengaturanProps> = ({ schoolSettings, setSchoolSettin
                         </div>
 
                         <div className="flex gap-4 pt-4 border-t border-slate-100">
-                            <button className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 flex items-center gap-2">
+                            <button onClick={() => setShowKopPreview(true)} className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 flex items-center gap-2">
                                 <FileText size={18} /> Preview Kop Laporan
                             </button>
-                            <button className="ml-auto px-6 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200">
+                            <button onClick={handleResetProfil} className="ml-auto px-6 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200">
                                 Reset
                             </button>
                             <button onClick={handleSaveProfil} className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 flex items-center gap-2">
                                 <Save size={18} /> Simpan Profil
                             </button>
                         </div>
+
+                        {/* Modal Preview Kop Laporan */}
+                        {showKopPreview && (
+                            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowKopPreview(false)}>
+                                <div className="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                                    <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                        <FileText className="text-blue-600" /> Preview Kop Laporan
+                                    </h3>
+                                    <div className="border border-slate-200 rounded-xl p-6 bg-white">
+                                        <div className="flex items-center gap-4 border-b-2 border-slate-800 pb-4">
+                                            {schoolProfile.logo ? (
+                                                <img src={schoolProfile.logo} alt="Logo" className="w-20 h-20 object-contain" />
+                                            ) : (
+                                                <div className="w-20 h-20 bg-slate-100 rounded-lg flex items-center justify-center">
+                                                    <School size={32} className="text-slate-300" />
+                                                </div>
+                                            )}
+                                            <div className="text-center flex-1">
+                                                <h2 className="text-lg font-bold text-slate-800 uppercase">{schoolProfile.name || 'NAMA SEKOLAH'}</h2>
+                                                <p className="text-sm text-slate-600">{schoolProfile.address || 'Alamat Sekolah'}</p>
+                                                <p className="text-xs text-slate-500 mt-1">Akreditasi: {schoolProfile.accreditation}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end mt-4">
+                                        <button onClick={() => setShowKopPreview(false)} className="px-6 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200">
+                                            Tutup
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 );
 

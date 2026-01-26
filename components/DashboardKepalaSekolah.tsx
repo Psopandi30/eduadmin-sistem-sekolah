@@ -175,17 +175,17 @@ const DashboardKepalaSekolah: React.FC<DashboardKepalaSekolahProps> = ({ user, o
                                         <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">Live Sync</span>
                                     </div>
                                     <div className="space-y-4">
-                                        {announcements.length === 0 ? (
-                                            <p className="text-slate-400 italic text-center py-8">Belum ada pengumuman dari Admin.</p>
+                                        {announcements.filter(a => a.status === 'Terbit').length === 0 ? (
+                                            <p className="text-slate-400 italic text-center py-8">Belum ada pengumuman yang diterbitkan.</p>
                                         ) : (
-                                            announcements.map((info) => (
+                                            announcements.filter(a => a.status === 'Terbit').map((info) => (
                                                 <div key={info.id} className="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
                                                     <div className="w-1.5 h-auto bg-blue-600 rounded-full"></div>
                                                     <div className="flex-1">
                                                         <div className="flex justify-between items-start">
                                                             <h4 className="font-bold text-slate-800 text-lg">{info.title}</h4>
                                                             <span className="text-[10px] bg-white border border-slate-200 px-2 py-1 rounded-md text-slate-500 font-mono">
-                                                                {info.date} • {info.time}
+                                                                {info.publishDate}
                                                             </span>
                                                         </div>
                                                         <p className="text-slate-600 mt-2 text-sm leading-relaxed">
@@ -195,6 +195,7 @@ const DashboardKepalaSekolah: React.FC<DashboardKepalaSekolahProps> = ({ user, o
                                                 </div>
                                             ))
                                         )}
+
                                     </div>
                                 </div>
 

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ChevronLeft, UserCheck, Search, CheckCircle, XCircle, AlertCircle, CheckCircle2, Save, Users } from 'lucide-react';
 
+import { attendanceDataGlobal, updateAttendanceDataGlobal } from '../data/sharedData';
+
 interface KehadiranSiswaGuruProps {
     onBack: () => void;
     user?: any;
@@ -42,7 +44,7 @@ const KehadiranSiswaGuru: React.FC<KehadiranSiswaGuruProps> = ({ onBack, user })
             const saved = localStorage.getItem('attendance_data_v2');
             if (saved) return JSON.parse(saved);
         }
-        return [];
+        return attendanceDataGlobal.length > 0 ? attendanceDataGlobal : [];
     });
 
     // Filter students by Selected Class
@@ -65,11 +67,13 @@ const KehadiranSiswaGuru: React.FC<KehadiranSiswaGuruProps> = ({ onBack, user })
                 classId: selectedClass,
                 date: todayStr,
                 status: newStatus,
+                time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                 note: ''
             });
         }
         setAttendanceData(newData);
-        localStorage.setItem('attendance_data_v1', JSON.stringify(newData));
+        localStorage.setItem('attendance_data_v2', JSON.stringify(newData));
+        updateAttendanceDataGlobal(newData);
     };
 
     const handleMarkAllHadir = () => {
@@ -88,16 +92,20 @@ const KehadiranSiswaGuru: React.FC<KehadiranSiswaGuruProps> = ({ onBack, user })
                     classId: selectedClass,
                     date: todayStr,
                     status: 'Hadir',
+                    time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                     note: ''
                 });
             }
         });
         setAttendanceData(newData);
         localStorage.setItem('attendance_data_v2', JSON.stringify(newData));
+        updateAttendanceDataGlobal(newData);
     };
 
     const handleSave = () => {
-        alert('Data absensi berhasil disimpan!');
+        localStorage.setItem('attendance_data_v2', JSON.stringify(attendanceData));
+        updateAttendanceDataGlobal(attendanceData);
+        alert('Data absensi berhasil disimpan dan disinkronkan!');
         onBack();
     };
 

@@ -30,6 +30,7 @@ interface SidebarProps {
     activeView: string;
     setActiveView: (view: string) => void;
     onLogout: () => void;
+    user?: any;
 }
 
 const menuItems: MenuItem[] = [
@@ -58,8 +59,35 @@ const Sidebar: React.FC<SidebarProps> = ({
     setSidebarOpen,
     activeView,
     setActiveView,
-    onLogout
+    onLogout,
+    user
 }) => {
+    // Filter Menu Items based on Role (Jabatan)
+    const filteredMenuItems = React.useMemo(() => {
+        const role = user?.role || '';
+
+        // Master Admin / Super Admin gets everything
+        if (role === 'Super Admin') return menuItems;
+
+        // Specific Roles Filtering
+        switch (role) {
+            case 'Wakil Kurikulum':
+                return menuItems.filter(item =>
+                    ['dashboard', 'mapel', 'jadwal', 'absen', 'ujian', 'nilai', 'rapot'].includes(item.id)
+                );
+            case 'Staff Tata Usaha':
+                return menuItems.filter(item =>
+                    ['dashboard', 'keuangan', 'tabungan', 'laporan'].includes(item.id)
+                );
+            case 'Operator Data':
+                return menuItems.filter(item =>
+                    ['dashboard', 'data_siswa', 'data_guru', 'kelas_wali', 'naik_kelas', 'bimbingan_belajar', 'pengumuman', 'multimedia', 'settings'].includes(item.id)
+                );
+            default:
+                return menuItems; // Default to all if role not recognized (for safety)
+        }
+    }, [user]);
+
     const getLinkClass = (id: string) => {
         const base = "flex items-center gap-3 px-4 py-2.5 transition-all duration-300 font-medium relative group cursor-pointer text-sm";
         if (activeView === id || (id === 'data_siswa' && ['tambah_kelas_view', 'upload_siswa_view', 'upload_perkelas_view', 'upload_kelas_satu_view'].includes(activeView))) {
@@ -72,15 +100,21 @@ const Sidebar: React.FC<SidebarProps> = ({
         <aside className={`bg-[#1E3A8A] flex flex-col transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'} hidden md:flex rounded-r-[2rem] my-4 ml-4 shadow-2xl z-20`}>
             <div className="h-20 flex items-center justify-between px-6">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white font-bold text-lg backdrop-blur-sm">EA</div>
-                    {isSidebarOpen && <span className="text-white font-bold text-sm tracking-tight leading-tight">{schoolSettingsGlobal.name}</span>}
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[#1E3A8A] font-bold text-lg backdrop-blur-sm overflow-hidden border border-white/20">
+                        {schoolSettingsGlobal.logo ? (
+                            <img src={schoolSettingsGlobal.logo} alt="Logo" className="w-full h-full object-contain" />
+                        ) : (
+                            "EA"
+                        )}
+                    </div>
+                    {isSidebarOpen && <span className="text-white font-bold text-sm tracking-tight leading-tight">{schoolSettingsGlobal.name || "EduAdmin"}</span>}
                 </div>
                 {isSidebarOpen && <button onClick={() => setSidebarOpen(false)} className="text-white/50 hover:text-white"><Menu size={24} /></button>}
                 {!isSidebarOpen && <button onClick={() => setSidebarOpen(true)} className="absolute left-[70px] top-8 bg-[#1E3A8A] p-2 rounded-r-xl shadow-md text-white z-50"><Menu size={20} /></button>}
             </div>
 
             <nav className="flex-1 overflow-y-auto py-2 space-y-1 custom-scrollbar">
-                {menuItems.map((item) => (
+                {filteredMenuItems.map((item) => (
                     <div key={item.id} onClick={() => setActiveView(item.id)} className={getLinkClass(item.id)}>
                         <span className={activeView === item.id || (item.id === 'data_siswa' && ['tambah_kelas_view', 'upload_siswa_view', 'upload_perkelas_view', 'upload_kelas_satu_view'].includes(activeView)) ? 'text-[#1E3A8A]' : ''}>{item.icon}</span>
                         {isSidebarOpen && <span className="truncate text-sm font-medium">{item.label}</span>}

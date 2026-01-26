@@ -11,6 +11,53 @@ interface HasilBelajarProps {
 const HasilBelajar: React.FC<HasilBelajarProps> = ({ onBack, user }) => {
     const [internalView, setInternalView] = useState<'menu' | 'rapot' | 'detail'>('menu');
     const [detailCategory, setDetailCategory] = useState<'Nilai Ulangan' | 'Nilai Ujian'>('Nilai Ulangan');
+    const [chartData, setChartData] = useState<any[]>([]);
+
+    React.useEffect(() => {
+        const levels = ['1', '2', '3', '4', '5', '6'];
+        const colors = ['bg-yellow-400', 'bg-[#9F8FEF]', 'bg-[#EE8686]', 'bg-[#8DBF82]', 'bg-[#4AB7CC]', 'bg-orange-400'];
+        const borders = ['border-yellow-600', 'border-[#7c69db]', 'border-[#d66565]', 'border-[#6ea063]', 'border-[#388A99]', 'border-orange-600'];
+
+        const dynamicData: any[] = [];
+        const studentName = user?.studentName || user?.nama;
+        const currentClass = user?.studentClass || '1A';
+        const parallel = currentClass.replace(/\d+/, '');
+
+        levels.forEach((lvl, idx) => {
+            const className = `${lvl}${parallel}`;
+            let totalGrade = 0;
+            let subjectCount = 0;
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key?.startsWith(`grades_v2_${className}_`)) {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key) || '[]');
+                        const student = data.find((s: any) => s.studentName === studentName);
+                        if (student && student.finalScore) {
+                            totalGrade += student.finalScore;
+                            subjectCount++;
+                        }
+                    } catch (e) { }
+                }
+            }
+
+            if (subjectCount > 0) {
+                dynamicData.push({
+                    label: `Kelas ${lvl}`,
+                    value: Math.round(totalGrade / subjectCount),
+                    color: colors[idx],
+                    borderColor: borders[idx]
+                });
+            }
+        });
+
+        if (dynamicData.length === 0) {
+            setChartData([{ label: 'No Data', value: 0, color: 'bg-slate-200', borderColor: 'border-slate-300' }]);
+        } else {
+            setChartData(dynamicData);
+        }
+    }, [user]);
 
     if (internalView === 'rapot') {
         return <RapotSiswa onBack={() => setInternalView('menu')} user={user} />;
@@ -32,19 +79,11 @@ const HasilBelajar: React.FC<HasilBelajarProps> = ({ onBack, user }) => {
         }
     };
 
-    // Mock Chart Data - Accumulated Achievement per Class
-    // "Nilai persemester diakumulatifkan" - Average of semesters for each class level
-    const chartData = [
-        { label: 'Kelas 1', value: 80, color: 'bg-yellow-400', borderColor: 'border-yellow-600' },
-        { label: 'Kelas 2', value: 76, color: 'bg-[#9F8FEF]', borderColor: 'border-[#7c69db]' },
-        { label: 'Kelas 3', value: 82, color: 'bg-[#EE8686]', borderColor: 'border-[#d66565]' },
-        { label: 'Kelas 4', value: 78, color: 'bg-[#8DBF82]', borderColor: 'border-[#6ea063]' },
-        { label: 'Kelas 5', value: 85, color: 'bg-[#4AB7CC]', borderColor: 'border-[#388A99]' },
-    ];
 
     // Helper to calculate polyline points dynamically based on data length
     const getPolylinePoints = () => {
         const count = chartData.length;
+        if (count === 0) return "";
         const segmentWidth = 100 / count;
 
         return chartData.map((data, index) => {
@@ -55,10 +94,10 @@ const HasilBelajar: React.FC<HasilBelajarProps> = ({ onBack, user }) => {
     };
 
     const count = chartData.length;
-    const segmentWidth = 100 / count;
-    const lastPoint = chartData[count - 1];
-    const lastX = (segmentWidth / 2) + ((count - 1) * segmentWidth);
-    const lastY = 100 - lastPoint.value;
+    const segmentWidth = count > 0 ? 100 / count : 0;
+    const lastPoint = count > 0 ? chartData[count - 1] : { value: 0 };
+    const lastX = count > 0 ? (segmentWidth / 2) + ((count - 1) * segmentWidth) : 0;
+    const lastY = count > 0 ? 100 - lastPoint.value : 100;
 
     return (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300">

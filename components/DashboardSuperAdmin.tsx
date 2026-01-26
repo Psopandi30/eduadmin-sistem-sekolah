@@ -10,7 +10,7 @@ import {
     UserCog, Megaphone, CirclePlus, Book, TrendingUp, Wallet, ArrowUpCircle, BookHeart
 } from 'lucide-react';
 
-import { studentsDataGlobal, teachersDataGlobal, classesDataGlobal, schedulesDataGlobal, updateSchedulesDataGlobal, examsDataGlobal, updateExamsDataGlobal, MasterExamSchedule, ExamScheduleItem, attendanceDataGlobal, updateAttendanceDataGlobal, AttendanceRecord, gradesDataGlobal, updateGradesDataGlobal, GradeRecord, tutoringSubjectsGlobal, updateTutoringSubjectsGlobal, tutoringTeachersGlobal, updateTutoringTeachersGlobal } from '../data/sharedData';
+import { studentsDataGlobal, teachersDataGlobal, classesDataGlobal, schedulesDataGlobal, updateSchedulesDataGlobal, examsDataGlobal, updateExamsDataGlobal, MasterExamSchedule, ExamScheduleItem, attendanceDataGlobal, updateAttendanceDataGlobal, AttendanceRecord, gradesDataGlobal, updateGradesDataGlobal, GradeRecord, tutoringSubjectsGlobal, updateTutoringSubjectsGlobal, tutoringTeachersGlobal, updateTutoringTeachersGlobal, schedulePeriodsGlobal } from '../data/sharedData';
 import { toast, Toaster } from 'react-hot-toast';
 import Sidebar from './DashboardSuperAdmin/components/Sidebar';
 import { ScheduleItem, Period, MasterSchedule, DailyScheduleInfo, DAYS } from './DashboardSuperAdmin/types';
@@ -138,7 +138,17 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout }) => {
     const [activeScheduleId, setActiveScheduleId] = useState<number>(1);
     const [selectedJadwalClass, setSelectedJadwalClass] = useState<string>('1A');
     const [draggedItem, setDraggedItem] = useState<{ type: string, id: number | string, name: string } | null>(null);
-    const [schedulePeriods, setSchedulePeriods] = useState<Period[]>([]);
+    const [schedulePeriods, setSchedulePeriods] = useState<Period[]>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('schedule_periods_v2');
+            if (saved) return JSON.parse(saved);
+        }
+        return schedulePeriodsGlobal;
+    });
+
+    useEffect(() => {
+        localStorage.setItem('schedule_periods_v2', JSON.stringify(schedulePeriods));
+    }, [schedulePeriods]);
     const [selectedJadwalLevel, setSelectedJadwalLevel] = useState<number>(1);
     const [showTimeModal, setShowTimeModal] = useState(false);
     const [newPeriodData, setNewPeriodData] = useState({ start: '', end: '' });
@@ -495,7 +505,6 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout }) => {
 
     const handleLoadPromotionStudents = (className: string) => {
         setSelectedPromotionClass(className);
-        // Prepare target class prediction (e.g. 1A -> 2A)
         const level = parseInt(className.match(/\d+/)?.[0] || '0');
         const parallel = className.replace(/\d+/, '');
         if (level > 0 && level < 6) {
@@ -505,8 +514,28 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout }) => {
         }
 
         const classStudents = students.filter(s => s.kelas === className);
-        // Add default status
-        setPromotionStudents(classStudents.map(s => ({ ...s, promoStatus: 'Naik' })));
+
+        // Sync with Teacher's Decision Pipeline
+        const semesterKey = '2 (Genap)'; // Promotion usually based on Semester 2
+
+        const mappedStudents = classStudents.map(s => {
+            const suppKey = `rapor_supp_${className}_${s.id}_${semesterKey}`;
+            const savedSupp = localStorage.getItem(suppKey);
+            let decision = 'Naik'; // Default
+
+            if (savedSupp) {
+                const parsed = JSON.parse(savedSupp);
+                const d = parsed.decision;
+                if (d === 'Naik Ke Kelas') decision = 'Naik';
+                else if (d === 'Tinggal Di Kelas') decision = 'Tinggal';
+                else if (d === 'Lulus') decision = 'Lulus';
+                else if (d === 'Tidak Lulus') decision = 'Tidak Lulus';
+            }
+
+            return { ...s, promoStatus: decision };
+        });
+
+        setPromotionStudents(mappedStudents);
     };
 
     const handleExecutePromotion = () => {
@@ -934,23 +963,58 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout }) => {
             toast.error("Tidak dapat menghapus semester terakhir. Minimal harus ada satu semester.");
             return;
         }
-        if (confirm("Apakah anda yakin ingin menghapus SEMESTER ini beserta seluruh jadwalnya? Tindakan ini tidak dapat dibatalkan.")) {
-            const newSchedules = schedules.filter(s => s.id !== activeScheduleId);
-            setSchedules(newSchedules);
-            setActiveScheduleId(newSchedules[0].id);
-        }
+
+        setConfirmModal({
+            show: true,
+            message: "Apakah anda yakin ingin menghapus SEMESTER ini beserta seluruh jadwalnya? Tindakan ini tidak dapat dibatalkan.",
+            onConfirm: () => {
+                const newSchedules = schedules.filter(s => s.id !== activeScheduleId);
+                setSchedules(newSchedules);
+                setActiveScheduleId(newSchedules[0].id);
+                toast.success("Semester berhasil dihapus.");
+                setConfirmModal({ show: false, message: '', onConfirm: () => { } });
+            }
+        });
     };
 
     const handleResetClassSchedule = () => {
-        if (confirm(`Reset semua jadwal untuk Kelas ${selectedJadwalClass} di semester ini?`)) {
-            setSchedules(schedules.map(s => {
-                if (s.id === activeScheduleId) {
-                    // Remove all items belonging to this class
-                    return { ...s, items: s.items.filter(i => i.classId !== selectedJadwalClass) };
-                }
-                return s;
-            }));
+        setConfirmModal({
+            show: true,
+            message: `Reset semua jadwal untuk Kelas ${selectedJadwalClass} di semester ini?`,
+            onConfirm: () => {
+                setSchedules(schedules.map(s => {
+                    if (s.id === activeScheduleId) {
+                        return { ...s, items: s.items.filter(i => i.classId !== selectedJadwalClass) };
+                    }
+                    return s;
+                }));
+                toast.success(`Jadwal Kelas ${selectedJadwalClass} dikosongkan.`);
+                setConfirmModal({ show: false, message: '', onConfirm: () => { } });
+            }
+        });
+    };
+
+    const confirmAddTime = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newPeriodData.start || !newPeriodData.end) {
+            toast.error("Jam mulai dan selesai wajib diisi!");
+            return;
         }
+
+        const newId = schedulePeriods.length > 0
+            ? Math.max(...schedulePeriods.map(p => p.id)) + 1
+            : 1;
+
+        const newPeriod: Period = {
+            id: newId,
+            start: newPeriodData.start,
+            end: newPeriodData.end
+        };
+
+        setSchedulePeriods([...schedulePeriods, newPeriod].sort((a, b) => a.start.localeCompare(b.start)));
+        setShowTimeModal(false);
+        setNewPeriodData({ start: '', end: '' });
+        toast.success("Jam pelajaran berhasil ditambahkan!");
     };
 
     const handleDailyInfoChange = (day: string, field: 'seragam' | 'catatan', value: string) => {
@@ -971,28 +1035,72 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout }) => {
         }));
     };
 
+    const confirmAddSemester = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newSemesterName) {
+            toast.error("Nama semester wajib diisi!");
+            return;
+        }
+
+        const newSemester: MasterSchedule = {
+            id: Date.now(),
+            name: newSemesterName,
+            status: 'draft',
+            items: [],
+            dailyInfos: []
+        };
+
+        setSchedules([...schedules, newSemester]);
+        setActiveScheduleId(newSemester.id);
+        setShowSemesterModal(false);
+        setNewSemesterName('');
+        toast.success(`Semester "${newSemesterName}" berhasil dibuat!`, {
+            icon: '📅',
+            style: {
+                borderRadius: '16px',
+                background: '#333',
+                color: '#fff',
+            }
+        });
+    };
+
     return (
         <div className="flex h-screen bg-[#F4F7FE] font-sans text-slate-800 overflow-hidden">
             <Toaster
                 position="top-center"
                 reverseOrder={false}
+                gutter={12}
                 toastOptions={{
+                    className: 'modern-toast',
+                    duration: 3000,
                     style: {
-                        background: '#333',
+                        background: 'rgba(30, 41, 59, 0.95)',
                         color: '#fff',
-                        borderRadius: '10px',
-                        padding: '16px',
-                        fontWeight: 'bold',
+                        backdropFilter: 'blur(10px)',
+                        borderRadius: '24px',
+                        padding: '12px 24px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
                     },
                     success: {
-                        style: {
-                            background: '#10B981',
+                        iconTheme: {
+                            primary: '#10B981',
+                            secondary: '#fff',
                         },
+                        style: {
+                            borderLeft: '4px solid #10B981',
+                        }
                     },
                     error: {
-                        style: {
-                            background: '#EF4444',
+                        iconTheme: {
+                            primary: '#EF4444',
+                            secondary: '#fff',
                         },
+                        style: {
+                            borderLeft: '4px solid #EF4444',
+                        }
                     },
                 }}
             />
@@ -1003,6 +1111,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout }) => {
                 activeView={activeView}
                 setActiveView={setActiveView}
                 onLogout={onLogout}
+                user={user}
             />
 
             {/* MAIN CONTENT AREA */}
@@ -3051,6 +3160,90 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout }) => {
                                         <div className="flex gap-4 mt-8">
                                             <button type="button" onClick={() => setShowPositionModal(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">Batal</button>
                                             <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">{editItem ? 'Update' : 'Simpan'}</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )
+                    }
+
+                    {/* MODAL TAMBAH WAKTU JADWAL */}
+                    {
+                        showTimeModal && (
+                            <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center animate-in fade-in backdrop-blur-sm p-4">
+                                <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8">
+                                    <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                                        <h3 className="font-bold text-lg text-slate-800">Tambah Jam Pelajaran</h3>
+                                        <button onClick={() => setShowTimeModal(false)}><X size={24} className="text-slate-400 hover:text-red-500" /></button>
+                                    </div>
+                                    <form onSubmit={confirmAddTime} className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Jam Mulai</label>
+                                                <input
+                                                    type="time"
+                                                    required
+                                                    value={newPeriodData.start}
+                                                    onChange={(e) => setNewPeriodData({ ...newPeriodData, start: e.target.value })}
+                                                    className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 font-mono"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Jam Selesai</label>
+                                                <input
+                                                    type="time"
+                                                    required
+                                                    value={newPeriodData.end}
+                                                    onChange={(e) => setNewPeriodData({ ...newPeriodData, end: e.target.value })}
+                                                    className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 font-mono"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-4 mt-8">
+                                            <button type="button" onClick={() => setShowTimeModal(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">Batal</button>
+                                            <button type="submit" className="flex-1 py-3 bg-[#004AAD] text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">Tambah</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )
+                    }
+
+                    {/* MODAL TAMBAH SEMESTER JADWAL */}
+                    {
+                        showSemesterModal && (
+                            <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center animate-in fade-in backdrop-blur-sm p-4">
+                                <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8">
+                                    <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                                                <Calendar size={20} />
+                                            </div>
+                                            <h3 className="font-bold text-lg text-slate-800">Tambah Semester</h3>
+                                        </div>
+                                        <button onClick={() => setShowSemesterModal(false)}><X size={24} className="text-slate-400 hover:text-red-500" /></button>
+                                    </div>
+                                    <form onSubmit={confirmAddSemester} className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Nama Semester / Tahun Ajaran</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="Contoh: Genap 2025/2026"
+                                                value={newSemesterName}
+                                                onChange={(e) => setNewSemesterName(e.target.value)}
+                                                className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-all"
+                                            />
+                                        </div>
+                                        <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex items-start gap-3">
+                                            <Info size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                                            <p className="text-[10px] text-amber-700 leading-relaxed italic">
+                                                Semester baru akan dimulai dengan jadwal kosong (Draft). Anda perlu mengatur ulang jadwal per kelas.
+                                            </p>
+                                        </div>
+                                        <div className="flex gap-4 mt-8">
+                                            <button type="button" onClick={() => setShowSemesterModal(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">Batal</button>
+                                            <button type="submit" className="flex-1 py-3 bg-[#004AAD] text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">Buat Semester</button>
                                         </div>
                                     </form>
                                 </div>

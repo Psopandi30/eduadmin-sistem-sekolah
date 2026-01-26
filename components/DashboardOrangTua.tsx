@@ -189,7 +189,7 @@ const DashboardOrangTua: React.FC<DashboardOrangTuaProps> = ({ user, onLogout, s
                         ) : activeView === 'tabungan' ? (
                             <TabunganSiswa onBack={() => setActiveView('home')} user={user} />
                         ) : activeView === 'bimbingan' ? (
-                            <BimbinganBelajarSiswa onBack={() => setActiveView('home')} />
+                            <BimbinganBelajarSiswa onBack={() => setActiveView('home')} user={user} />
                         ) : activeView === 'latihan' ? (
                             <LatihanSoalSiswa onBack={() => setActiveView('home')} userClass={user?.studentClass || '5A'} />
                         ) : activeView === 'quran' ? (
@@ -216,32 +216,36 @@ const DashboardOrangTua: React.FC<DashboardOrangTuaProps> = ({ user, onLogout, s
                                     Informasi Sekolah
                                 </h3>
                                 <div className="space-y-4">
-                                    {announcements.map((info) => (
-                                        <div key={info.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md hover:border-blue-200 transition-all group cursor-pointer relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-bl-full -mr-8 -mt-8 opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
+                                    {announcements
+                                        .filter(a => a.status === 'Terbit')
+                                        .filter(a => a.target === 'Semua' || a.target === 'Orang Tua')
+                                        .filter(a => a.targetClass === 'Semua Kelas' || a.targetClass === user.studentClass)
+                                        .map((info) => (
+                                            <div key={info.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md hover:border-blue-200 transition-all group cursor-pointer relative overflow-hidden">
+                                                <div className="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-bl-full -mr-8 -mt-8 opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
 
-                                            <div className="flex gap-3 mb-2 relative z-10">
-                                                <div className="w-1.5 rounded-full bg-[#004AAD] h-5 mt-0.5"></div>
-                                                <div className="flex-1">
-                                                    <h4 className="font-bold text-slate-800 text-sm md:text-base line-clamp-1 group-hover:text-[#004AAD] transition-colors">{info.title}</h4>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">{info.publishDate}</span>
-                                                        {((info as any).time) && <span className="text-[10px] text-slate-400">• {(info as any).time}</span>}
+                                                <div className="flex gap-3 mb-2 relative z-10">
+                                                    <div className="w-1.5 rounded-full bg-[#004AAD] h-5 mt-0.5"></div>
+                                                    <div className="flex-1">
+                                                        <h4 className="font-bold text-slate-800 text-sm md:text-base line-clamp-1 group-hover:text-[#004AAD] transition-colors">{info.title}</h4>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">{info.publishDate}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
 
-                                            <p className="text-xs md:text-sm text-slate-600 leading-relaxed pl-4.5 mb-4 relative z-10 line-clamp-3">
-                                                {info.content}
-                                            </p>
+                                                <p className="text-xs md:text-sm text-slate-600 leading-relaxed pl-4.5 mb-4 relative z-10 line-clamp-3">
+                                                    {info.content}
+                                                </p>
 
-                                            <div className="flex items-center justify-end pl-4.5 relative z-10">
-                                                <button className="text-[#004AAD] text-xs font-bold flex items-center gap-1 hover:gap-2 transition-all">
-                                                    Selengkapnya <ChevronRight size={14} />
-                                                </button>
+                                                <div className="flex items-center justify-end pl-4.5 relative z-10">
+                                                    <button className="text-[#004AAD] text-xs font-bold flex items-center gap-1 hover:gap-2 transition-all">
+                                                        Selengkapnya <ChevronRight size={14} />
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+
                                 </div>
                             </div>
                         </div>

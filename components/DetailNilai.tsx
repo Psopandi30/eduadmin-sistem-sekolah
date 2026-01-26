@@ -35,12 +35,36 @@ const DetailNilai: React.FC<DetailNilaiProps> = ({ onBack, category, user }) => 
 
     const getStudentGrades = () => {
         return subjects.map(sub => {
-            // Filter global grades for this student, subject, and semester
-            const studentGrades = gradesDataGlobal.filter(g =>
-                g.studentId === (user?.studentId || 4) && // Default to ID 4 (Ahmad Zaki) if missing
-                g.subjectId === sub.id &&
-                g.semester === selectedSemester
-            );
+            // 1. Construct the dynamic key used by Guru/Admin
+            const storageKey = `grades_v2_${selectedClass}_${sub.name}_${selectedSemester === 'Ganjil' ? '1 (Ganjil)' : '2 (Genap)'}`;
+            const savedData = localStorage.getItem(storageKey);
+            let studentGrades: any[] = [];
+
+            if (savedData) {
+                try {
+                    const parsed = JSON.parse(savedData);
+                    // Find record for this specific student
+                    const studentRecord = parsed.find((g: any) =>
+                        g.studentId === (user?.studentId || 4) ||
+                        (user?.nama && g.studentName?.toLowerCase() === user.nama.toLowerCase())
+                    );
+
+                    if (studentRecord) {
+                        // Map the local flat structure to the view's expectations
+                        studentGrades = [
+                            { type: 'UH1', score: studentRecord.tp1 || 0 },
+                            { type: 'UH2', score: studentRecord.tp2 || 0 },
+                            { type: 'UH3', score: studentRecord.tp3 || 0 },
+                            { type: 'UH4', score: studentRecord.tp4 || 0 },
+                            { type: 'PTS', score: studentRecord.pts || 0 },
+                            { type: 'PAS', score: studentRecord.pas || 0 },
+                            { type: 'PAT', score: studentRecord.pat || 0 }
+                        ];
+                    }
+                } catch (e) {
+                    console.error("Failed to parse grades for " + sub.name, e);
+                }
+            }
 
             if (category === 'Nilai Ulangan') {
                 const uh1 = studentGrades.find(g => g.type === 'UH1')?.score || 0;
@@ -48,7 +72,6 @@ const DetailNilai: React.FC<DetailNilaiProps> = ({ onBack, category, user }) => 
                 const uh3 = studentGrades.find(g => g.type === 'UH3')?.score || 0;
                 const uh4 = studentGrades.find(g => g.type === 'UH4')?.score || 0;
 
-                // Calculate Average if any grades exist
                 const scores = [uh1, uh2, uh3, uh4].filter(s => s > 0);
                 const avg = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
 

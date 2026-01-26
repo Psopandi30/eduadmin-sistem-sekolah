@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Download, Upload as UploadIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Download, Upload as UploadIcon, Save } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { studentsDataGlobal, classesDataGlobal } from '../../../../data/sharedData';
 
@@ -24,6 +24,9 @@ const AddSaverModal: React.FC<AddSaverModalProps> = ({
     saverClassFilter,
     setSaverClassFilter
 }) => {
+    // State for uploaded Excel file
+    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+
     if (!isOpen) return null;
 
     const handleDownloadTemplate = () => {
@@ -63,7 +66,7 @@ const AddSaverModal: React.FC<AddSaverModalProps> = ({
                         {/* IMPORT SECTION */}
                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-6">
                             <h4 className="font-bold text-blue-800 text-xs mb-2">Alternatif: Upload Excel</h4>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 mb-2">
                                 <button
                                     onClick={handleDownloadTemplate}
                                     className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-white text-slate-600 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors"
@@ -78,18 +81,43 @@ const AddSaverModal: React.FC<AddSaverModalProps> = ({
                                         className="hidden"
                                         onChange={(e) => {
                                             if (e.target.files && e.target.files[0]) {
-                                                toast.success(`Data dari ${e.target.files[0].name} berhasil diimport!`);
-                                                // Mock processing delay
-                                                setTimeout(() => {
-                                                    // In a real app, parse CSV/Excel here and call setSavingsData
-                                                    toast.success("5 Nasabah baru berhasil ditambahkan.");
-                                                    onClose();
-                                                }, 1500);
+                                                setUploadedFile(e.target.files[0]);
+                                                toast.success(`File ${e.target.files[0].name} berhasil dipilih!`);
                                             }
                                         }}
                                     />
                                 </label>
                             </div>
+                            {/* Show selected file and save button */}
+                            {uploadedFile && (
+                                <div className="mt-3 p-3 bg-white rounded-lg border border-blue-200 animate-in fade-in slide-in-from-top-2">
+                                    <div className="flex items-center justify-between gap-2 mb-2">
+                                        <span className="text-xs text-slate-600 truncate flex-1">
+                                            📄 {uploadedFile.name}
+                                        </span>
+                                        <button
+                                            onClick={() => setUploadedFile(null)}
+                                            className="text-slate-400 hover:text-red-500 transition-colors"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            // Mock processing - in real app, parse CSV/Excel and add to savingsData
+                                            toast.loading('Memproses file...', { duration: 1000 });
+                                            setTimeout(() => {
+                                                toast.success(`Data dari ${uploadedFile.name} berhasil disimpan!`);
+                                                toast.success("5 Nasabah baru berhasil ditambahkan.");
+                                                setUploadedFile(null);
+                                            }, 1500);
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#004AAD] text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shadow-md"
+                                    >
+                                        <Save size={14} /> Simpan Data Excel
+                                    </button>
+                                </div>
+                            )}
                         </div>
                         {/* Filter Kelas */}
                         <div>
