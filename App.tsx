@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
@@ -38,57 +38,15 @@ import { useSubjects } from './components/DashboardSuperAdmin/hooks/useSubjects'
 import { supabase, isSupabaseConfigured } from './src/lib/supabase';
 
 const App: React.FC = () => {
+  // --- CORE UI STATE ---
   const [activeTab, setActiveTab] = useState('beranda');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
-  // --- PERSISTENT SESSION CHECK ---
-  useEffect(() => {
-    const checkSession = async () => {
-      if (!isSupabaseConfigured()) return;
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        try {
-          const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-          if (profile) {
-            setUserRole(profile.role);
-            setCurrentUser({
-              id: session.user.id,
-              nama: profile.full_name,
-              email: profile.email,
-              role: profile.role,
-              avatar: profile.avatar_url || 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=100&auto=format&fit=crop'
-            });
-            setIsLoggedIn(true);
-          }
-        } catch (e) {
-          console.error("Session profile sync error", e);
-        }
-      }
-    };
-    checkSession();
-    if (isSupabaseConfigured()) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (!session) handleLogout();
-      });
-      return () => subscription.unsubscribe();
-    }
-  }, []);
-
-  // --- INTERACTION FIX ---
-  useEffect(() => {
-    const unlockUI = () => {
-      document.oncontextmenu = null;
-      document.body.style.pointerEvents = 'auto';
-    };
-    unlockUI();
-    window.addEventListener('mousedown', unlockUI, { passive: true });
-    return () => window.removeEventListener('mousedown', unlockUI);
-  }, []);
-
-  // --- SETTINGS & SHARED STATE ---
+  // --- SCHOOL SETTINGS (Global Metadata) ---
   const [schoolSettings, setSchoolSettings] = useState(() => {
     const saved = localStorage.getItem('school_settings_v10');
     if (saved) return JSON.parse(saved);
@@ -104,11 +62,126 @@ const App: React.FC = () => {
     };
   });
 
+  // Persist Settings & Update Favicon
   useEffect(() => {
     localStorage.setItem('school_settings_v10', JSON.stringify(schoolSettings));
     Object.assign(schoolSettingsGlobal, schoolSettings);
+    if (schoolSettings.icon) {
+      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+      link.href = schoolSettings.icon;
+    }
   }, [schoolSettings]);
 
+  // --- PERSISTENT SESSION CHECK ---
+  useEffect(() => {
+    const checkSession = async () => {
+      if (!isSupabaseConfigured()) {
+        setIsCheckingSession(false);
+        return;
+      }
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+          if (profile) {
+            setUserRole(profile.role);
+            setCurrentUser({
+              id: session.user.id,
+              nama: profile.full_name,
+              email: profile.email,
+              role: profile.role,
+              avatar: profile.avatar_url || 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=100&auto=format&fit=crop'
+            });
+            setIsLoggedIn(true);
+          }
+        }
+      } catch (e) {
+        console.error("Auth Session Check Error:", e);
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
+    checkSession();
+  }, []);
+
+  // --- LOGIN/LOGOUT LOGIC ---
+  const handleLogin = (role: string, user: any) => {
+    setUserRole(role);
+    setCurrentUser(user);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = async () => {
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.error("Sign out error:", e);
+      }
+    }
+    setIsLoggedIn(false);
+    setUserRole('');
+    setCurrentUser(null);
+    setActiveTab('beranda');
+    localStorage.removeItem('supabase.auth.token');
+  };
+
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
+  // --- RENDER ROUTER ---
+  if (isCheckingSession) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center space-y-4">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-slate-500 font-medium animate-pulse">Menghubungkan ke sistem...</p>
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <Login
+        onLogin={handleLogin}
+        schoolName={schoolSettings.name}
+        bannerImage={schoolSettings.bannerImage}
+        logo={schoolSettings.logo}
+      />
+    );
+  }
+
+  // If Logged in, render the Data-Heavy authenticated view
+  return (
+    <AuthenticatedApp
+      currentUser={currentUser}
+      userRole={userRole}
+      handleLogout={handleLogout}
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      isSidebarOpen={isSidebarOpen}
+      toggleSidebar={toggleSidebar}
+      schoolSettings={schoolSettings}
+      setSchoolSettings={setSchoolSettings}
+    />
+  );
+};
+
+// --- AUTHENTICATED APP (Separated for Performance & Logic Isolation) ---
+const AuthenticatedApp: React.FC<any> = ({
+  currentUser, userRole, handleLogout, activeTab, setActiveTab,
+  isSidebarOpen, toggleSidebar, schoolSettings, setSchoolSettings
+}) => {
+  // 1. Initialize Heavy Data Hooks (ONLY RUN WHEN LOGGED IN)
+  const { students } = useStudents();
+  const { teachers, setTeachers } = useTeachers();
+  const { classes, setClasses } = useClasses();
+  const { subjects, setSubjects } = useSubjects();
+
+  // 2. Local State for Attendance & Grades (Sync to LocalStorage)
   const [attendanceData, setAttendanceData] = useState<Record<string, Record<string, 'H' | 'S' | 'I' | 'A'>>>(() => {
     const saved = localStorage.getItem('attendance_data_v1_legacy');
     return saved ? JSON.parse(saved) : {};
@@ -121,69 +194,8 @@ const App: React.FC = () => {
   const [gradesData, setGradesData] = useState<Record<string, Record<string, Record<string, string>>>>({});
   const [customColumnsData, setCustomColumnsData] = useState<Record<string, string[]>>({});
 
-  const handleLogin = (role: string, user: any) => {
-    setUserRole(role);
-    setCurrentUser(user);
-    setIsLoggedIn(true);
-  };
-
-  const handleLogout = async () => {
-    if (isSupabaseConfigured()) await supabase.auth.signOut();
-    setIsLoggedIn(false);
-    setUserRole('');
-    setCurrentUser(null);
-    setActiveTab('beranda');
-  };
-
-  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
-
-  // --- RENDER LOGIC ---
-  if (!isLoggedIn) {
-    return (
-      <Login
-        onLogin={handleLogin}
-        schoolName={schoolSettings.name}
-        bannerImage={schoolSettings.bannerImage}
-        logo={schoolSettings.logo}
-      />
-    );
-  }
-
-  return (
-    <AuthenticatedApp
-      currentUser={currentUser}
-      userRole={userRole}
-      handleLogout={handleLogout}
-      activeTab={activeTab}
-      setActiveTab={setActiveTab}
-      isSidebarOpen={isSidebarOpen}
-      toggleSidebar={toggleSidebar}
-      schoolSettings={schoolSettings}
-      setSchoolSettings={setSchoolSettings}
-      attendanceData={attendanceData}
-      setAttendanceData={setAttendanceData}
-      gradesData={gradesData}
-      setGradesData={setGradesData}
-      customColumnsData={customColumnsData}
-      setCustomColumnsData={setCustomColumnsData}
-    />
-  );
-};
-
-// --- AUTHENTICATED APP ---
-const AuthenticatedApp: React.FC<any> = ({
-  currentUser, userRole, handleLogout, activeTab, setActiveTab,
-  isSidebarOpen, toggleSidebar, schoolSettings, setSchoolSettings,
-  attendanceData, setAttendanceData, gradesData, setGradesData,
-  customColumnsData, setCustomColumnsData
-}) => {
-  // HOOKS ONLY RUN HERE TO PREVENT LOGIN PAGE LAG
-  const { students } = useStudents();
-  const { teachers } = useTeachers();
-  const { classes } = useClasses();
-  const { subjects } = useSubjects();
-
-  const kelasData = React.useMemo(() => classes.map((c: any) => ({
+  // 3. Derived / Mapped Data (Memoized for Performance)
+  const kelasData = useMemo(() => classes.map((c: any) => ({
     id: c.id,
     kode: `KLS-${c.nama}`,
     nama: isNaN(parseInt(c.nama[0])) ? c.nama : `Kelas ${c.nama}`,
@@ -193,7 +205,7 @@ const AuthenticatedApp: React.FC<any> = ({
     waliNip: teachers.find((t: any) => t.wali === c.nama)?.nip || '-'
   })), [classes, teachers]);
 
-  const stafList = React.useMemo(() => teachers.map((t: any, idx: number) => ({
+  const stafList = useMemo(() => teachers.map((t: any, idx: number) => ({
     no: idx + 1,
     noPegawai: t.nip,
     nama: t.nama,
@@ -202,7 +214,7 @@ const AuthenticatedApp: React.FC<any> = ({
     password: t.password
   })), [teachers]);
 
-  const mapelData = React.useMemo(() => subjects.map((s: any, idx: number) => ({
+  const mapelData = useMemo(() => subjects.map((s: any, idx: number) => ({
     no: idx + 1,
     nama: s.name,
     kode: s.code,
@@ -210,7 +222,7 @@ const AuthenticatedApp: React.FC<any> = ({
     kelompok: s.group
   })), [subjects]);
 
-  const studentsDataByClass = React.useMemo(() => {
+  const studentsDataByClass = useMemo(() => {
     const data: Record<string, any[]> = {};
     students.forEach((s: any) => {
       const className = s.kelas || 'Tanpa Kelas';
@@ -220,6 +232,7 @@ const AuthenticatedApp: React.FC<any> = ({
     return data;
   }, [students]);
 
+  // 4. Role-Based Dashboard Redirection (Pre-Sidebar Views)
   if (userRole === 'ot') return <DashboardOrangTua user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;
   if (userRole === 'wk') return <DashboardWaliKelas user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;
   if (userRole === 'gb') return <DashboardGuruBimbel user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;
@@ -227,6 +240,7 @@ const AuthenticatedApp: React.FC<any> = ({
   if (userRole === 'admin') return <DashboardSuperAdmin user={currentUser} onLogout={handleLogout} />;
   if (userRole === 'ks') return <DashboardKepalaSekolah user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;
 
+  // 5. Default Super Admin / Admin Layout (Legacy Multi-Tab View)
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} schoolSettings={schoolSettings} />
@@ -236,10 +250,10 @@ const AuthenticatedApp: React.FC<any> = ({
           <div className="max-w-7xl mx-auto">
             {activeTab === 'beranda' && <Dashboard />}
             {activeTab === 'data-siswa' && <DataSiswa onTambahKelas={() => setActiveTab('tambah-kelas')} onUploadSiswa={() => setActiveTab('upload-siswa')} onUploadPerkelas={() => setActiveTab('upload-perkelas')} onUploadSiswaBaru={() => setActiveTab('upload-siswa-baru')} />}
-            {activeTab === 'data-guru' && <DataGuruStaff mapelList={mapelData} setMapelList={() => { }} stafList={stafList} setStafList={() => { }} kelasData={kelasData} setKelasData={() => { }} />}
+            {activeTab === 'data-guru' && <DataGuruStaff mapelList={mapelData} setMapelList={setSubjects as any} stafList={stafList} setStafList={setTeachers as any} kelasData={kelasData} setKelasData={setClasses as any} />}
             {activeTab === 'kelas-wali' && <KelasWali kelasData={kelasData} studentsData={studentsDataByClass} />}
             {activeTab === 'mata-pelajaran' && <MataPelajaran kelasData={kelasData} mapelList={mapelData} stafList={stafList} />}
-            {activeTab === 'tambah-kelas' && <TambahKelas onBack={() => setActiveTab('data-siswa')} kelasData={kelasData} setKelasData={() => { }} />}
+            {activeTab === 'tambah-kelas' && <TambahKelas onBack={() => setActiveTab('data-siswa')} kelasData={kelasData} setKelasData={setClasses as any} />}
             {activeTab === 'upload-siswa' && <UploadSiswa onBack={() => setActiveTab('data-siswa')} />}
             {activeTab === 'upload-perkelas' && <UploadPerkelas onBack={() => setActiveTab('data-siswa')} />}
             {activeTab === 'upload-siswa-baru' && <UploadSiswaBaru onBack={() => setActiveTab('data-siswa')} />}

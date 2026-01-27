@@ -23,17 +23,21 @@ export interface Student {
 
 export const useStudents = () => {
     const [students, setStudents] = useState<Student[]>(() => {
-        const saved = localStorage.getItem('students_data_v10');
-        return saved ? JSON.parse(saved) : studentsDataGlobal;
+        try {
+            const saved = localStorage.getItem('students_data_v10');
+            return saved ? JSON.parse(saved) : studentsDataGlobal;
+        } catch (e) {
+            return studentsDataGlobal;
+        }
     });
     const [loading, setLoading] = useState(false);
+    const [isInitialFetched, setIsInitialFetched] = useState(false);
 
     const fetchStudents = useCallback(async () => {
-        if (!isSupabaseConfigured()) return;
+        if (!isSupabaseConfigured() || isInitialFetched) return;
 
         setLoading(true);
         try {
-            // Fetch students with their class names
             const { data, error } = await supabase
                 .from('students')
                 .select('*, classes(*)');
@@ -50,31 +54,40 @@ export const useStudents = () => {
                     tingkat: s.classes?.grade_level || 1,
                     paralel: (s.classes?.name || '').replace(/[0-9]/g, ''),
                     ayah: s.parent_name || '-',
-                    ibu: '-', // Original schema doesn't split father/mother
+                    ibu: '-',
                     jobAyah: '-',
                     jobIbu: '-',
                     username: s.nis,
                     gender: s.gender,
                     status: s.status
                 }));
+                // Only update if data is different or on first load
                 setStudents(mappedData);
+                setIsInitialFetched(true);
                 localStorage.setItem('students_data_v10', JSON.stringify(mappedData));
             }
         } catch (err) {
             console.error('Error fetching students:', err);
         } finally {
             setLoading(false);
+            setIsInitialFetched(true); // Mark as done even on error to prevent retry loop
         }
-    }, []);
+    }, [isInitialFetched]);
 
     useEffect(() => {
-        fetchStudents();
+        const timeoutId = setTimeout(() => {
+            fetchStudents();
+        }, 1000); // Penundaan 1 detik untuk kestabilan awal
+        return () => clearTimeout(timeoutId);
     }, [fetchStudents]);
 
+    // Debounced LocalStorage Sync
     useEffect(() => {
-        if (!loading) {
+        if (loading) return;
+        const timer = setTimeout(() => {
             localStorage.setItem('students_data_v10', JSON.stringify(students));
-        }
+        }, 3000);
+        return () => clearTimeout(timer);
     }, [students, loading]);
 
     const addNewStudent = async (student: Student) => {

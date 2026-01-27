@@ -24,24 +24,25 @@ const initialSubjectGroups: SubjectGroup[] = [
 
 export const useSubjects = () => {
     const [loading, setLoading] = useState(false);
+    const [isInitialFetched, setIsInitialFetched] = useState(false);
     const [subjectGroups, setSubjectGroups] = useState<SubjectGroup[]>(() => {
-        if (typeof window !== 'undefined') {
+        try {
             const saved = localStorage.getItem('subject_groups_v10');
             if (saved) return JSON.parse(saved);
-        }
+        } catch (e) { }
         return initialSubjectGroups;
     });
 
     const [subjects, setSubjects] = useState<Subject[]>(() => {
-        if (typeof window !== 'undefined') {
+        try {
             const saved = localStorage.getItem('subjects_data_v10');
             if (saved) return JSON.parse(saved);
-        }
+        } catch (e) { }
         return subjectsDataGlobal;
     });
 
     const fetchSubjects = useCallback(async () => {
-        if (!isSupabaseConfigured()) return;
+        if (!isSupabaseConfigured() || isInitialFetched) return;
 
         setLoading(true);
         try {
@@ -64,33 +65,42 @@ export const useSubjects = () => {
                     id: s.id,
                     name: s.name,
                     code: s.code,
-                    level: 'Kelas 1', // Defaulting since schema doesn't have level
+                    level: 'Kelas 1',
                     group: (s.subject_groups as any)?.name || 'Umum'
                 }));
                 setSubjects(mappedSubjects);
                 localStorage.setItem('subjects_data_v10', JSON.stringify(mappedSubjects));
             }
+            setIsInitialFetched(true);
         } catch (err) {
             console.error('Error fetching subjects:', err);
         } finally {
             setLoading(false);
+            setIsInitialFetched(true);
         }
-    }, []);
+    }, [isInitialFetched]);
 
     useEffect(() => {
-        fetchSubjects();
+        const timer = setTimeout(() => {
+            fetchSubjects();
+        }, 2500);
+        return () => clearTimeout(timer);
     }, [fetchSubjects]);
 
     useEffect(() => {
-        if (!loading) {
+        if (loading) return;
+        const timer = setTimeout(() => {
             localStorage.setItem('subject_groups_v10', JSON.stringify(subjectGroups));
-        }
+        }, 4500);
+        return () => clearTimeout(timer);
     }, [subjectGroups, loading]);
 
     useEffect(() => {
-        if (!loading) {
+        if (loading) return;
+        const timer = setTimeout(() => {
             localStorage.setItem('subjects_data_v10', JSON.stringify(subjects));
-        }
+        }, 5000);
+        return () => clearTimeout(timer);
     }, [subjects, loading]);
 
     return {

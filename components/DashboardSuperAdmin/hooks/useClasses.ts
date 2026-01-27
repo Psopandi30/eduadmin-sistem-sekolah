@@ -11,14 +11,19 @@ export interface Class {
 
 export const useClasses = () => {
     const [classes, setClasses] = useState<Class[]>(() => {
-        const saved = localStorage.getItem('classes_data_v10');
-        return saved ? JSON.parse(saved) : classesDataGlobal;
+        try {
+            const saved = localStorage.getItem('classes_data_v10');
+            return saved ? JSON.parse(saved) : classesDataGlobal;
+        } catch (e) {
+            return classesDataGlobal;
+        }
     });
     const [loading, setLoading] = useState(false);
+    const [isInitialFetched, setIsInitialFetched] = useState(false);
 
     // Fetch from Supabase
     const fetchClasses = useCallback(async () => {
-        if (!isSupabaseConfigured()) return;
+        if (!isSupabaseConfigured() || isInitialFetched) return;
 
         setLoading(true);
         try {
@@ -34,27 +39,34 @@ export const useClasses = () => {
                     id: c.id,
                     nama: c.name,
                     tingkat: c.grade_level,
-                    paralel: c.name.replace(/[0-9]/g, '') || 'A' // Guessing paralel from name if not direct
+                    paralel: c.name.replace(/[0-9]/g, '') || 'A'
                 }));
                 setClasses(mappedData);
+                setIsInitialFetched(true);
                 localStorage.setItem('classes_data_v10', JSON.stringify(mappedData));
             }
         } catch (err) {
             console.error('Error fetching classes:', err);
         } finally {
             setLoading(false);
+            setIsInitialFetched(true);
         }
-    }, []);
+    }, [isInitialFetched]);
 
     useEffect(() => {
-        fetchClasses();
+        const timer = setTimeout(() => {
+            fetchClasses();
+        }, 2000); // Penundaan lebih lama untuk kelas
+        return () => clearTimeout(timer);
     }, [fetchClasses]);
 
-    // Save fallback to LocalStorage
+    // Save fallback to LocalStorage with Debounce
     useEffect(() => {
-        if (!loading) {
+        if (loading) return;
+        const timer = setTimeout(() => {
             localStorage.setItem('classes_data_v10', JSON.stringify(classes));
-        }
+        }, 4000);
+        return () => clearTimeout(timer);
     }, [classes, loading]);
 
     const [showAddClassModal, setShowAddClassModal] = useState(false);

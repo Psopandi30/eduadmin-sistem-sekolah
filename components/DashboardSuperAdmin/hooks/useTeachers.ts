@@ -16,17 +16,21 @@ export interface Teacher {
 
 export const useTeachers = () => {
     const [teachers, setTeachers] = useState<Teacher[]>(() => {
-        const saved = localStorage.getItem('teachers_data_v10');
-        return saved ? JSON.parse(saved) : teachersDataGlobal;
+        try {
+            const saved = localStorage.getItem('teachers_data_v10');
+            return saved ? JSON.parse(saved) : teachersDataGlobal;
+        } catch (e) {
+            return teachersDataGlobal;
+        }
     });
     const [loading, setLoading] = useState(false);
+    const [isInitialFetched, setIsInitialFetched] = useState(false);
 
     const fetchTeachers = useCallback(async () => {
-        if (!isSupabaseConfigured()) return;
+        if (!isSupabaseConfigured() || isInitialFetched) return;
 
         setLoading(true);
         try {
-            // Join staff with profiles to get name and role
             const { data, error } = await supabase
                 .from('staff')
                 .select(`
@@ -44,29 +48,36 @@ export const useTeachers = () => {
                     nip: s.employee_number,
                     nama: (s.profiles as any)?.full_name || 'Tanpa Nama',
                     jabatan: s.position,
-                    mapel: '-', // Logic to fetch mapel could be added later
-                    wali: '-', // Wali class info could be added later
+                    mapel: '-',
+                    wali: '-',
                     username: (s.profiles as any)?.email?.split('@')[0] || s.employee_number,
-                    password: '-' // We don't fetch passwords
+                    password: '-'
                 }));
                 setTeachers(mappedData);
+                setIsInitialFetched(true);
                 localStorage.setItem('teachers_data_v10', JSON.stringify(mappedData));
             }
         } catch (err) {
             console.error('Error fetching teachers:', err);
         } finally {
             setLoading(false);
+            setIsInitialFetched(true);
         }
-    }, []);
+    }, [isInitialFetched]);
 
     useEffect(() => {
-        fetchTeachers();
+        const timer = setTimeout(() => {
+            fetchTeachers();
+        }, 1500);
+        return () => clearTimeout(timer);
     }, [fetchTeachers]);
 
     useEffect(() => {
-        if (!loading) {
+        if (loading) return;
+        const timer = setTimeout(() => {
             localStorage.setItem('teachers_data_v10', JSON.stringify(teachers));
-        }
+        }, 3500);
+        return () => clearTimeout(timer);
     }, [teachers, loading]);
 
     const addTeacher = async (newTeacher: Teacher) => {
