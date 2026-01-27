@@ -83,26 +83,6 @@ const App: React.FC = () => {
 
     checkSession();
 
-    // --- EMERGENCY UI UNLOCKER ---
-    // Memastikan tidak ada sisa-sisa skrip anti-inspeksi atau overlay yang mengunci UI
-    const unlockUI = () => {
-      document.oncontextmenu = null;
-      document.body.style.pointerEvents = 'auto';
-      document.body.style.userSelect = 'auto';
-      
-      // Hapus overlay transparan yang mungkin nyangkut
-      const highZElements = document.querySelectorAll('*');
-      highZElements.forEach((el: any) => {
-        if (getComputedStyle(el).pointerEvents === 'none' && el.classList.contains('fixed')) {
-            // Jika ada overlay fixed tapi pointer-events none, pastikan children-nya bisa diklik
-            // atau biarkan browser menangani secara normal
-        }
-      });
-    };
-    
-    unlockUI();
-    window.addEventListener('load', unlockUI);
-
     // Listen for auth changes
     if (isSupabaseConfigured()) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -113,6 +93,45 @@ const App: React.FC = () => {
 
       return () => subscription.unsubscribe();
     }
+  }, []);
+
+  // --- EMERGENCY UI UNLOCKER (PRO-ACTIVE) ---
+  // Memastikan tidak ada skrip yang mengunci interaksi di Cloudflare
+  useEffect(() => {
+    const unlockUI = () => {
+      if (typeof document === 'undefined') return;
+
+      // Force reset context menu & interaction
+      document.oncontextmenu = null;
+      document.body.style.pointerEvents = 'auto';
+      document.body.style.userSelect = 'auto';
+      document.documentElement.style.pointerEvents = 'auto';
+      document.documentElement.style.userSelect = 'auto';
+
+      // Deteksi overlay transparan yang mungkin membeku (Z-Index Tinggi)
+      const allEls = document.querySelectorAll('*');
+      allEls.forEach((el: any) => {
+        const style = window.getComputedStyle(el);
+        if (style.position === 'fixed' && style.zIndex && parseInt(style.zIndex) > 1000) {
+          if (style.backgroundColor === 'rgba(0, 0, 0, 0)' || style.opacity === '0' || style.visibility === 'hidden') {
+            // Jika ini adalah overlay transparan tapi pointer-events bukan 'none',
+            // maka dia akan memblokir klik. Kita paksa ke none.
+            if (style.pointerEvents !== 'none') {
+              el.style.pointerEvents = 'none';
+            }
+          }
+        }
+      });
+    };
+
+    unlockUI();
+    const interval = setInterval(unlockUI, 1500); // Cek setiap 1.5 detik
+    window.addEventListener('load', unlockUI);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('load', unlockUI);
+    };
   }, []);
 
   // --- INTEGRATED DATA HOOKS ---
