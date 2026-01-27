@@ -51,7 +51,8 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('school_settings_v10');
     if (saved) return JSON.parse(saved);
     return {
-      name: schoolSettingsGlobal.name,
+      name: schoolSettingsGlobal.name || 'EDUADMIN MODERN SCHOOL',
+      foundation: schoolSettingsGlobal.foundation || 'YAYASAN PENDIDIKAN INDONESIA',
       address: schoolSettingsGlobal.address,
       accreditation: 'A',
       principal: schoolSettingsGlobal.principal,

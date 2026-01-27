@@ -87,8 +87,8 @@ export const initialFinanceDataGlobal = {
 
 // --- 7. IDENTITAS SEKOLAH (GLOBAL CONFIG) ---
 export const schoolSettingsGlobal = {
-    name: "",
-    foundation: "",
+    name: "EDUADMIN DIGITAL SCHOOL",
+    foundation: "YAYASAN PENDIDIKAN MADANI",
     address: "",
     principal: "",
     nipPrincipal: "",

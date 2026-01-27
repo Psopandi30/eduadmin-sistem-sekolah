@@ -43,7 +43,7 @@ const UploadKelasSatuView: React.FC<UploadKelasSatuViewProps> = ({
                         </select>
                     </div>
                     <div className="h-8 w-px bg-slate-200 hidden md:block mx-1"></div>
-                    <button onClick={handleDownloadTemplate} className="flex items-center gap-2 px-5 py-2.5 bg-green-50 text-green-600 rounded-xl font-bold hover:bg-green-100 transition-colors border border-green-200 shadow-sm">
+                    <button onClick={() => handleDownloadTemplate('Siswa_Baru')} className="flex items-center gap-2 px-5 py-2.5 bg-green-50 text-green-600 rounded-xl font-bold hover:bg-green-100 transition-colors border border-green-200 shadow-sm">
                         <Download size={18} /> <span className="hidden md:inline">Template</span>
                     </button>
                     <button onClick={handleUploadClick} className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-600 rounded-xl font-bold hover:bg-blue-100 transition-colors border border-blue-200 shadow-sm">

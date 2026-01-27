@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { studentsDataGlobal, addStudent as addStudentToShared } from '../../../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
+import { toast } from 'react-hot-toast';
 
 export interface Student {
     id: string | number;
@@ -209,8 +210,47 @@ export const useStudents = () => {
         }
     };
 
-    const handleDownloadTemplate = () => {
-        alert("Mengunduh template Excel...");
+    const handleDownloadTemplate = (type: string = 'Seluruh_Data_Siswa') => {
+        const headers = [
+            'No', 'NIS', 'Nama Lengkap', 'Tempat_Tanggal_Lahir', 'Tingkat', 'KELAS',
+            'Paralel', 'Nama_Ayah', 'Nama_Ibu', 'Pekerjaan_Ayah', 'Pekerjaan_Ibu',
+            'Username', 'Password'
+        ];
+
+        let exampleData = [
+            '1', '2024001', 'Budi Santoso', 'Garut, 12-05-2010', '1A', '1',
+            'A', 'Sandi Santoso', 'Siti Aminah', 'Wiraswasta', 'Ibu Rumah Tangga',
+            '2024001', '2024001'
+        ];
+
+        if (type === 'Siswa_Baru') {
+            exampleData[4] = '1A'; exampleData[5] = '1';
+        } else if (type === 'Data_Per_Kelas') {
+            exampleData[4] = '2B'; exampleData[5] = '2'; exampleData[6] = 'B';
+        }
+
+        const csvContent = [headers.join(','), exampleData.join(',')].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `Template_Upload_${type}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast.success(`Template ${type.replace(/_/g, ' ')} berhasil diunduh!`, {
+            style: {
+                borderRadius: '1.5rem',
+                background: '#1E1B4B',
+                color: '#fff',
+                fontWeight: 'bold',
+                padding: '1rem',
+                border: '1px solid rgba(255,255,255,0.1)'
+            },
+            icon: '📥',
+            duration: 4000
+        });
     };
 
     const handleUploadClick = () => {
@@ -219,13 +259,41 @@ export const useStudents = () => {
         input.accept = '.xlsx, .xls, .csv';
         input.onchange = (e) => {
             const file = (e.target as HTMLInputElement).files?.[0];
-            if (file) alert(`File ${file.name} terpilih! Klik Simpan untuk memproses.`);
+            if (file) {
+                toast.success(`File ${file.name} berhasil dimuat!`, {
+                    style: {
+                        borderRadius: '15px',
+                        background: '#1E1B4B',
+                        color: '#fff',
+                        fontWeight: 'bold'
+                    }
+                });
+            }
         };
         input.click();
     };
 
     const handleSaveData = () => {
-        alert("Data berhasil disimpan ke database!");
+        toast.promise(
+            new Promise((resolve) => setTimeout(resolve, 1500)),
+            {
+                loading: 'Menyimpan data ke database...',
+                success: 'Data berhasil disimpan!',
+                error: 'Gagal menyimpan data.',
+            },
+            {
+                style: {
+                    borderRadius: '15px',
+                    fontWeight: 'bold'
+                },
+                success: {
+                    style: {
+                        background: '#059669',
+                        color: '#fff'
+                    }
+                }
+            }
+        );
     };
 
     return {

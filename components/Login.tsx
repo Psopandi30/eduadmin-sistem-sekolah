@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Lock, ArrowRight } from 'lucide-react';
+import { User, Lock, ArrowRight, School } from 'lucide-react';
 import { studentsDataGlobal, classesDataGlobal, teachersDataGlobal } from '../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 
@@ -167,18 +167,27 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                         <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white/40 to-transparent pointer-events-none"></div>
 
                         {/* Logo Area */}
-                        <div className="flex flex-col items-center mb-8 relative z-10">
-                            <div className="w-24 h-24 rounded-full border-2 border-slate-700 flex items-center justify-center bg-white mb-4 shadow-lg group hover:scale-105 transition-transform duration-300 overflow-hidden">
+                        <div className="flex flex-col items-center mb-10 relative z-10 transition-all duration-500">
+                            <div className="w-28 h-28 rounded-full border-4 border-white shadow-2xl flex items-center justify-center bg-white mb-6 group hover:scale-110 transition-transform duration-500 overflow-hidden ring-8 ring-blue-600/5">
                                 {logo ? (
-                                    <img src={logo} alt="Logo" className="w-full h-full object-cover" />
+                                    <img src={logo} alt="Logo" className="w-full h-full object-contain p-2" />
                                 ) : (
-                                    <span className="font-bold text-slate-800 text-xl tracking-widest group-hover:tracking-[0.2em] transition-all">Logo</span>
+                                    <div className="flex flex-col items-center">
+                                        <School size={36} className="text-blue-800" />
+                                        <span className="font-black text-blue-800 text-[10px] uppercase tracking-tighter mt-1">Logo</span>
+                                    </div>
                                 )}
                             </div>
-                            <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight text-center leading-tight">
-                                {schoolName}
-                            </h2>
-                            <p className="text-slate-600 text-xs font-medium mt-1">Sistem Informasi Manajemen</p>
+
+                            <div className="text-center space-y-1">
+                                <h1 className="text-2xl font-black text-[#1E3A8A] uppercase tracking-tight leading-tight px-4 drop-shadow-sm">
+                                    {schoolName || "EDUADMIN SCHOOL"}
+                                </h1>
+                                <div className="h-1 w-12 bg-blue-600 mx-auto rounded-full opacity-50 mb-3"></div>
+                                <p className="text-[#1E3A8A]/60 text-[11px] font-black uppercase tracking-[0.2em]">
+                                    Sistem Informasi Manajemen
+                                </p>
+                            </div>
                         </div>
 
                         {/* Form */}
