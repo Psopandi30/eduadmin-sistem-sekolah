@@ -65,21 +65,26 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout }) => {
     const [activeView, setActiveView] = useState('dashboard');
     const [isSidebarOpen, setSidebarOpen] = useState(true);
 
-    // --- FORCE RESET CLEANUP (Run once to ensure everything is empty) ---
+    /* --- FORCE RESET CLEANUP (Temporarily Disabled for Stability) ---
     useEffect(() => {
-        const hasReset = localStorage.getItem('force_reset_v10');
-        if (!hasReset) {
-            // Clear all possible legacy keys
-            Object.keys(localStorage).forEach(key => {
-                if (key.includes('data_v') || key.includes('finance_') || key.includes('savings_') || key.includes('announcements_') || key.includes('broadcasts_')) {
-                    localStorage.removeItem(key);
-                }
-            });
-            localStorage.setItem('force_reset_v10', 'true');
-            // Hard refresh to ensure hooks re-initialize with empty data from sharedData
-            window.location.reload();
+        try {
+            const resetKey = 'force_reset_v10';
+            const hasReset = localStorage.getItem(resetKey);
+            if (!hasReset) {
+                Object.keys(localStorage).forEach(key => {
+                    if (key.includes('data_v') || key.includes('finance_') || key.includes('savings_') || key.includes('announcements_')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+                localStorage.setItem(resetKey, 'true');
+                console.log("Force reset triggered, reloading...");
+                window.location.reload();
+            }
+        } catch (e) {
+            console.error("Local storage error during reset:", e);
         }
     }, []);
+    */
 
     const [selectedClass, setSelectedClass] = useState('1A');
 

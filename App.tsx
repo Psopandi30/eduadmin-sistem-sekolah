@@ -95,42 +95,24 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // --- EMERGENCY UI UNLOCKER (PRO-ACTIVE) ---
-  // Memastikan tidak ada skrip yang mengunci interaksi di Cloudflare
+  // --- OPTIMIZED UI UNLOCKER ---
+  // Memastikan interaksi aktif tanpa membebani performa
   useEffect(() => {
     const unlockUI = () => {
-      if (typeof document === 'undefined') return;
-
-      // Force reset context menu & interaction
       document.oncontextmenu = null;
       document.body.style.pointerEvents = 'auto';
       document.body.style.userSelect = 'auto';
       document.documentElement.style.pointerEvents = 'auto';
-      document.documentElement.style.userSelect = 'auto';
-
-      // Deteksi overlay transparan yang mungkin membeku (Z-Index Tinggi)
-      const allEls = document.querySelectorAll('*');
-      allEls.forEach((el: any) => {
-        const style = window.getComputedStyle(el);
-        if (style.position === 'fixed' && style.zIndex && parseInt(style.zIndex) > 1000) {
-          if (style.backgroundColor === 'rgba(0, 0, 0, 0)' || style.opacity === '0' || style.visibility === 'hidden') {
-            // Jika ini adalah overlay transparan tapi pointer-events bukan 'none',
-            // maka dia akan memblokir klik. Kita paksa ke none.
-            if (style.pointerEvents !== 'none') {
-              el.style.pointerEvents = 'none';
-            }
-          }
-        }
-      });
     };
 
     unlockUI();
-    const interval = setInterval(unlockUI, 1500); // Cek setiap 1.5 detik
+    // Gunakan listener pasif dibanding interval berat
     window.addEventListener('load', unlockUI);
+    window.addEventListener('mousedown', unlockUI, { passive: true });
 
     return () => {
-      clearInterval(interval);
       window.removeEventListener('load', unlockUI);
+      window.removeEventListener('mousedown', unlockUI);
     };
   }, []);
 
@@ -140,8 +122,8 @@ const App: React.FC = () => {
   const { classes, setClasses } = useClasses();
   const { subjects, setSubjects } = useSubjects();
 
-  // Derived / Mapped Data for Legacy Components
-  const kelasData = classes.map(c => ({
+  // Derived / Mapped Data (Memoized for Performance)
+  const kelasData = React.useMemo(() => classes.map(c => ({
     id: c.id,
     kode: `KLS-${c.nama}`,
     nama: isNaN(parseInt(c.nama[0])) ? c.nama : `Kelas ${c.nama}`,
@@ -149,36 +131,39 @@ const App: React.FC = () => {
     paralel: c.paralel,
     wali: teachers.find(t => t.wali === c.nama)?.nama || 'Belum Ditentukan',
     waliNip: teachers.find(t => t.wali === c.nama)?.nip || '-'
-  }));
+  })), [classes, teachers]);
 
-  const stafList = teachers.map((t, idx) => ({
+  const stafList = React.useMemo(() => teachers.map((t, idx) => ({
     no: idx + 1,
     noPegawai: t.nip,
     nama: t.nama,
     jabatan: t.jabatan,
     username: t.username,
     password: t.password
-  }));
+  })), [teachers]);
 
-  const mapelData = subjects.map((s, idx) => ({
+  const mapelData = React.useMemo(() => subjects.map((s, idx) => ({
     no: idx + 1,
     nama: s.name,
     kode: s.code,
-    kelas: s.level.replace('Kelas ', ''),
+    kelas: s.level ? s.level.replace('Kelas ', '') : '-',
     kelompok: s.group
-  }));
+  })), [subjects]);
 
-  const studentsDataByClass: Record<string, any[]> = {};
-  students.forEach(s => {
-    const className = s.kelas;
-    if (!studentsDataByClass[className]) studentsDataByClass[className] = [];
-    studentsDataByClass[className].push({
-      no: studentsDataByClass[className].length + 1,
-      nis: s.nis,
-      nama: s.nama,
-      gender: s.gender || 'L'
+  const studentsDataByClass = React.useMemo(() => {
+    const data: Record<string, any[]> = {};
+    students.forEach(s => {
+      const className = s.kelas || 'Tanpa Kelas';
+      if (!data[className]) data[className] = [];
+      data[className].push({
+        no: data[className].length + 1,
+        nis: s.nis,
+        nama: s.nama,
+        gender: s.gender || 'L'
+      });
     });
-  });
+    return data;
+  }, [students]);
 
   const handleLogin = (role: string, user: any) => {
     setUserRole(role);
