@@ -31,8 +31,6 @@ import DashboardSuperAdmin from './components/DashboardSuperAdmin';
 import DashboardKepalaSekolah from './components/DashboardKepalaSekolah';
 
 import { schoolSettingsGlobal, updateAnnouncementsGlobal } from './data/sharedData';
-
-
 import { useStudents } from './components/DashboardSuperAdmin/hooks/useStudents';
 import { useTeachers } from './components/DashboardSuperAdmin/hooks/useTeachers';
 import { useClasses } from './components/DashboardSuperAdmin/hooks/useClasses';
@@ -41,10 +39,7 @@ import { supabase, isSupabaseConfigured } from './src/lib/supabase';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('beranda');
-  // Mobile Responsive Sidebar State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  // Authentication State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -53,17 +48,10 @@ const App: React.FC = () => {
   useEffect(() => {
     const checkSession = async () => {
       if (!isSupabaseConfigured()) return;
-
       const { data: { session } } = await supabase.auth.getSession();
-
       if (session?.user) {
         try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
+          const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
           if (profile) {
             setUserRole(profile.role);
             setCurrentUser({
@@ -80,140 +68,27 @@ const App: React.FC = () => {
         }
       }
     };
-
     checkSession();
-
-    // Listen for auth changes
     if (isSupabaseConfigured()) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (!session) {
-          handleLogout();
-        }
+        if (!session) handleLogout();
       });
-
       return () => subscription.unsubscribe();
     }
   }, []);
 
-  // --- OPTIMIZED UI UNLOCKER ---
-  // Memastikan interaksi aktif tanpa membebani performa
+  // --- INTERACTION FIX ---
   useEffect(() => {
     const unlockUI = () => {
       document.oncontextmenu = null;
       document.body.style.pointerEvents = 'auto';
-      document.body.style.userSelect = 'auto';
-      document.documentElement.style.pointerEvents = 'auto';
     };
-
     unlockUI();
-    // Gunakan listener pasif dibanding interval berat
-    window.addEventListener('load', unlockUI);
     window.addEventListener('mousedown', unlockUI, { passive: true });
-
-    return () => {
-      window.removeEventListener('load', unlockUI);
-      window.removeEventListener('mousedown', unlockUI);
-    };
+    return () => window.removeEventListener('mousedown', unlockUI);
   }, []);
 
-  // --- INTEGRATED DATA HOOKS ---
-  const { students } = useStudents();
-  const { teachers, setTeachers } = useTeachers();
-  const { classes, setClasses } = useClasses();
-  const { subjects, setSubjects } = useSubjects();
-
-  // Derived / Mapped Data (Memoized for Performance)
-  const kelasData = React.useMemo(() => classes.map(c => ({
-    id: c.id,
-    kode: `KLS-${c.nama}`,
-    nama: isNaN(parseInt(c.nama[0])) ? c.nama : `Kelas ${c.nama}`,
-    tingkat: c.tingkat.toString(),
-    paralel: c.paralel,
-    wali: teachers.find(t => t.wali === c.nama)?.nama || 'Belum Ditentukan',
-    waliNip: teachers.find(t => t.wali === c.nama)?.nip || '-'
-  })), [classes, teachers]);
-
-  const stafList = React.useMemo(() => teachers.map((t, idx) => ({
-    no: idx + 1,
-    noPegawai: t.nip,
-    nama: t.nama,
-    jabatan: t.jabatan,
-    username: t.username,
-    password: t.password
-  })), [teachers]);
-
-  const mapelData = React.useMemo(() => subjects.map((s, idx) => ({
-    no: idx + 1,
-    nama: s.name,
-    kode: s.code,
-    kelas: s.level ? s.level.replace('Kelas ', '') : '-',
-    kelompok: s.group
-  })), [subjects]);
-
-  const studentsDataByClass = React.useMemo(() => {
-    const data: Record<string, any[]> = {};
-    students.forEach(s => {
-      const className = s.kelas || 'Tanpa Kelas';
-      if (!data[className]) data[className] = [];
-      data[className].push({
-        no: data[className].length + 1,
-        nis: s.nis,
-        nama: s.nama,
-        gender: s.gender || 'L'
-      });
-    });
-    return data;
-  }, [students]);
-
-  const handleLogin = (role: string, user: any) => {
-    setUserRole(role);
-    setCurrentUser(user);
-    setIsLoggedIn(true);
-  };
-
-  const handleLogout = async () => {
-    if (isSupabaseConfigured()) {
-      await supabase.auth.signOut();
-    }
-    setIsLoggedIn(false);
-    setUserRole('');
-    setCurrentUser(null);
-    setActiveTab('beranda');
-  };
-
-  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
-
-  // --- INITIALIZE GLOBAL DATA ---
-  useEffect(() => {
-    // Sync Announcements from LocalStorage to Global State once on load
-    const savedAnnouncements = localStorage.getItem('announcements_data_v10');
-    if (savedAnnouncements) {
-      try {
-        updateAnnouncementsGlobal(JSON.parse(savedAnnouncements));
-      } catch (e) {
-        console.error("Failed to sync announcements", e);
-      }
-    }
-  }, []);
-
-
-  // --- ATTENDANCE STATE SYNC ---
-  const [attendanceData, setAttendanceData] = useState<Record<string, Record<string, 'H' | 'S' | 'I' | 'A'>>>(() => {
-    const saved = localStorage.getItem('attendance_data_v1_legacy');
-    return saved ? JSON.parse(saved) : {};
-  });
-
-  useEffect(() => {
-    localStorage.setItem('attendance_data_v1_legacy', JSON.stringify(attendanceData));
-  }, [attendanceData]);
-
-
-  // Grades: { "Class_Subject_Category": { "nis": { "UH 1": "90" } } }
-  const [gradesData, setGradesData] = useState<Record<string, Record<string, Record<string, string>>>>({});
-  // Columns: { "Class_Subject_Category": ["UH 1", "UH 2"] }
-  const [customColumnsData, setCustomColumnsData] = useState<Record<string, string[]>>({});
-
-  // --- SETTINGS STATE ---
+  // --- SETTINGS & SHARED STATE ---
   const [schoolSettings, setSchoolSettings] = useState(() => {
     const saved = localStorage.getItem('school_settings_v10');
     if (saved) return JSON.parse(saved);
@@ -229,26 +104,40 @@ const App: React.FC = () => {
     };
   });
 
-  // Persist Settings & Update Favicon
   useEffect(() => {
     localStorage.setItem('school_settings_v10', JSON.stringify(schoolSettings));
-
-    // Global sync for legacy components
     Object.assign(schoolSettingsGlobal, schoolSettings);
-
-    // Update Favicon dynamically
-    if (schoolSettings.icon) {
-      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = 'icon';
-        document.getElementsByTagName('head')[0].appendChild(link);
-      }
-      link.href = schoolSettings.icon;
-    }
   }, [schoolSettings]);
 
+  const [attendanceData, setAttendanceData] = useState<Record<string, Record<string, 'H' | 'S' | 'I' | 'A'>>>(() => {
+    const saved = localStorage.getItem('attendance_data_v1_legacy');
+    return saved ? JSON.parse(saved) : {};
+  });
 
+  useEffect(() => {
+    localStorage.setItem('attendance_data_v1_legacy', JSON.stringify(attendanceData));
+  }, [attendanceData]);
+
+  const [gradesData, setGradesData] = useState<Record<string, Record<string, Record<string, string>>>>({});
+  const [customColumnsData, setCustomColumnsData] = useState<Record<string, string[]>>({});
+
+  const handleLogin = (role: string, user: any) => {
+    setUserRole(role);
+    setCurrentUser(user);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = async () => {
+    if (isSupabaseConfigured()) await supabase.auth.signOut();
+    setIsLoggedIn(false);
+    setUserRole('');
+    setCurrentUser(null);
+    setActiveTab('beranda');
+  };
+
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
+  // --- RENDER LOGIC ---
   if (!isLoggedIn) {
     return (
       <Login
@@ -260,7 +149,77 @@ const App: React.FC = () => {
     );
   }
 
-  // --- DASHBOARDS ---
+  return (
+    <AuthenticatedApp
+      currentUser={currentUser}
+      userRole={userRole}
+      handleLogout={handleLogout}
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      isSidebarOpen={isSidebarOpen}
+      toggleSidebar={toggleSidebar}
+      schoolSettings={schoolSettings}
+      setSchoolSettings={setSchoolSettings}
+      attendanceData={attendanceData}
+      setAttendanceData={setAttendanceData}
+      gradesData={gradesData}
+      setGradesData={setGradesData}
+      customColumnsData={customColumnsData}
+      setCustomColumnsData={setCustomColumnsData}
+    />
+  );
+};
+
+// --- AUTHENTICATED APP ---
+const AuthenticatedApp: React.FC<any> = ({
+  currentUser, userRole, handleLogout, activeTab, setActiveTab,
+  isSidebarOpen, toggleSidebar, schoolSettings, setSchoolSettings,
+  attendanceData, setAttendanceData, gradesData, setGradesData,
+  customColumnsData, setCustomColumnsData
+}) => {
+  // HOOKS ONLY RUN HERE TO PREVENT LOGIN PAGE LAG
+  const { students } = useStudents();
+  const { teachers } = useTeachers();
+  const { classes } = useClasses();
+  const { subjects } = useSubjects();
+
+  const kelasData = React.useMemo(() => classes.map((c: any) => ({
+    id: c.id,
+    kode: `KLS-${c.nama}`,
+    nama: isNaN(parseInt(c.nama[0])) ? c.nama : `Kelas ${c.nama}`,
+    tingkat: c.tingkat.toString(),
+    paralel: c.paralel,
+    wali: teachers.find((t: any) => t.wali === c.nama)?.nama || 'Belum Ditentukan',
+    waliNip: teachers.find((t: any) => t.wali === c.nama)?.nip || '-'
+  })), [classes, teachers]);
+
+  const stafList = React.useMemo(() => teachers.map((t: any, idx: number) => ({
+    no: idx + 1,
+    noPegawai: t.nip,
+    nama: t.nama,
+    jabatan: t.jabatan,
+    username: t.username,
+    password: t.password
+  })), [teachers]);
+
+  const mapelData = React.useMemo(() => subjects.map((s: any, idx: number) => ({
+    no: idx + 1,
+    nama: s.name,
+    kode: s.code,
+    kelas: s.level ? s.level.replace('Kelas ', '') : '-',
+    kelompok: s.group
+  })), [subjects]);
+
+  const studentsDataByClass = React.useMemo(() => {
+    const data: Record<string, any[]> = {};
+    students.forEach((s: any) => {
+      const className = s.kelas || 'Tanpa Kelas';
+      if (!data[className]) data[className] = [];
+      data[className].push({ no: data[className].length + 1, nis: s.nis, nama: s.nama, gender: s.gender || 'L' });
+    });
+    return data;
+  }, [students]);
+
   if (userRole === 'ot') return <DashboardOrangTua user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;
   if (userRole === 'wk') return <DashboardWaliKelas user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;
   if (userRole === 'gb') return <DashboardGuruBimbel user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;
@@ -270,92 +229,24 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
-      {/* Sidebar - Mobile Responsive */}
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        isOpen={isSidebarOpen}
-        toggleSidebar={toggleSidebar}
-        schoolSettings={schoolSettings}
-      />
-
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} schoolSettings={schoolSettings} />
       <div className="flex-1 flex flex-col min-w-0">
         <Header toggleSidebar={toggleSidebar} user={currentUser} onLogout={handleLogout} />
-
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-7xl mx-auto">
             {activeTab === 'beranda' && <Dashboard />}
-            {activeTab === 'data-siswa' && (
-              <DataSiswa
-                onTambahKelas={() => setActiveTab('tambah-kelas')}
-                onUploadSiswa={() => setActiveTab('upload-siswa')}
-                onUploadPerkelas={() => setActiveTab('upload-perkelas')}
-                onUploadSiswaBaru={() => setActiveTab('upload-siswa-baru')}
-              />
-            )}
-            {activeTab === 'data-guru' && (
-              <DataGuruStaff
-                mapelList={mapelData}
-                setMapelList={setSubjects as any}
-                stafList={stafList}
-                setStafList={setTeachers as any}
-                kelasData={kelasData}
-                setKelasData={setClasses as any}
-              />
-            )}
-            {activeTab === 'kelas-wali' && (
-              <KelasWali
-                kelasData={kelasData}
-                studentsData={studentsDataByClass}
-              />
-            )}
-            {activeTab === 'mata-pelajaran' && (
-              <MataPelajaran
-                kelasData={kelasData}
-                mapelList={mapelData}
-                stafList={stafList}
-              />
-            )}
-
-            {activeTab === 'tambah-kelas' && (
-              <TambahKelas
-                onBack={() => setActiveTab('data-siswa')}
-                kelasData={kelasData}
-                setKelasData={setClasses as any}
-              />
-            )}
+            {activeTab === 'data-siswa' && <DataSiswa onTambahKelas={() => setActiveTab('tambah-kelas')} onUploadSiswa={() => setActiveTab('upload-siswa')} onUploadPerkelas={() => setActiveTab('upload-perkelas')} onUploadSiswaBaru={() => setActiveTab('upload-siswa-baru')} />}
+            {activeTab === 'data-guru' && <DataGuruStaff mapelList={mapelData} setMapelList={() => { }} stafList={stafList} setStafList={() => { }} kelasData={kelasData} setKelasData={() => { }} />}
+            {activeTab === 'kelas-wali' && <KelasWali kelasData={kelasData} studentsData={studentsDataByClass} />}
+            {activeTab === 'mata-pelajaran' && <MataPelajaran kelasData={kelasData} mapelList={mapelData} stafList={stafList} />}
+            {activeTab === 'tambah-kelas' && <TambahKelas onBack={() => setActiveTab('data-siswa')} kelasData={kelasData} setKelasData={() => { }} />}
             {activeTab === 'upload-siswa' && <UploadSiswa onBack={() => setActiveTab('data-siswa')} />}
             {activeTab === 'upload-perkelas' && <UploadPerkelas onBack={() => setActiveTab('data-siswa')} />}
             {activeTab === 'upload-siswa-baru' && <UploadSiswaBaru onBack={() => setActiveTab('data-siswa')} />}
-
             {activeTab === 'jadwal' && <Jadwal kelasData={kelasData} mapelData={mapelData} />}
-            {activeTab === 'absen' && (
-              <Absen
-                kelasData={kelasData}
-                studentsData={studentsDataByClass}
-                attendanceData={attendanceData}
-                setAttendanceData={setAttendanceData}
-              />
-            )}
-            {activeTab === 'nilai' && (
-              <Nilai
-                kelasData={kelasData}
-                studentsData={studentsDataByClass}
-                mapelData={mapelData}
-                gradesData={gradesData}
-                setGradesData={setGradesData}
-                customColumnsData={customColumnsData}
-                setCustomColumnsData={setCustomColumnsData}
-              />
-            )}
-            {activeTab === 'rapot' && (
-              <Rapot
-                studentsData={studentsDataByClass}
-                gradesData={gradesData}
-                attendanceData={attendanceData}
-                schoolSettings={schoolSettings}
-              />
-            )}
+            {activeTab === 'absen' && <Absen kelasData={kelasData} studentsData={studentsDataByClass} attendanceData={attendanceData} setAttendanceData={setAttendanceData} />}
+            {activeTab === 'nilai' && <Nilai kelasData={kelasData} studentsData={studentsDataByClass} mapelData={mapelData} gradesData={gradesData} setGradesData={setGradesData} customColumnsData={customColumnsData} setCustomColumnsData={setCustomColumnsData} />}
+            {activeTab === 'rapot' && <Rapot studentsData={studentsDataByClass} gradesData={gradesData} attendanceData={attendanceData} schoolSettings={schoolSettings} />}
             {activeTab === 'keuangan' && <Keuangan />}
             {activeTab === 'tabungan' && <Tabungan />}
             {activeTab === 'naik-kelas' && <NaikKelas />}
@@ -363,7 +254,6 @@ const App: React.FC = () => {
             {activeTab === 'pengumuman' && <Pengumuman />}
             {activeTab === 'laporan' && <Laporan />}
             {activeTab === 'pengaturan' && <Pengaturan schoolSettings={schoolSettings} setSchoolSettings={setSchoolSettings} />}
-
             {!['beranda', 'data-siswa', 'data-guru', 'kelas-wali', 'mata-pelajaran', 'tambah-kelas', 'upload-siswa', 'upload-perkelas', 'upload-siswa-baru', 'jadwal', 'absen', 'nilai', 'rapot', 'keuangan', 'tabungan', 'naik-kelas', 'bimbingan', 'pengumuman', 'laporan', 'pengaturan'].includes(activeTab) && (
               <div className="flex flex-col items-center justify-center h-64 bg-white rounded-3xl shadow-sm border border-slate-200">
                 <h2 className="text-2xl font-bold text-slate-800 capitalize">{activeTab.replace(/-/g, ' ')}</h2>

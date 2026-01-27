@@ -152,15 +152,11 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
 
     return (
         <div className="min-h-screen w-full bg-[#E0F2FE] relative overflow-hidden flex items-center justify-center font-sans">
-            {/* Background Decoration - Animated Bubbles */}
-            <div className="absolute top-[-50px] left-[-50px] w-40 h-40 rounded-full border-[6px] border-[#BFDBFE] opacity-60 animate-bounce duration-[3000ms]"></div>
-            <div className="absolute bottom-20 left-10 w-24 h-24 rounded-full bg-[#BFDBFE] opacity-40 animate-pulse duration-[4000ms]"></div>
-            <div className="absolute top-40 right-[40%] w-16 h-16 rounded-full border-[4px] border-[#93C5FD] opacity-50 animate-bounce duration-[5000ms]"></div>
-            <div className="absolute bottom-[-20px] left-[30%] w-32 h-32 rounded-full border-[8px] border-[#BFDBFE] opacity-30 animate-pulse duration-[3500ms]"></div>
-
-            {/* Additional Bubble Animations */}
-            <div className="absolute top-1/4 left-1/4 w-12 h-12 rounded-full bg-white/20 animate-ping duration-[3000ms]"></div>
-            <div className="absolute bottom-1/3 right-1/4 w-8 h-8 rounded-full bg-blue-300/30 animate-bounce duration-[6000ms]"></div>
+            {/* Background Decoration - Static for Performance */}
+            <div className="absolute top-[-50px] left-[-50px] w-40 h-40 rounded-full border-[6px] border-[#BFDBFE] opacity-40"></div>
+            <div className="absolute bottom-20 left-10 w-24 h-24 rounded-full bg-[#BFDBFE] opacity-30"></div>
+            <div className="absolute top-40 right-[40%] w-16 h-16 rounded-full border-[4px] border-[#93C5FD] opacity-30"></div>
+            <div className="absolute bottom-[-20px] left-[30%] w-32 h-32 rounded-full border-[8px] border-[#BFDBFE] opacity-20"></div>
 
             {/* Login Card */}
             <div className="relative z-10 w-full max-w-[420px] px-6">
