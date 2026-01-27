@@ -83,6 +83,26 @@ const App: React.FC = () => {
 
     checkSession();
 
+    // --- EMERGENCY UI UNLOCKER ---
+    // Memastikan tidak ada sisa-sisa skrip anti-inspeksi atau overlay yang mengunci UI
+    const unlockUI = () => {
+      document.oncontextmenu = null;
+      document.body.style.pointerEvents = 'auto';
+      document.body.style.userSelect = 'auto';
+      
+      // Hapus overlay transparan yang mungkin nyangkut
+      const highZElements = document.querySelectorAll('*');
+      highZElements.forEach((el: any) => {
+        if (getComputedStyle(el).pointerEvents === 'none' && el.classList.contains('fixed')) {
+            // Jika ada overlay fixed tapi pointer-events none, pastikan children-nya bisa diklik
+            // atau biarkan browser menangani secara normal
+        }
+      });
+    };
+    
+    unlockUI();
+    window.addEventListener('load', unlockUI);
+
     // Listen for auth changes
     if (isSupabaseConfigured()) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {

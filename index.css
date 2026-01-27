@@ -9,7 +9,15 @@
     font-family: var(--font-sans);
     background-color: var(--color-slate-50);
     color: var(--color-slate-900);
+    /* Pastikan klik dan seleksi aktif */
+    pointer-events: auto !important;
+    user-select: text !important;
+    -webkit-user-select: text !important;
   }
+}
+
+#root {
+  pointer-events: auto !important;
 }
 
 /* Custom scrollbar for a cleaner look */
