@@ -51,7 +51,10 @@ export const useFinance = () => {
         return saved ? JSON.parse(saved) : initialFinanceDataGlobal.cashAccounts;
     });
 
-    const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>(initialPaymentTypes);
+    const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>(() => {
+        const saved = localStorage.getItem('finance_payment_types_v10');
+        return saved ? JSON.parse(saved) : initialPaymentTypes;
+    });
 
     const [studentBills, setStudentBills] = useState<StudentBill[]>(() => {
         const saved = localStorage.getItem('finance_student_bills_v10');
@@ -72,6 +75,10 @@ export const useFinance = () => {
     useEffect(() => {
         localStorage.setItem('finance_cash_accounts_v10', JSON.stringify(cashAccounts));
     }, [cashAccounts]);
+
+    useEffect(() => {
+        localStorage.setItem('finance_payment_types_v10', JSON.stringify(paymentTypes));
+    }, [paymentTypes]);
 
     useEffect(() => {
         localStorage.setItem('finance_student_bills_v10', JSON.stringify(studentBills));

@@ -224,8 +224,13 @@ const Pengaturan: React.FC<PengaturanProps> = ({ schoolSettings, setSchoolSettin
                                                         toast.success('Logo berhasil diupload!');
                                                     } catch (error) {
                                                         console.error("Compression failed", error);
-                                                        setSchoolProfile({ ...schoolProfile, logo: URL.createObjectURL(file) });
-                                                        toast.success('Logo berhasil diupload!');
+                                                        // Fallback to Base64 instead of Blob URL
+                                                        const reader = new FileReader();
+                                                        reader.readAsDataURL(file);
+                                                        reader.onloadend = () => {
+                                                            setSchoolProfile({ ...schoolProfile, logo: reader.result as string });
+                                                            toast.success('Logo berhasil diupload (Tanpa Kompresi)!');
+                                                        };
                                                     }
                                                 }
                                             }} />
@@ -256,8 +261,13 @@ const Pengaturan: React.FC<PengaturanProps> = ({ schoolSettings, setSchoolSettin
                                                         toast.success('Ikon berhasil diupload!');
                                                     } catch (error) {
                                                         console.error("Compression failed", error);
-                                                        setSchoolProfile({ ...schoolProfile, icon: URL.createObjectURL(file) });
-                                                        toast.success('Ikon berhasil diupload!');
+                                                        // Fallback to Base64 instead of Blob URL
+                                                        const reader = new FileReader();
+                                                        reader.readAsDataURL(file);
+                                                        reader.onloadend = () => {
+                                                            setSchoolProfile({ ...schoolProfile, icon: reader.result as string });
+                                                            toast.success('Ikon berhasil diupload (Tanpa Kompresi)!');
+                                                        };
                                                     }
                                                 }
                                             }} />

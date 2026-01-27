@@ -31,6 +31,7 @@ interface SidebarProps {
     setActiveView: (view: string) => void;
     onLogout: () => void;
     user?: any;
+    schoolSettings?: any;
 }
 
 const menuItems: MenuItem[] = [
@@ -61,7 +62,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     activeView,
     setActiveView,
     onLogout,
-    user
+    user,
+    schoolSettings
 }) => {
     // Filter Menu Items based on Role (Jabatan)
     const filteredMenuItems = React.useMemo(() => {
@@ -102,13 +104,13 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="h-20 flex items-center justify-between px-6">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[#1E3A8A] font-bold text-lg backdrop-blur-sm overflow-hidden border border-white/20">
-                        {schoolSettingsGlobal.logo ? (
-                            <img src={schoolSettingsGlobal.logo} alt="Logo" className="w-full h-full object-contain" />
+                        {schoolSettings?.logo ? (
+                            <img src={schoolSettings.logo} alt="Logo" className="w-full h-full object-contain" />
                         ) : (
                             "EA"
                         )}
                     </div>
-                    {isSidebarOpen && <span className="text-white font-bold text-sm tracking-tight leading-tight">{schoolSettingsGlobal.name || "EduAdmin"}</span>}
+                    {isSidebarOpen && <span className="text-white font-bold text-sm tracking-tight leading-tight">{schoolSettings?.name || "EduAdmin"}</span>}
                 </div>
                 {isSidebarOpen && <button onClick={() => setSidebarOpen(false)} className="text-white/50 hover:text-white"><Menu size={24} /></button>}
                 {!isSidebarOpen && <button onClick={() => setSidebarOpen(true)} className="absolute left-[70px] top-8 bg-[#1E3A8A] p-2 rounded-r-xl shadow-md text-white z-50"><Menu size={20} /></button>}

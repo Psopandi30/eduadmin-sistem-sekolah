@@ -58,10 +58,12 @@ import { useSavings } from './DashboardSuperAdmin/hooks/useSavings';
 interface SuperAdminProps {
     user: any;
     onLogout: () => void;
+    schoolSettings: any;
+    setSchoolSettings: React.Dispatch<React.SetStateAction<any>>;
 }
 
 
-const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout }) => {
+const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, schoolSettings, setSchoolSettings }) => {
     const [activeView, setActiveView] = useState('dashboard');
     const [isSidebarOpen, setSidebarOpen] = useState(true);
 
@@ -117,15 +119,27 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout }) => {
     const [showGroupModal, setShowGroupModal] = useState(false);
     const [showSubjectModal, setShowSubjectModal] = useState(false);
     const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
-    const [positions, setPositions] = useState([
 
-        { id: 1, nama: 'Kepala Sekolah', kategori: 'Struktural' },
-        { id: 2, nama: 'Wakil Kurikulum', kategori: 'Struktural' },
-        { id: 3, nama: 'Guru Kelas', kategori: 'Fungsional' },
-        { id: 4, nama: 'Guru Mata Pelajaran', kategori: 'Fungsional' },
-        { id: 5, nama: 'Staff Tata Usaha', kategori: 'Staff' },
-        { id: 6, nama: 'Operator Data', kategori: 'Teknis' },
-    ]);
+
+    // Persist Positions
+    const [positions, setPositions] = useState<any[]>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('positions_data_v10');
+            if (saved) return JSON.parse(saved);
+        }
+        return [
+            { id: 1, nama: 'Kepala Sekolah', kategori: 'Struktural' },
+            { id: 2, nama: 'Wakil Kurikulum', kategori: 'Struktural' },
+            { id: 3, nama: 'Guru Kelas', kategori: 'Fungsional' },
+            { id: 4, nama: 'Guru Mata Pelajaran', kategori: 'Fungsional' },
+            { id: 5, nama: 'Staff Tata Usaha', kategori: 'Staff' },
+            { id: 6, nama: 'Operator Data', kategori: 'Teknis' },
+        ];
+    });
+
+    useEffect(() => {
+        localStorage.setItem('positions_data_v10', JSON.stringify(positions));
+    }, [positions]);
 
     // --- JADWAL STATE ---
     const [schedules, setSchedules] = useState<MasterSchedule[]>(() => {
@@ -621,13 +635,63 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout }) => {
     };
 
     // --- BIMBINGAN BELAJAR (TUTORING) STATE ---
+    // --- BIMBINGAN BELAJAR (TUTORING) STATE ---
     const [tutoringActiveTab, setTutoringActiveTab] = useState('dashboard'); // dashboard, mapel, guru, materi
-    const [tutoringSubjects, setTutoringSubjects] = useState<any[]>(tutoringSubjectsGlobal);
-    const [tutoringTeachers, setTutoringTeachers] = useState<any[]>(tutoringTeachersGlobal);
-    const [tutoringMaterials, setTutoringMaterials] = useState<any[]>([]);
 
-    useEffect(() => { updateTutoringSubjectsGlobal(tutoringSubjects); }, [tutoringSubjects]);
-    useEffect(() => { updateTutoringTeachersGlobal(tutoringTeachers); }, [tutoringTeachers]);
+    // Subjects
+    const [tutoringSubjects, setTutoringSubjects] = useState<any[]>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('tutoring_subjects_v10');
+            if (saved) return JSON.parse(saved);
+        }
+        return tutoringSubjectsGlobal;
+    });
+
+    // Teachers
+    const [tutoringTeachers, setTutoringTeachers] = useState<any[]>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('tutoring_teachers_v10');
+            if (saved) return JSON.parse(saved);
+        }
+        return tutoringTeachersGlobal;
+    });
+
+    // Materials (Assuming these were empty before, now persisted too if needed, but let's stick to initial)
+    const [tutoringMaterials, setTutoringMaterials] = useState<any[]>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('tutoring_materials_v10');
+            if (saved) return JSON.parse(saved);
+        }
+        return [];
+    });
+
+    // Enrollments
+    const [tutoringEnrollments, setTutoringEnrollments] = useState<{ groupId: number, studentId: number }[]>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('tutoring_enrollments_v10');
+            if (saved) return JSON.parse(saved);
+        }
+        return [];
+    });
+
+
+    useEffect(() => {
+        localStorage.setItem('tutoring_subjects_v10', JSON.stringify(tutoringSubjects));
+        updateTutoringSubjectsGlobal(tutoringSubjects);
+    }, [tutoringSubjects]);
+
+    useEffect(() => {
+        localStorage.setItem('tutoring_teachers_v10', JSON.stringify(tutoringTeachers));
+        updateTutoringTeachersGlobal(tutoringTeachers);
+    }, [tutoringTeachers]);
+
+    useEffect(() => {
+        localStorage.setItem('tutoring_materials_v10', JSON.stringify(tutoringMaterials));
+    }, [tutoringMaterials]);
+
+    useEffect(() => {
+        localStorage.setItem('tutoring_enrollments_v10', JSON.stringify(tutoringEnrollments));
+    }, [tutoringEnrollments]);
 
     // --- TUTORING HELPERS ---
     const [showAddTutoringSubject, setShowAddTutoringSubject] = useState(false);
@@ -698,7 +762,6 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout }) => {
     };
 
     // --- MANAGE TUTORING STUDENTS ---
-    const [tutoringEnrollments, setTutoringEnrollments] = useState<{ groupId: number, studentId: number }[]>([]);
     const [showManageTutoringStudentsModal, setShowManageTutoringStudentsModal] = useState(false);
     const [selectedTutoringGroup, setSelectedTutoringGroup] = useState<any>(null);
 
@@ -1118,6 +1181,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout }) => {
                 setActiveView={setActiveView}
                 onLogout={onLogout}
                 user={user}
+                schoolSettings={schoolSettings}
             />
 
             {/* MAIN CONTENT AREA */}
@@ -2789,7 +2853,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout }) => {
                     {activeView === 'multimedia' && <MultimediaView />}
 
                     {/* --- VIEW: PENGATURAN --- */}
-                    {activeView === 'settings' && <SettingsView />}
+                    {/* --- VIEW: PENGATURAN --- */}
+                    {activeView === 'settings' && <SettingsView schoolSettings={schoolSettings} setSchoolSettings={setSchoolSettings} />}
 
                     {/* --- VIEW: AI MANAGEMENT --- */}
                     {activeView === 'ai_management' && (

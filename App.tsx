@@ -65,16 +65,20 @@ const App: React.FC = () => {
 
   // Persist Settings & Update Favicon
   useEffect(() => {
-    localStorage.setItem('school_settings_v10', JSON.stringify(schoolSettings));
-    Object.assign(schoolSettingsGlobal, schoolSettings);
-    if (schoolSettings.icon) {
-      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = 'icon';
-        document.getElementsByTagName('head')[0].appendChild(link);
+    try {
+      localStorage.setItem('school_settings_v10', JSON.stringify(schoolSettings));
+      Object.assign(schoolSettingsGlobal, schoolSettings);
+      if (schoolSettings.icon) {
+        let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'icon';
+          document.getElementsByTagName('head')[0].appendChild(link);
+        }
+        link.href = schoolSettings.icon;
       }
-      link.href = schoolSettings.icon;
+    } catch (error) {
+      console.error("Failed to save settings to localStorage:", error);
     }
   }, [schoolSettings]);
 
@@ -238,7 +242,7 @@ const AuthenticatedApp: React.FC<any> = ({
   if (userRole === 'wk') return <DashboardWaliKelas user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;
   if (userRole === 'gb') return <DashboardGuruBimbel user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;
   if (userRole === 'gm') return <DashboardGuruMapel user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;
-  if (userRole === 'admin') return <DashboardSuperAdmin user={currentUser} onLogout={handleLogout} />;
+  if (userRole === 'admin') return <DashboardSuperAdmin user={currentUser} onLogout={handleLogout} schoolSettings={schoolSettings} setSchoolSettings={setSchoolSettings} />;
   if (userRole === 'ks') return <DashboardKepalaSekolah user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;
 
   // 5. Default Super Admin / Admin Layout (Legacy Multi-Tab View)

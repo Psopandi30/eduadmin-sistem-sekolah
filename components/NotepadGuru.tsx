@@ -6,10 +6,39 @@ interface NotepadGuruProps {
 }
 
 const NotepadGuru: React.FC<NotepadGuruProps> = ({ onBack }) => {
-    const [notes, setNotes] = useState([
-        { id: 1, title: 'Rencana Rapat Wali Murid', content: 'Membahas persiapan ujian akhir semester...', color: 'bg-yellow-100', date: '2025-10-20' },
-        { id: 2, title: 'Ide Lomba Kelas', content: 'Lomba kebersihan dan menghias kelas...', color: 'bg-blue-100', date: '2025-10-22' },
-    ]);
+    const [notes, setNotes] = useState(() => {
+        const saved = localStorage.getItem('guru_notes_v1');
+        return saved ? JSON.parse(saved) : [
+            { id: 1, title: 'Rencana Rapat Wali Murid', content: 'Membahas persiapan ujian akhir semester...', color: 'bg-yellow-100', date: '2025-10-20' },
+            { id: 2, title: 'Ide Lomba Kelas', content: 'Lomba kebersihan dan menghias kelas...', color: 'bg-blue-100', date: '2025-10-22' },
+        ];
+    });
+
+    React.useEffect(() => {
+        localStorage.setItem('guru_notes_v1', JSON.stringify(notes));
+    }, [notes]);
+
+    const addNote = () => {
+        const title = prompt("Judul Catatan:");
+        if (!title) return;
+        const content = prompt("Isi Catatan:");
+        if (!content) return;
+
+        const newNote = {
+            id: Date.now(),
+            title,
+            content,
+            color: ['bg-yellow-100', 'bg-blue-100', 'bg-green-100', 'bg-red-100'][Math.floor(Math.random() * 4)],
+            date: new Date().toISOString().split('T')[0]
+        };
+        setNotes([newNote, ...notes]);
+    };
+
+    const deleteNote = (id: number) => {
+        if (confirm('Hapus catatan ini?')) {
+            setNotes(notes.filter((n: any) => n.id !== id));
+        }
+    };
 
     return (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col h-full">
@@ -24,7 +53,7 @@ const NotepadGuru: React.FC<NotepadGuruProps> = ({ onBack }) => {
                         Notepad Guru
                     </h2>
                 </div>
-                <button className="p-2 bg-amber-500 text-white rounded-full hover:bg-amber-600 transition-colors shadow-lg shadow-amber-200">
+                <button onClick={addNote} className="p-2 bg-amber-500 text-white rounded-full hover:bg-amber-600 transition-colors shadow-lg shadow-amber-200">
                     <Plus size={20} />
                 </button>
             </div>
@@ -38,7 +67,7 @@ const NotepadGuru: React.FC<NotepadGuruProps> = ({ onBack }) => {
                             <p className="text-sm text-slate-700 leading-relaxed min-h-[60px]">{note.content}</p>
                             <div className="mt-4 pt-3 border-t border-black/5 flex justify-between items-center text-xs text-slate-500">
                                 <span>{note.date}</span>
-                                <button className="p-1.5 hover:bg-white/50 rounded text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => deleteNote(note.id)} className="p-1.5 hover:bg-white/50 rounded text-red-500 opacity-100 transition-opacity">
                                     <Trash2 size={14} />
                                 </button>
                             </div>
@@ -46,7 +75,7 @@ const NotepadGuru: React.FC<NotepadGuruProps> = ({ onBack }) => {
                     ))}
 
                     {/* Add New Placeholder */}
-                    <button className="border-2 border-dashed border-slate-300 rounded-2xl p-5 flex flex-col items-center justify-center text-slate-400 gap-2 hover:border-amber-400 hover:text-amber-500 hover:bg-amber-50 transition-all min-h-[150px]">
+                    <button onClick={addNote} className="border-2 border-dashed border-slate-300 rounded-2xl p-5 flex flex-col items-center justify-center text-slate-400 gap-2 hover:border-amber-400 hover:text-amber-500 hover:bg-amber-50 transition-all min-h-[150px]">
                         <Plus size={32} />
                         <span className="font-bold text-sm">Tambah Catatan Baru</span>
                     </button>
