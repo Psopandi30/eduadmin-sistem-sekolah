@@ -824,7 +824,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
             return {
                 ...cls,
-                wali: waliGuru ? waliGuru.nama : 'Belum Ditentukan',
+                wali: (waliGuru && waliGuru.nama && String(waliGuru.nama).trim() !== 'Guru Baru') ? waliGuru.nama : 'Belum Ditentukan',
                 siswa: studentCount
             };
         });
@@ -1469,7 +1469,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                         <td className="p-4 text-center text-slate-600">{kelas.tingkat}</td>
                                                         <td className="p-4 text-center text-slate-600">{kelas.paralel}</td>
                                                         <td className="p-4">
-                                                            {(waliGuru && waliGuru.nama !== 'Guru Baru') ? (
+                                                            {(waliGuru && waliGuru.nama && String(waliGuru.nama).trim() !== 'Guru Baru') ? (
                                                                 <span className="text-slate-700 font-medium">{waliGuru.nama}</span>
                                                             ) : (
                                                                 <span className="text-red-500 italic text-xs font-bold bg-red-50 px-2 py-1 rounded-md">Belum Ada</span>
@@ -1487,7 +1487,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                             </button>
                                                         </td>
                                                     </tr>
-                                                ))}
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
@@ -1512,7 +1513,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                         <button onClick={() => {
                                             if (!activeExamId) return;
                                             toast.success("Konfigurasi Jadwal Ujian berhasil disimpan ke database!");
-                                        }} className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
+                                        }} className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
                                             <Save size={16} /> Simpan
                                         </button>
                                         <button onClick={() => {
@@ -3514,15 +3515,16 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                 onChange={(e) => {
                                                     const tid = parseInt(e.target.value);
                                                     const guru = teachers.find(t => t.id === tid);
-                                                    // Auto-fill NIP logic can be purely visual here or managed via state if needed
                                                     const nipInput = document.getElementById('plotting-nip') as HTMLInputElement;
                                                     if (nipInput && guru) nipInput.value = guru.nip;
                                                 }}
                                             >
                                                 <option value="">Pilih Guru</option>
-                                                {teachers.map(t => (
-                                                    <option key={t.id} value={t.id}>{t.nama}</option>
-                                                ))}
+                                                {teachers
+                                                    .filter(t => t.nama && String(t.nama).trim() !== 'Guru Baru')
+                                                    .map(t => (
+                                                        <option key={t.id} value={t.id}>{t.nama}</option>
+                                                    ))}
                                             </select>
                                         </div>
                                         <div>
