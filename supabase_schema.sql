@@ -101,6 +101,9 @@ CREATE TABLE public.students (
     phone TEXT,
     email TEXT,
     parent_name TEXT,
+    mother_name TEXT,
+    father_job TEXT,
+    mother_job TEXT,
     parent_phone TEXT,
     parent_email TEXT,
     enrollment_date DATE DEFAULT CURRENT_DATE,
@@ -570,6 +573,9 @@ SELECT
     s.enrollment_date,
     s.phone,
     s.parent_name,
+    s.mother_name,
+    s.father_job,
+    s.mother_job,
     s.parent_phone
 FROM public.students s
 LEFT JOIN public.classes c ON s.class_id = c.id

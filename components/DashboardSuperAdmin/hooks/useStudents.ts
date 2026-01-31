@@ -370,7 +370,8 @@ export const useStudents = () => {
             return;
         }
 
-        const studentsToSave = students.filter(s => String(s.id).startsWith('temp-') || typeof s.id === 'number');
+        // Ambil semua siswa untuk sinkronisasi, agar data yang diupdate (via upload) juga ikut tersimpan
+        const studentsToSave = students;
 
         if (studentsToSave.length === 0) {
             toast("Semua data sudah tersinkron", { icon: '✅' });

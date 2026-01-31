@@ -72,26 +72,28 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
     };
 
     const handleLegacyLogin = () => {
-        // Simulate network delay for effect
+        // Simulasikan delay jaringan
         setTimeout(() => {
-            // 1. Check for Student/Parent Login (Linked to Data Siswa)
-            // Username: NIS, Password: NIS or '123456'
-            const localStudents = localStorage.getItem('students_data_v1');
+            // 1. Cek Login Siswa/Orang Tua (Berdasarkan Data Siswa)
+            // Menggunakan versi _v10 agar sinkron dengan Dashboard Admin
+            const localStudents = localStorage.getItem('students_data_v10');
             const studentsSource = localStudents ? JSON.parse(localStudents) : studentsDataGlobal;
 
-            const localClasses = localStorage.getItem('classes_data_v1');
+            const localClasses = localStorage.getItem('classes_data_v10');
             const classesSource = localClasses ? JSON.parse(localClasses) : classesDataGlobal;
 
             const studentAccount = studentsSource.find((s: any) => s.nis === username || s.username === username);
 
             if (studentAccount && (password === studentAccount.nis || password === '123456' || password === 'ortu123')) {
-                // Find Wali Info
+                // Cari info Wali
                 const classInfo = classesSource.find((c: any) => c.nama === studentAccount.kelas);
                 const waliName = classInfo ? classInfo.wali : "Guru Wali";
 
                 onLogin('ot', {
+                    id: studentAccount.id,
                     nama: studentAccount.ayah || "Orang Tua Siswa",
-                    role: 'Orang Tua',
+                    role: 'ot',
+                    roleDisplay: 'Orang Tua',
                     studentName: studentAccount.nama,
                     studentClass: studentAccount.kelas,
                     studentNis: studentAccount.nis,
@@ -102,28 +104,30 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                 return;
             }
 
-            // 2. Check for Staff/Teacher Login
-            const localTeachers = localStorage.getItem('teachers_data_v1');
+            // 2. Cek Login Staff/Guru
+            const localTeachers = localStorage.getItem('teachers_data_v10');
             const teachersSource = localTeachers ? JSON.parse(localTeachers) : teachersDataGlobal;
 
-            // Find teacher with matching username and password
+            // Cari akun guru yang cocok
             const teacherAccount = teachersSource.find((t: any) =>
-                (t.username === username || t.user === username) && t.password === password
+                (t.username === username || t.user === username || t.nip === username) && t.password === password
             );
 
             if (teacherAccount) {
-                // Determine Role Code
-                let roleCode = 'gm'; // Default to Guru Mapel
+                // Tentukan Kode Role
+                let roleCode = 'gm'; // Default ke Guru Mapel
                 const role = teacherAccount.role || teacherAccount.jabatan;
 
                 if (role === 'Wali Kelas' || role === 'Guru Kelas') roleCode = 'wk';
-                if (role === 'Guru Bimbel') roleCode = 'gb';
-                if (role === 'Kepala Sekolah') roleCode = 'ks';
-                if (['Wakil Kurikulum', 'Staff Tata Usaha', 'Operator Data'].includes(role)) roleCode = 'admin';
+                else if (role === 'Guru Bimbingan Belajar' || role === 'Guru Bimbel') roleCode = 'gb';
+                else if (role === 'Kepala Sekolah') roleCode = 'ks';
+                else if (['Wakil Kurikulum', 'Staff Tata Usaha', 'Operator Data', 'Admin'].includes(role)) roleCode = 'admin';
 
                 onLogin(roleCode, {
+                    id: teacherAccount.id,
                     nama: teacherAccount.nama,
-                    role: role,
+                    role: roleCode,
+                    roleDisplay: role,
                     nip: teacherAccount.nip,
                     mapel: teacherAccount.mapel,
                     kelas: teacherAccount.kelas || teacherAccount.wali,
@@ -135,14 +139,14 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
 
             // 3. Super Admin Fallback (Master Access)
             if (username === 'admin' && password === 'admin123') {
-                onLogin('admin', { nama: 'Super Admin', role: 'Super Admin' });
+                onLogin('admin', { nama: 'Super Admin', role: 'admin', roleDisplay: 'Super Admin' });
                 setIsLoading(false);
                 return;
             }
 
-            // If no match found
+            // Jika tidak ada yang cocok
             if (username && password) {
-                setError('Username atau password salah! (Database belum terhubung)');
+                setError('Username atau password salah! Pastikan data sudah disimpan di menu Admin.');
             } else {
                 setError('Mohon isi username dan password');
             }
