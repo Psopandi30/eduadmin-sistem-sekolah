@@ -49,6 +49,7 @@ export const useStudents = () => {
 
             if (error) throw error;
 
+            // 1. Map data from Supabase
             const mappedData: Student[] = data.map(s => {
                 const classObj = s.classes;
                 return {
@@ -60,7 +61,7 @@ export const useStudents = () => {
                     tingkat: classObj?.grade_level || 1,
                     paralel: classObj?.name ? String(classObj.name).replace(/[0-9]/g, '') : '-',
                     ayah: s.parent_name || '-',
-                    ibu: '-', // ibu, jobAyah, jobIbu are local-only or need schema update
+                    ibu: '-',
                     jobAyah: '-',
                     jobIbu: '-',
                     username: s.nis,
@@ -68,9 +69,14 @@ export const useStudents = () => {
                     status: s.status
                 };
             });
-            // Merge with local state to keep fields not in DB (like Ibu, Jobs)
+
+            // 2. SMART MERGE: Keep local temp data ONLY if the NIS is not already in the DB data
+            // This prevents double-counting students after save
             setStudents(prev => {
-                const localUnsaved = prev.filter(p => String(p.id).startsWith('temp-'));
+                const dbNisSet = new Set(mappedData.map(m => m.nis));
+                const localUnsaved = prev.filter(p =>
+                    String(p.id).startsWith('temp-') && !dbNisSet.has(p.nis)
+                );
                 return [...mappedData, ...localUnsaved];
             });
             localStorage.setItem('students_data_v10', JSON.stringify(mappedData));
@@ -348,30 +354,22 @@ export const useStudents = () => {
 
         toast.promise(
             (async () => {
-                // 1. Get Class Map for ID lookup
-                const { data: dbClasses } = await supabase.from('classes').select('id, name');
+                // 1. Get Class Map & Existing Students
+                const [classRes, studentRes] = await Promise.all([
+                    supabase.from('classes').select('id, name'),
+                    supabase.from('students').select('id, nis')
+                ]);
+
                 const classMap: Record<string, string> = {};
-                dbClasses?.forEach(c => classMap[c.name] = c.id);
+                classRes.data?.forEach(c => classMap[c.name] = c.id);
 
-                // 2. IMPORTANT: Check for existing NIS to avoid duplicate error
-                const { data: existingStudents } = await supabase
-                    .from('students')
-                    .select('nis')
-                    .in('nis', studentsToSave.map(s => s.nis));
+                const existingMap: Record<string, string> = {}; // nis -> id
+                studentRes.data?.forEach(s => existingMap[s.nis] = s.id);
 
-                const existingNisList = existingStudents?.map(s => s.nis) || [];
+                const inserts: any[] = [];
+                const updates: any[] = [];
 
-                // 3. Filter only NEW students (NIS not in DB)
-                const newStudents = studentsToSave.filter(s => !existingNisList.includes(s.nis));
-
-                if (newStudents.length === 0) {
-                    toast.success("Semua siswa sudah ada di database, tidak ada data baru untuk disimpan.");
-                    await fetchStudents(); // Refresh to clean temp IDs
-                    return true;
-                }
-
-                const insertData = newStudents.map(s => {
-                    // Try to parse TTL: "Place, DD-MM-YYYY"
+                studentsToSave.forEach(s => {
                     let bPlace = '';
                     let bDate = null;
                     if (s.ttl && s.ttl.includes(',')) {
@@ -379,12 +377,10 @@ export const useStudents = () => {
                         bPlace = parts[0].trim();
                         const datePart = parts[1].trim();
                         const dateMatch = datePart.match(/(\d{2})-(\d{2})-(\d{4})/);
-                        if (dateMatch) {
-                            bDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
-                        }
+                        if (dateMatch) bDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
                     }
 
-                    return {
+                    const payload = {
                         nis: s.nis,
                         full_name: s.nama,
                         parent_name: s.ayah,
@@ -394,23 +390,38 @@ export const useStudents = () => {
                         gender: s.gender || 'L',
                         status: 'active'
                     };
+
+                    if (existingMap[s.nis]) {
+                        updates.push({ id: existingMap[s.nis], ...payload });
+                    } else {
+                        inserts.push(payload);
+                    }
                 });
 
-                const { error } = await supabase.from('students').insert(insertData);
-                if (error) throw error;
-
-                // 4. Refresh data from server to discard temp objects
-                await fetchStudents();
-
-                if (existingNisList.length > 0) {
-                    toast(`${newStudents.length} baru disimpan, ${existingNisList.length} dilewati karena sudah ada.`, { icon: 'ℹ️' });
+                // 2. Perform Operations
+                if (updates.length > 0) {
+                    for (const up of updates) {
+                        const { id, ...rest } = up;
+                        await supabase.from('students').update(rest).eq('id', id);
+                    }
                 }
 
+                if (inserts.length > 0) {
+                    const { error } = await supabase.from('students').insert(inserts);
+                    if (error) throw error;
+                }
+
+                // 3. CLEANUP: Remove temp items from state before refreshing
+                const savedNisSet = new Set(studentsToSave.map(s => s.nis));
+                setStudents(prev => prev.filter(s => !savedNisSet.has(s.nis) || !String(s.id).startsWith('temp-')));
+
+                // 4. Final Refresh
+                await fetchStudents();
                 return true;
             })(),
             {
-                loading: `Sedang memproses ${studentsToSave.length} data...`,
-                success: 'Proses sinkronisasi berhasil!',
+                loading: `Sedang menyelaraskan ${studentsToSave.length} data...`,
+                success: 'Data berhasil disinkronkan!',
                 error: (err) => `Gagal simpan: ${err.message}`
             }
         );
