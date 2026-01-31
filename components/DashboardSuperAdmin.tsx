@@ -1451,6 +1451,10 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                             {classes.map((kelas, i) => {
                                                 const waliGuru = teachers.find(t =>
                                                     t.wali && kelas.nama &&
+                                                    String(t.wali).trim().toLowerCase() === String(kelas.nama).trim().toLowerCase() &&
+                                                    t.nama !== 'Guru Baru'
+                                                ) || teachers.find(t =>
+                                                    t.wali && kelas.nama &&
                                                     String(t.wali).trim().toLowerCase() === String(kelas.nama).trim().toLowerCase()
                                                 );
                                                 const studentCount = students.filter(s =>
