@@ -42,7 +42,8 @@ export const useTeachers = () => {
                     id,
                     employee_number,
                     position,
-                    profiles (full_name, email)
+                    profiles (full_name, email),
+                    classes!homeroom_teacher_id (name)
                 `);
 
             if (error) throw error;
@@ -50,13 +51,14 @@ export const useTeachers = () => {
             if (data && data.length > 0) {
                 const mappedData: Teacher[] = data.map(s => {
                     const profile = (s.profiles as any);
+                    const homeroomClass = (s.classes as any)?.[0]?.name || '-';
                     return {
                         id: s.id,
                         nip: s.employee_number,
                         nama: profile?.full_name || 'Tanpa Nama',
                         jabatan: s.position,
                         mapel: '-',
-                        wali: '-',
+                        wali: homeroomClass,
                         username: profile?.email?.split('@')[0] || s.employee_number,
                         password: '***'
                     };
@@ -340,6 +342,29 @@ export const useTeachers = () => {
                     for (const up of updates) {
                         const { id, ...rest } = up;
                         await supabase.from('staff').update(rest).eq('id', id);
+                    }
+                }
+
+                // Sync Homeroom Teacher Assignments to 'classes' table
+                const { data: dbClasses } = await supabase.from('classes').select('id, name');
+                const classMap: Record<string, string> = {};
+                dbClasses?.forEach(c => classMap[c.name] = c.id);
+
+                for (const g of teachers) {
+                    if (g.wali && g.wali !== '-') {
+                        const classId = classMap[g.wali];
+                        const teacherId = staffMap[g.nip] || (typeof g.id === 'string' ? g.id : null);
+                        if (classId && teacherId) {
+                            // First, clear this teacher from any other classes they might be a homeroom for
+                            await supabase.from('classes').update({ homeroom_teacher_id: null }).eq('homeroom_teacher_id', teacherId);
+                            // Then assign to new class
+                            await supabase.from('classes').update({ homeroom_teacher_id: teacherId }).eq('id', classId);
+                        }
+                    } else if (g.wali === '-') {
+                        const teacherId = staffMap[g.nip] || (typeof g.id === 'string' ? g.id : null);
+                        if (teacherId) {
+                            await supabase.from('classes').update({ homeroom_teacher_id: null }).eq('homeroom_teacher_id', teacherId);
+                        }
                     }
                 }
 

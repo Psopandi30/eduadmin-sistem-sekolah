@@ -14,6 +14,7 @@ interface TeacherDataViewProps {
     handleSaveData: () => void;
     handleEditItem: (item: any, type: string) => void;
     handleDeleteTeacher: (id: number) => void;
+    classes: any[];
 }
 
 const TeacherDataView: React.FC<TeacherDataViewProps> = ({
@@ -26,7 +27,8 @@ const TeacherDataView: React.FC<TeacherDataViewProps> = ({
     handleAddTeacher,
     handleSaveData,
     handleEditItem,
-    handleDeleteTeacher
+    handleDeleteTeacher,
+    classes
 }) => {
     return (
         <div className="bg-white rounded-[2.5rem] p-4 h-full shadow-sm animate-in slide-in-from-right flex flex-col">
@@ -106,13 +108,9 @@ const TeacherDataView: React.FC<TeacherDataViewProps> = ({
                                         }}
                                     >
                                         <option value="-">-</option>
-                                        <option value="1A">1A</option>
-                                        <option value="1B">1B</option>
-                                        <option value="2">2</option>
-                                        <option value="3A">3A</option>
-                                        <option value="4A">4A</option>
-                                        <option value="5A">5A</option>
-                                        <option value="6B">6B</option>
+                                        {classes && classes.map(c => (
+                                            <option key={c.id} value={c.nama}>{c.nama}</option>
+                                        ))}
                                     </select>
                                 </td>
                                 <td className="p-4 text-slate-600">{guru.username}</td>
