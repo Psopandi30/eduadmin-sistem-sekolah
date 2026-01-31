@@ -97,6 +97,9 @@ export type Database = {
           parent_email: string | null
           enrollment_date: string
           graduation_date: string | null
+          mother_name: string | null
+          father_job: string | null
+          mother_job: string | null
           status: string
           class_id: string | null
           profile_id: string | null
@@ -119,6 +122,9 @@ export type Database = {
           parent_email?: string | null
           enrollment_date?: string
           graduation_date?: string | null
+          mother_name?: string | null
+          father_job?: string | null
+          mother_job?: string | null
           status?: string
           class_id?: string | null
           profile_id?: string | null
@@ -141,6 +147,9 @@ export type Database = {
           parent_email?: string | null
           enrollment_date?: string
           graduation_date?: string | null
+          mother_name?: string | null
+          father_job?: string | null
+          mother_job?: string | null
           status?: string
           class_id?: string | null
           profile_id?: string | null
