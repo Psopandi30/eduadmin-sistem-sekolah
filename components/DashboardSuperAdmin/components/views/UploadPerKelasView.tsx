@@ -11,6 +11,7 @@ interface UploadPerKelasViewProps {
     handleViewStudent: (student: any) => void;
     handleEditStudent: (student: any) => void;
     handleDelete: (name: string) => void;
+    classes: any[];
 }
 
 const UploadPerKelasView: React.FC<UploadPerKelasViewProps> = ({
@@ -22,10 +23,21 @@ const UploadPerKelasView: React.FC<UploadPerKelasViewProps> = ({
     handleAddStudent,
     handleViewStudent,
     handleEditStudent,
-    handleDelete
+    handleDelete,
+    classes
 }) => {
-    const [selectedClass, setSelectedClass] = useState('1A');
+    const [selectedClass, setSelectedClass] = useState(classes[0]?.nama || '1A');
     const [pageSize, setPageSize] = useState(24);
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const filteredStudents = students.filter(s => s.kelas === selectedClass);
+    const totalStudents = filteredStudents.length;
+    const totalPages = Math.ceil(totalStudents / pageSize);
+    const currentStudents = filteredStudents.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedClass, pageSize]);
 
     return (
         <div className="bg-white rounded-[2.5rem] p-6 h-full shadow-sm animate-in slide-in-from-right flex flex-col">
@@ -47,13 +59,9 @@ const UploadPerKelasView: React.FC<UploadPerKelasViewProps> = ({
                             onChange={(e) => setSelectedClass(e.target.value)}
                             className="bg-transparent font-bold text-slate-800 outline-none w-32 cursor-pointer"
                         >
-                            <option value="1A">1A</option>
-                            <option value="1B">1B</option>
-                            <option value="2">2</option>
-                            <option value="3A">3A</option>
-                            <option value="4A">4A</option>
-                            <option value="5A">5A</option>
-                            <option value="6B">6B</option>
+                            {classes.map(c => (
+                                <option key={c.id} value={c.nama}>{c.nama}</option>
+                            ))}
                         </select>
                     </div>
                     <div className="h-8 w-px bg-slate-200 hidden md:block mx-1"></div>
@@ -96,9 +104,9 @@ const UploadPerKelasView: React.FC<UploadPerKelasViewProps> = ({
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
-                        {students.filter(s => s.kelas === selectedClass).slice(0, pageSize).map((siswa, i) => (
+                        {currentStudents.map((siswa, i) => (
                             <tr key={i} className="hover:bg-blue-50/50 transition-colors group">
-                                <td className="p-4 text-center text-slate-500 font-medium">{i + 1}</td>
+                                <td className="p-4 text-center text-slate-500 font-medium">{(currentPage - 1) * pageSize + i + 1}</td>
                                 <td className="p-4 font-mono text-slate-600">{siswa.nis}</td>
                                 <td className="p-4 font-bold text-slate-800">{siswa.nama}</td>
                                 <td className="p-4 text-slate-600">{siswa.ttl}</td>
@@ -124,18 +132,42 @@ const UploadPerKelasView: React.FC<UploadPerKelasViewProps> = ({
             </div>
 
             {/* Footer controls */}
-            <div className="mt-4 flex justify-end items-center gap-4 text-sm text-slate-500">
-                <span>Pilih Jumlah terlihat</span>
-                <select
-                    value={pageSize}
-                    onChange={(e) => setPageSize(Number(e.target.value))}
-                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
-                >
-                    <option value={10}>10</option>
-                    <option value={24}>24</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                </select>
+            <div className="mt-4 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
+                <div>
+                    Menampilkan <span className="font-bold text-slate-700">{Math.min((currentPage - 1) * pageSize + 1, totalStudents)}</span> - <span className="font-bold text-slate-700">{Math.min(currentPage * pageSize, totalStudents)}</span> dari <span className="font-bold text-slate-700">{totalStudents}</span> siswa
+                </div>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <span>Pilih Jumlah:</span>
+                        <select
+                            value={pageSize}
+                            onChange={(e) => setPageSize(Number(e.target.value))}
+                            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
+                        >
+                            <option value={10}>10</option>
+                            <option value={24}>24</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            disabled={currentPage === 1}
+                            onClick={() => setCurrentPage(prev => prev - 1)}
+                            className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 disabled:opacity-50 transition-colors"
+                        >
+                            Prev
+                        </button>
+                        <span className="font-bold text-slate-700">Hal {currentPage} / {totalPages || 1}</span>
+                        <button
+                            disabled={currentPage >= totalPages}
+                            onClick={() => setCurrentPage(prev => prev + 1)}
+                            className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 disabled:opacity-50 transition-colors"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );

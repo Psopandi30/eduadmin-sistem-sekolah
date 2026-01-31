@@ -23,6 +23,16 @@ const UploadSiswaView: React.FC<UploadSiswaViewProps> = ({
     handleDelete
 }) => {
     const [pageSize, setPageSize] = React.useState(20);
+    const [currentPage, setCurrentPage] = React.useState(1);
+
+    const filteredStudents = students;
+    const totalStudents = filteredStudents.length;
+    const totalPages = Math.ceil(totalStudents / pageSize);
+    const currentStudents = filteredStudents.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [pageSize]);
 
     return (
         <div className="bg-white rounded-[2.5rem] p-8 h-full shadow-sm animate-in slide-in-from-right flex flex-col">
@@ -72,9 +82,9 @@ const UploadSiswaView: React.FC<UploadSiswaViewProps> = ({
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
-                        {students.slice(0, pageSize).map((siswa, i) => (
+                        {currentStudents.map((siswa, i) => (
                             <tr key={i} className="hover:bg-blue-50/50 transition-colors group">
-                                <td className="p-4 text-center text-slate-500 font-medium">{i + 1}</td>
+                                <td className="p-4 text-center text-slate-500 font-medium">{(currentPage - 1) * pageSize + i + 1}</td>
                                 <td className="p-4 font-mono text-slate-600">{siswa.nis}</td>
                                 <td className="p-4 font-bold text-slate-800">{siswa.nama}</td>
                                 <td className="p-4 text-slate-600">{siswa.ttl}</td>
@@ -100,19 +110,43 @@ const UploadSiswaView: React.FC<UploadSiswaViewProps> = ({
             </div>
 
             {/* Footer controls */}
-            <div className="mt-4 flex justify-end items-center gap-4 text-sm text-slate-500">
-                <span>Pilih Jumlah terlihat</span>
-                <select
-                    value={pageSize}
-                    onChange={(e) => setPageSize(Number(e.target.value))}
-                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
-                >
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                    <option value={500}>500</option>
-                    <option value={1000}>1000</option>
-                </select>
+            <div className="mt-4 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
+                <div>
+                    Menampilkan <span className="font-bold text-slate-700">{Math.min((currentPage - 1) * pageSize + 1, totalStudents)}</span> - <span className="font-bold text-slate-700">{Math.min(currentPage * pageSize, totalStudents)}</span> dari <span className="font-bold text-slate-700">{totalStudents}</span> siswa
+                </div>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <span>Lihat:</span>
+                        <select
+                            value={pageSize}
+                            onChange={(e) => setPageSize(Number(e.target.value))}
+                            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
+                        >
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                            <option value={500}>500</option>
+                            <option value={1000}>1000</option>
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            disabled={currentPage === 1}
+                            onClick={() => setCurrentPage(prev => prev - 1)}
+                            className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 disabled:opacity-50 transition-colors"
+                        >
+                            Prev
+                        </button>
+                        <span className="font-bold text-slate-700">Hal {currentPage} / {totalPages || 1}</span>
+                        <button
+                            disabled={currentPage >= totalPages}
+                            onClick={() => setCurrentPage(prev => prev + 1)}
+                            className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 disabled:opacity-50 transition-colors"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );

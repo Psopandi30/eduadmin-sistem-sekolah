@@ -1272,6 +1272,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                             handleViewStudent={handleViewStudent}
                             handleEditStudent={handleEditStudent}
                             handleDelete={handleDelete}
+                            classes={classes}
                         />
                     )}
 

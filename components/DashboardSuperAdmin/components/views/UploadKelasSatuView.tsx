@@ -10,6 +10,7 @@ interface UploadKelasSatuViewProps {
     handleViewStudent: (student: any) => void;
     handleEditStudent: (student: any) => void;
     handleDelete: (name: string) => void;
+    classes: any[];
 }
 
 const UploadKelasSatuView: React.FC<UploadKelasSatuViewProps> = ({
@@ -20,9 +21,22 @@ const UploadKelasSatuView: React.FC<UploadKelasSatuViewProps> = ({
     students,
     handleViewStudent,
     handleEditStudent,
-    handleDelete
+    handleDelete,
+    classes
 }) => {
+    const class1Options = classes.filter(c => c.tingkat === 1);
+    const [selectedClass, setSelectedClass] = React.useState(class1Options[0]?.nama || '1A');
     const [pageSize, setPageSize] = React.useState(24);
+    const [currentPage, setCurrentPage] = React.useState(1);
+
+    const filteredStudents = students.filter(s => s.tingkat === 1 && s.kelas === selectedClass);
+    const totalStudents = filteredStudents.length;
+    const totalPages = Math.ceil(totalStudents / pageSize);
+    const currentStudents = filteredStudents.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedClass, pageSize]);
 
     return (
         <div className="bg-white rounded-[2.5rem] p-8 h-full shadow-sm animate-in slide-in-from-right flex flex-col">
@@ -39,9 +53,14 @@ const UploadKelasSatuView: React.FC<UploadKelasSatuViewProps> = ({
                     {/* DROPDOWN PILIH KELAS - SYNCED WITH CLASS 1 LIST (1A, 1B) */}
                     <div className="flex items-center gap-2 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200">
                         <span className="text-sm font-bold text-slate-600 whitespace-nowrap">Pilih Kelas:</span>
-                        <select className="bg-transparent font-bold text-slate-800 outline-none w-20 cursor-pointer text-center">
-                            <option>1A</option>
-                            <option>1B</option>
+                        <select
+                            value={selectedClass}
+                            onChange={(e) => setSelectedClass(e.target.value)}
+                            className="bg-transparent font-bold text-slate-800 outline-none w-20 cursor-pointer text-center"
+                        >
+                            {class1Options.map(c => (
+                                <option key={c.id} value={c.nama}>{c.nama}</option>
+                            ))}
                         </select>
                     </div>
                     <div className="h-8 w-px bg-slate-200 hidden md:block mx-1"></div>
@@ -82,9 +101,9 @@ const UploadKelasSatuView: React.FC<UploadKelasSatuViewProps> = ({
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
                         {/* Class 1 Data from students state */}
-                        {students.filter(s => s.tingkat === 1).slice(0, pageSize).map((siswa, i) => (
+                        {currentStudents.map((siswa, i) => (
                             <tr key={i} className="hover:bg-slate-50 transition-colors group">
-                                <td className="p-4 text-center text-slate-500 font-medium">{i + 1}</td>
+                                <td className="p-4 text-center text-slate-500 font-medium">{(currentPage - 1) * pageSize + i + 1}</td>
                                 <td className="p-4 font-mono text-slate-600">{siswa.nis}</td>
                                 <td className="p-4 font-bold text-slate-800">{siswa.nama}</td>
                                 <td className="p-4 text-slate-600">{siswa.ttl}</td>
@@ -110,18 +129,42 @@ const UploadKelasSatuView: React.FC<UploadKelasSatuViewProps> = ({
             </div>
 
             {/* Footer controls */}
-            <div className="mt-4 flex justify-end items-center gap-4 text-sm text-slate-500">
-                <span>Pilih Jumlah terlihat</span>
-                <select
-                    value={pageSize}
-                    onChange={(e) => setPageSize(Number(e.target.value))}
-                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
-                >
-                    <option value={10}>10</option>
-                    <option value={24}>24</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                </select>
+            <div className="mt-4 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
+                <div>
+                    Menampilkan <span className="font-bold text-slate-700">{Math.min((currentPage - 1) * pageSize + 1, totalStudents)}</span> - <span className="font-bold text-slate-700">{Math.min(currentPage * pageSize, totalStudents)}</span> dari <span className="font-bold text-slate-700">{totalStudents}</span> siswa
+                </div>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <span>Lihat:</span>
+                        <select
+                            value={pageSize}
+                            onChange={(e) => setPageSize(Number(e.target.value))}
+                            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
+                        >
+                            <option value={10}>10</option>
+                            <option value={24}>24</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            disabled={currentPage === 1}
+                            onClick={() => setCurrentPage(prev => prev - 1)}
+                            className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 disabled:opacity-50 transition-colors"
+                        >
+                            Prev
+                        </button>
+                        <span className="font-bold text-slate-700">Hal {currentPage} / {totalPages || 1}</span>
+                        <button
+                            disabled={currentPage >= totalPages}
+                            onClick={() => setCurrentPage(prev => prev + 1)}
+                            className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 disabled:opacity-50 transition-colors"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );
