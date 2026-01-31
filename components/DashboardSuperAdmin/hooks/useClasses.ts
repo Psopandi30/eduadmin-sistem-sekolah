@@ -23,7 +23,11 @@ export const useClasses = () => {
 
     // Fetch from Supabase
     const fetchClasses = useCallback(async () => {
-        if (!isSupabaseConfigured() || isInitialFetched) return;
+        if (isInitialFetched) return;
+        if (!isSupabaseConfigured()) {
+            setIsInitialFetched(true);
+            return;
+        }
 
         setLoading(true);
         try {
@@ -42,9 +46,9 @@ export const useClasses = () => {
                     paralel: c.name.replace(/[0-9]/g, '') || 'A'
                 }));
                 setClasses(mappedData);
-                setIsInitialFetched(true);
                 localStorage.setItem('classes_data_v10', JSON.stringify(mappedData));
             }
+            setIsInitialFetched(true);
         } catch (err) {
             console.error('Error fetching classes:', err);
         } finally {

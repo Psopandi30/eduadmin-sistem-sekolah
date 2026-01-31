@@ -76,13 +76,19 @@ export const useFinance = () => {
 
     // --- SUPABASE INTEGRATION ---
 
+    const [isInitialFetched, setIsInitialFetched] = useState(false);
+
     const fetchFinanceData = useCallback(async () => {
-        if (!isSupabaseConfigured()) return;
+        if (isInitialFetched) return;
+        if (!isSupabaseConfigured()) {
+            setIsInitialFetched(true);
+            return;
+        }
         setLoading(true);
         try {
             // 1. Cash Accounts
             const { data: accountsData } = await supabase.from('finance_accounts').select('*');
-            if (accountsData) {
+            if (accountsData && accountsData.length > 0) {
                 setCashAccounts(accountsData.map(a => ({
                     id: a.id,
                     name: a.name,
@@ -95,7 +101,7 @@ export const useFinance = () => {
 
             // 2. Payment Types
             const { data: typesData } = await supabase.from('payment_types').select('*');
-            if (typesData) {
+            if (typesData && typesData.length > 0) {
                 setPaymentTypes(typesData.map(t => ({
                     id: t.id,
                     name: t.name,
@@ -107,7 +113,7 @@ export const useFinance = () => {
 
             // 3. Bills (Limit to recent for checking)
             const { data: billsData } = await supabase.from('student_bills').select('*').limit(500);
-            if (billsData) {
+            if (billsData && billsData.length > 0) {
                 setStudentBills(billsData.map(b => ({
                     id: b.id,
                     studentId: b.student_id,
@@ -124,7 +130,7 @@ export const useFinance = () => {
 
             // 4. Expenses
             const { data: expensesData } = await supabase.from('expenses').select('*').order('date', { ascending: false }).limit(100);
-            if (expensesData) {
+            if (expensesData && expensesData.length > 0) {
                 setExpenses(expensesData.map(e => ({
                     id: e.id,
                     date: e.date,
@@ -134,14 +140,15 @@ export const useFinance = () => {
                     proof: e.proof_url || ''
                 })));
             }
-
+            setIsInitialFetched(true);
         } catch (err) {
             console.error("Error fetching finance data:", err);
             toast.error("Gagal memuat data keuangan");
         } finally {
             setLoading(false);
+            setIsInitialFetched(true);
         }
-    }, []);
+    }, [isInitialFetched]);
 
     useEffect(() => {
         fetchFinanceData();

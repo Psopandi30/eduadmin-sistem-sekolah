@@ -36,7 +36,10 @@ export const useStudents = () => {
     const [isInitialFetched, setIsInitialFetched] = useState(false);
 
     const fetchStudents = useCallback(async () => {
-        if (!isSupabaseConfigured()) return;
+        if (!isSupabaseConfigured()) {
+            setIsInitialFetched(true);
+            return;
+        }
 
         setLoading(true);
         try {
@@ -46,7 +49,7 @@ export const useStudents = () => {
 
             if (error) throw error;
 
-            if (data) {
+            if (data && data.length > 0) {
                 const mappedData: Student[] = data.map(s => ({
                     id: s.id,
                     nis: s.nis,
@@ -65,7 +68,6 @@ export const useStudents = () => {
                 }));
                 // Data from DB is truth
                 setStudents(mappedData);
-                setIsInitialFetched(true);
                 localStorage.setItem('students_data_v10', JSON.stringify(mappedData));
             }
         } catch (err) {
@@ -73,6 +75,7 @@ export const useStudents = () => {
             toast.error('Gagal memuat data siswa');
         } finally {
             setLoading(false);
+            setIsInitialFetched(true);
         }
     }, []);
 
@@ -265,26 +268,101 @@ export const useStudents = () => {
     };
 
     const handleUploadClick = () => {
-        // Placeholder for File Picker
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.xlsx, .xls, .csv';
-        input.onchange = (e) => {
-            toast.success("File dipilih (Simulasi Import)");
+        input.onchange = async (e: any) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+                try {
+                    const XLSX = await import('xlsx');
+                    const bstr = evt.target?.result;
+                    const wb = XLSX.read(bstr, { type: 'binary' });
+                    const wsname = wb.SheetNames[0];
+                    const ws = wb.Sheets[wsname];
+                    const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+
+                    // Simple Mapping based on template
+                    // Headers: No, NIS, Nama Lengkap, Tempat_Tanggal_Lahir, Tingkat, KELAS, Paralel, ...
+                    if (data.length <= 1) {
+                        toast.error("File kosong atau format salah");
+                        return;
+                    }
+
+                    const importedStudents: Student[] = data.slice(1).map((row, idx) => ({
+                        id: `temp-${Date.now()}-${idx}`,
+                        nis: String(row[1] || ''),
+                        nama: String(row[2] || ''),
+                        ttl: String(row[3] || ''),
+                        tingkat: parseInt(row[4]) || 1,
+                        kelas: String(row[5] || ''),
+                        paralel: String(row[6] || ''),
+                        ayah: String(row[7] || ''),
+                        ibu: String(row[8] || ''),
+                        jobAyah: String(row[9] || ''),
+                        jobIbu: String(row[10] || ''),
+                        username: String(row[11] || row[1] || ''),
+                    })).filter(s => s.nama);
+
+                    setStudents(prev => [...prev, ...importedStudents]);
+                    toast.success(`${importedStudents.length} data siswa berhasil diimpor (Lokal)`);
+                    toast("Klik 'Simpan' untuk menyimpan permanen ke database.", { icon: 'ℹ️' });
+                } catch (err) {
+                    console.error("Error parsing file:", err);
+                    toast.error("Gagal membaca file");
+                }
+            };
+            reader.readAsBinaryString(file);
         };
         input.click();
     };
 
-    const handleSaveData = () => {
-        // "Simpan" button mostly used in Bulk Upload views
-        // Logic: Scan for students with number IDs (local) and try to push them to DB?
-        // Or just toast for now since we haven't implemented full Bulk Insert
+    const handleSaveData = async () => {
+        if (!isSupabaseConfigured()) {
+            toast.success("Data tersimpan secara lokal (Supabase belum dikonfigurasi)");
+            return;
+        }
+
+        // Logic: Find students with temp IDs and save them to Supabase
+        const studentsToSave = students.filter(s => String(s.id).startsWith('temp-') || typeof s.id === 'number');
+
+        if (studentsToSave.length === 0) {
+            toast("Semua data sudah tersinkron", { icon: '✅' });
+            return;
+        }
+
         toast.promise(
-            new Promise((resolve) => setTimeout(resolve, 1000)),
+            (async () => {
+                // 1. Get unique classes to ensure they exist
+                const uniqueClasses = [...new Set(studentsToSave.map(s => s.kelas))];
+                const { data: dbClasses } = await supabase.from('classes').select('id, name');
+                const classMap: Record<string, string> = {};
+                dbClasses?.forEach(c => classMap[c.name] = c.id);
+
+                // 2. Prepare for batch insert
+                const insertData = studentsToSave.map(s => ({
+                    nis: s.nis,
+                    full_name: s.nama,
+                    parent_name: s.ayah,
+                    class_id: classMap[s.kelas] || null,
+                    gender: 'L', // Default
+                    status: 'active'
+                }));
+
+                const { error } = await supabase.from('students').insert(insertData);
+                if (error) throw error;
+
+                // 3. Refresh to get real IDs
+                await fetchStudents();
+                return true;
+            })(),
             {
-                loading: 'Menyinkronkan data...',
-                success: 'Data tersimpan!',
-                error: 'Gagal.'
+                loading: `Menyimpan ${studentsToSave.length} data ke database...`,
+                success: 'Sinkronisasi berhasil!',
+                error: (err) => `Gagal simpan: ${err.message}`
             }
         );
     };

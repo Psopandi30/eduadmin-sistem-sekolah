@@ -28,7 +28,11 @@ export const useTeachers = () => {
     const [isInitialFetched, setIsInitialFetched] = useState(false);
 
     const fetchTeachers = useCallback(async () => {
-        if (!isSupabaseConfigured()) return;
+        if (isInitialFetched) return;
+        if (!isSupabaseConfigured()) {
+            setIsInitialFetched(true);
+            return;
+        }
 
         setLoading(true);
         try {
@@ -57,9 +61,9 @@ export const useTeachers = () => {
                 // Merge with local state to keep 'mapel' and 'wali' if they are local-only features for now
                 // But for "fixing data", we prioritize DB.
                 setTeachers(mappedData);
-                setIsInitialFetched(true);
                 localStorage.setItem('teachers_data_v10', JSON.stringify(mappedData));
             }
+            setIsInitialFetched(true);
         } catch (err) {
             console.error('Error fetching teachers:', err);
         } finally {
