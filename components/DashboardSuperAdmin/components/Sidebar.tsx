@@ -49,6 +49,7 @@ const menuItems: MenuItem[] = [
     { id: 'tabungan', label: 'Tabungan Siswa', icon: <Wallet size={20} /> },
     { id: 'naik_kelas', label: 'Naik Kelas', icon: <ArrowUpCircle size={20} /> },
     { id: 'bimbingan_belajar', label: 'Bimbingan belajar (les)', icon: <BookHeart size={20} /> },
+    { id: 'quran', label: 'Al Quran', icon: <Book size={20} /> },
     { id: 'pengumuman', label: 'Pengumuman', icon: <Megaphone size={20} /> },
     { id: 'laporan', label: 'Laporan', icon: <FileText size={20} /> },
     { id: 'multimedia', label: 'Manajemen Multimedia', icon: <Video size={20} /> },

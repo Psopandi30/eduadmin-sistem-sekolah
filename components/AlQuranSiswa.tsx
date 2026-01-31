@@ -36,22 +36,41 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
 
     // Fetch Surah List on Mount
     // Fetch Surah List
-    const fetchSurahs = async () => {
-        setLoading(true);
+    // Fallback Data (Juz Amma & Alfatihah) - Agar 'Otomatis' tampil walau offline
+    const fallbackSurahs = [
+        { number: 1, name: "Al-Fatihah", englishName: "The Opening", englishNameTranslation: "Pembukaan", numberOfAyahs: 7, revelationType: "Meccan" },
+        { number: 112, name: "Al-Ikhlas", englishName: "The Sincerity", englishNameTranslation: "Ikhlas", numberOfAyahs: 4, revelationType: "Meccan" },
+        { number: 113, name: "Al-Falaq", englishName: "The Daybreak", englishNameTranslation: "Waktu Subuh", numberOfAyahs: 5, revelationType: "Meccan" },
+        { number: 114, name: "An-Nas", englishName: "Mankind", englishNameTranslation: "Manusia", numberOfAyahs: 6, revelationType: "Meccan" }
+    ];
+
+    // Fetch Surah List with Auto-Retry and Fallback
+    const fetchSurahs = async (retryCount = 0) => {
+        if (retryCount === 0) setLoading(true);
         setError(null);
+
         try {
             const response = await fetch('https://api.alquran.cloud/v1/surah');
             const data = await response.json();
             if (data.code === 200) {
                 setSurahs(data.data);
+                setLoading(false);
             } else {
-                setError('Gagal memuat daftar surat.');
+                throw new Error('API returned error code');
             }
         } catch (err) {
-            console.error("Quran Fetch Error:", err);
-            setError('Terjadi kesalahan koneksi.');
-        } finally {
-            setLoading(false);
+            console.error(`Quran Fetch Error (Attempt ${retryCount + 1}):`, err);
+
+            if (retryCount < 2) {
+                // Auto Retry after 1.5s
+                setTimeout(() => fetchSurahs(retryCount + 1), 1500);
+            } else {
+                // Fallback: Use offline data automatically
+                console.log("Using Fallback Data");
+                setSurahs(fallbackSurahs);
+                setLoading(false);
+                // Note: We don't set 'error' here so the UI shows the fallback data smoothly
+            }
         }
     };
 
@@ -69,17 +88,25 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
     }, [currentAudio]);
 
     // Fetch Surah Details (Arabic, Translation, Audio)
-    const handleSelectSurah = async (surah: Surah) => {
-        setSelectedSurah(surah);
-        setLoading(true);
-        setAyahs([]);
-        setPlayingAyah(null);
+    // Fetch Surah Details (Arabic, Translation, Audio)
+    const handleSelectSurah = async (surah: Surah, retryCount = 0) => {
+        if (retryCount === 0) {
+            setSelectedSurah(surah);
+            setLoading(true);
+            setAyahs([]);
+            setPlayingAyah(null);
+            setError(null);
+        }
+
         if (currentAudio) currentAudio.pause();
 
         try {
             // Fetching Arabic (Uthmani), Indonesian Translation, and Audio (Alafasy)
             // Reverted to Uthmani because Tajweed edition returns special markup that broke the display
             const response = await fetch(`https://api.alquran.cloud/v1/surah/${surah.number}/editions/quran-uthmani,id.indonesian,ar.alafasy`);
+
+            if (!response.ok) throw new Error('Network response was not ok');
+
             const data = await response.json();
 
             if (data.code === 200 && data.data.length === 3) {
@@ -109,13 +136,19 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
                 });
 
                 setAyahs(mergedAyahs);
+                setLoading(false);
             } else {
-                setError('Gagal memuat ayat.');
+                throw new Error('Incomplete data received');
             }
         } catch (err) {
-            setError('Gagal memuat detail surat.');
-        } finally {
-            setLoading(false);
+            console.error(`Surah Detail Fetch Error (Attempt ${retryCount + 1}):`, err);
+
+            if (retryCount < 2) {
+                setTimeout(() => handleSelectSurah(surah, retryCount + 1), 1500);
+            } else {
+                setError('Gagal memuat ayat. Periksa koneksi internet Anda.');
+                setLoading(false);
+            }
         }
     };
 
@@ -163,6 +196,17 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
                     {loading ? (
                         <div className="flex justify-center items-center h-full">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004AAD]"></div>
+                        </div>
+                    ) : error ? (
+                        <div className="flex flex-col items-center justify-center h-full text-red-500 gap-3">
+                            <AlertCircle size={32} />
+                            <p className="font-bold">{error}</p>
+                            <button
+                                onClick={() => handleSelectSurah(selectedSurah)}
+                                className="px-6 py-2 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition-colors"
+                            >
+                                Coba Lagi
+                            </button>
                         </div>
                     ) : (
                         <div className="space-y-6 max-w-3xl mx-auto">

@@ -35,6 +35,7 @@ import KeuanganView from './DashboardSuperAdmin/components/views/KeuanganView';
 import PengumumanView from './DashboardSuperAdmin/components/views/PengumumanView';
 import MultimediaView from './DashboardSuperAdmin/components/views/MultimediaView';
 import LaporanView from './DashboardSuperAdmin/components/views/LaporanView';
+import AlQuranSiswa from './AlQuranSiswa';
 import RaporView from './DashboardSuperAdmin/components/views/RaporView';
 import RaporSettingsView from './DashboardSuperAdmin/components/views/RaporSettingsView';
 import CetakKartuLoginView from './DashboardSuperAdmin/components/views/CetakKartuLoginView';
@@ -3715,6 +3716,13 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                     <button onClick={handleAddTutoringTeacher} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all mt-4">Simpan Data Guru</button>
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    {/* --- VIEW: AL QURAN --- */}
+                    {activeView === 'quran' && (
+                        <div className="bg-[#F4F7FE] p-6 h-full overflow-hidden">
+                            <AlQuranSiswa onBack={() => setActiveView('dashboard')} />
                         </div>
                     )}
 
