@@ -306,9 +306,10 @@ export const useTeachers = () => {
             return;
         }
 
-        const unsyncedGuru = teachers.filter(t => String(t.id).startsWith('temp-'));
-        if (unsyncedGuru.length === 0) {
-            toast("Semua data guru sudah tersinkron", { icon: '✅' });
+        // Ingin menyinkronkan semua data yang ada di state dengan DB
+        const allTeachersToSync = teachers;
+        if (allTeachersToSync.length === 0) {
+            toast("Tidak ada data guru untuk disinkron", { icon: 'ℹ️' });
             return;
         }
 
@@ -323,34 +324,38 @@ export const useTeachers = () => {
                 const staffMap: Record<string, string> = {};
                 dbStaff?.forEach(s => staffMap[s.employee_number] = s.id);
 
+                // Initial map for existing staff
+                const latestStaffMap: Record<string, string> = { ...staffMap };
+
                 const updates: any[] = [];
                 const inserts: any[] = [];
 
-                unsyncedGuru.forEach(g => {
+                allTeachersToSync.forEach(g => {
                     if (staffMap[g.nip]) {
                         updates.push({
                             id: staffMap[g.nip],
-                            position: g.jabatan
+                            position: g.jabatan,
+                            nama: g.nama
                         });
                     } else {
                         inserts.push({
                             employee_number: g.nip,
-                            position: g.jabatan
+                            position: g.jabatan,
+                            nama: g.nama // Store temp name to sync later
                         });
                     }
                 });
 
                 if (updates.length > 0) {
                     for (const up of updates) {
-                        const { id, position } = up;
+                        const { id, position, nama } = up;
                         await supabase.from('staff').update({ position }).eq('id', id);
 
                         // Sync Nama ke Profile
-                        const teacherInfo = teachers.find(t => latestStaffMap[t.nip] === id || staffMap[t.nip] === id);
-                        if (teacherInfo) {
+                        if (nama && nama !== 'Guru Baru') {
                             const { data: sData } = await supabase.from('staff').select('profile_id').eq('id', id).single();
                             if (sData?.profile_id) {
-                                await supabase.from('profiles').update({ full_name: teacherInfo.nama }).eq('id', sData.profile_id);
+                                await supabase.from('profiles').update({ full_name: nama }).eq('id', sData.profile_id);
                             }
                         }
                     }
@@ -363,11 +368,10 @@ export const useTeachers = () => {
 
                     // Sync Nama Guru Baru ke Profile yang dibuat otomatis
                     for (const ins of inserts) {
-                        const teacherInState = teachers.find(t => t.nip === ins.employee_number);
-                        if (teacherInState) {
+                        if (ins.nama && ins.nama !== 'Guru Baru') {
                             const { data: pData } = await supabase.from('profiles').select('id').eq('email', ins.employee_number + '@sekolah.id').single();
                             if (pData) {
-                                await supabase.from('profiles').update({ full_name: teacherInState.nama }).eq('id', pData.id);
+                                await supabase.from('profiles').update({ full_name: ins.nama }).eq('id', pData.id);
                             }
                         }
                     }
@@ -375,7 +379,7 @@ export const useTeachers = () => {
 
                 // Refresh Staff Map for Homeroom Syncing
                 const { data: refreshedStaff } = await supabase.from('staff').select('id, employee_number');
-                const latestStaffMap: Record<string, string> = {};
+                // Use a local copy instead of redefining const if possible, or just update the one we moved up
                 refreshedStaff?.forEach(s => latestStaffMap[s.employee_number] = s.id);
 
                 // Sync Homeroom Teacher Assignments to 'classes' table

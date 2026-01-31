@@ -824,7 +824,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
             return {
                 ...cls,
-                wali: (waliGuru && waliGuru.nama && String(waliGuru.nama).trim() !== 'Guru Baru') ? waliGuru.nama : 'Belum Ditentukan',
+                wali: waliGuru ? waliGuru.nama : 'Belum Ditentukan',
                 siswa: studentCount
             };
         });
@@ -1469,7 +1469,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                         <td className="p-4 text-center text-slate-600">{kelas.tingkat}</td>
                                                         <td className="p-4 text-center text-slate-600">{kelas.paralel}</td>
                                                         <td className="p-4">
-                                                            {(waliGuru && waliGuru.nama && String(waliGuru.nama).trim() !== 'Guru Baru') ? (
+                                                            {waliGuru ? (
                                                                 <span className="text-slate-700 font-medium">{waliGuru.nama}</span>
                                                             ) : (
                                                                 <span className="text-red-500 italic text-xs font-bold bg-red-50 px-2 py-1 rounded-md">Belum Ada</span>
@@ -3520,11 +3520,9 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                 }}
                                             >
                                                 <option value="">Pilih Guru</option>
-                                                {teachers
-                                                    .filter(t => t.nama && String(t.nama).trim() !== 'Guru Baru')
-                                                    .map(t => (
-                                                        <option key={t.id} value={t.id}>{t.nama}</option>
-                                                    ))}
+                                                {teachers.map(t => (
+                                                    <option key={t.id} value={t.id}>{t.nama}</option>
+                                                ))}
                                             </select>
                                         </div>
                                         <div>

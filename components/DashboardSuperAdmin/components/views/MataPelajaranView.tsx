@@ -83,13 +83,7 @@ const MataPelajaranView: React.FC<MataPelajaranViewProps> = ({
                                 return (
                                     <tr key={assign.id || i} className="hover:bg-blue-50/50 transition-colors">
                                         <td className="p-4 text-center text-slate-500 font-medium">{i + 1}</td>
-                                        <td className="p-4 font-bold text-slate-800">
-                                            {guru && guru.nama && String(guru.nama).trim() !== 'Guru Baru' ? (
-                                                guru.nama
-                                            ) : (
-                                                <span className="text-red-500 italic text-xs font-bold bg-red-50 px-2 py-1 rounded-md">Belum Aktif</span>
-                                            )}
-                                        </td>
+                                        <td className="p-4 font-bold text-slate-800">{guru?.nama || 'Unknown'}</td>
                                         <td className="p-4 font-mono text-slate-600">{guru?.nip || '-'}</td>
                                         <td className="p-4 text-center font-bold text-blue-700 bg-blue-50/50 rounded">{assign.classNama}</td>
                                         <td className="p-4 text-slate-700 whitespace-normal max-w-xs">{mapelNames}</td>

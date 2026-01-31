@@ -77,13 +77,7 @@ const TeacherDataView: React.FC<TeacherDataViewProps> = ({
                         {teachers && teachers.map((guru, i) => (
                             <tr key={guru.id} className="hover:bg-green-50/50 transition-colors">
                                 <td className="p-4 text-center text-slate-500 font-medium">{i + 1}</td>
-                                <td className="p-4 font-bold text-slate-700">
-                                    {guru.nama && String(guru.nama).trim() === 'Guru Baru' ? (
-                                        <span className="text-red-500 italic bg-red-50 px-2 py-1 rounded-md border border-red-100">Guru Baru (Belum Sinkron)</span>
-                                    ) : (
-                                        guru.nama
-                                    )}
-                                </td>
+                                <td className="p-4 font-bold text-slate-700">{guru.nama}</td>
                                 <td className="p-4 font-mono text-slate-600">{guru.nip}</td>
                                 {/* DROPDOWN JABATAN */}
                                 <td className="p-4">
