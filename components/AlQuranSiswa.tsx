@@ -58,11 +58,14 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
         if (currentAudio) currentAudio.pause();
 
         try {
-            // Fetching Arabic (Uthmani), Indonesian Translation, and Audio (Alafasy)
-            // Reverted to Uthmani because Tajweed edition returns special markup that broke the display
-            const response = await fetch(`https://api.alquran.cloud/v1/surah/${surah.number}/editions/quran-uthmani,id.indonesian,ar.alafasy`);
+            // METODE 1: API Al-Quran.cloud (Utama)
+            // Tambahkan credentials: 'omit' untuk mencegah masalah CORS di server online
+            const response = await fetch(
+                `https://api.alquran.cloud/v1/surah/${surah.number}/editions/quran-uthmani,id.indonesian,ar.alafasy`,
+                { mode: 'cors', credentials: 'omit' }
+            );
 
-            if (!response.ok) throw new Error('Network response was not ok');
+            if (!response.ok) throw new Error('Main API Error');
 
             const data = await response.json();
 
@@ -76,15 +79,12 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
                     let cleanText = ayah.text;
                     // Remove Bismillah from Verse 1 for all Surahs except Al-Fatihah (1)
                     if (surah.number !== 1 && ayah.numberInSurah === 1) {
-                        // Exact Uthmani Bismillah string from api.alquran.cloud
                         const bismillah = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
-                        if (cleanText.startsWith(bismillah)) {
-                            cleanText = cleanText.replace(bismillah, "").trim();
-                        }
+                        if (cleanText.startsWith(bismillah)) cleanText = cleanText.replace(bismillah, "").trim();
                     }
 
                     return {
-                        number: ayah.number, // Global Ayah Number
+                        number: ayah.number,
                         numberInSurah: ayah.numberInSurah,
                         text: cleanText,
                         translation: transData[index].text,
@@ -95,15 +95,42 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
                 setAyahs(mergedAyahs);
                 setLoading(false);
             } else {
-                throw new Error('Incomplete data received');
+                throw new Error('Incomplete data');
             }
-        } catch (err) {
-            console.error(`Surah Detail Fetch Error (Attempt ${retryCount + 1}):`, err);
 
+        } catch (err) {
+            console.error(`Attempt ${retryCount + 1} Failed:`, err);
+
+            // RETRY LOGIC WITH FAILOVER TO EQURAN.ID (Server Indonesia - Lebih Cepat & Stabil)
             if (retryCount < 2) {
+                // Percobaan ke-2 dan ke-3 akan mencoba server cadangan jika memungkinkan, atau retry biasa
+                if (retryCount === 1) {
+                    console.log("Switching to Backup API (EQuran.id)...");
+                    try {
+                        const backupResponse = await fetch(`https://equran.id/api/v2/surat/${surah.number}`, { mode: 'cors', credentials: 'omit' });
+                        const backupData = await backupResponse.json();
+
+                        if (backupData.code === 200) {
+                            const backupAyahs = backupData.data.ayat.map((a: any) => ({
+                                number: 0, // Not needed for simple play
+                                numberInSurah: a.nomorAyat,
+                                text: a.teksArab,
+                                translation: a.teksIndonesia,
+                                audio: a.audio['05'] || Object.values(a.audio)[0] // Try to get Misyari or first available
+                            }));
+                            setAyahs(backupAyahs);
+                            setLoading(false);
+                            return; // Success with backup
+                        }
+                    } catch (backupErr) {
+                        console.error("Backup API Failed:", backupErr);
+                    }
+                }
+
+                // Jika backup gagal atau belum saatnya, retry API utama
                 setTimeout(() => handleSelectSurah(surah, retryCount + 1), 1500);
             } else {
-                setError('Gagal memuat ayat. Periksa koneksi internet Anda.');
+                setError('Gagal memuat data dari semua server. Pastikan koneksi internet stabil.');
                 setLoading(false);
             }
         }
