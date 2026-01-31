@@ -74,18 +74,8 @@ export const useClasses = () => {
         return () => clearTimeout(timer);
     }, [classes, loading]);
 
-    // --- AUTO SYNC TO SUPABASE ---
-    useEffect(() => {
-        if (!isSupabaseConfigured() || loading) return;
-
-        const unsynced = classes.filter(c => typeof c.id === 'number');
-        if (unsynced.length === 0) return;
-
-        const timer = setTimeout(() => {
-            handleSaveClasses();
-        }, 10000); // Auto sync every 10 seconds if there's unsynced data
-        return () => clearTimeout(timer);
-    }, [classes, loading]);
+    // --- AUTO SYNC DISABLED ---
+    // User requested only manual save via button.
 
     const [showAddClassModal, setShowAddClassModal] = useState(false);
 

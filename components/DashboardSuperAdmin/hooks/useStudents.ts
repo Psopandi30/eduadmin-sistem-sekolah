@@ -49,27 +49,31 @@ export const useStudents = () => {
 
             if (error) throw error;
 
-            if (data && data.length > 0) {
-                const mappedData: Student[] = data.map(s => ({
+            const mappedData: Student[] = data.map(s => {
+                const classObj = s.classes;
+                return {
                     id: s.id,
                     nis: s.nis,
                     nama: s.full_name,
-                    ttl: `${s.birth_place || '-'}, ${s.birth_date || '-'}`,
-                    kelas: s.classes?.name || '-',
-                    tingkat: s.classes?.grade_level || 1,
-                    paralel: (s.classes?.name || '').replace(/[0-9]/g, ''),
+                    ttl: `${s.birth_place || ''}${s.birth_place && s.birth_date ? ', ' : ''}${s.birth_date || ''}`,
+                    kelas: classObj?.name || '-',
+                    tingkat: classObj?.grade_level || 1,
+                    paralel: classObj?.name ? String(classObj.name).replace(/[0-9]/g, '') : '-',
                     ayah: s.parent_name || '-',
-                    ibu: '-',
+                    ibu: '-', // ibu, jobAyah, jobIbu are local-only or need schema update
                     jobAyah: '-',
                     jobIbu: '-',
                     username: s.nis,
                     gender: s.gender,
                     status: s.status
-                }));
-                // Data from DB is truth
-                setStudents(mappedData);
-                localStorage.setItem('students_data_v10', JSON.stringify(mappedData));
-            }
+                };
+            });
+            // Merge with local state to keep fields not in DB (like Ibu, Jobs)
+            setStudents(prev => {
+                const localUnsaved = prev.filter(p => String(p.id).startsWith('temp-'));
+                return [...mappedData, ...localUnsaved];
+            });
+            localStorage.setItem('students_data_v10', JSON.stringify(mappedData));
         } catch (err) {
             console.error('Error fetching students:', err);
             toast.error('Gagal memuat data siswa', { id: 'error-fetch-students' });
@@ -292,20 +296,29 @@ export const useStudents = () => {
                         return;
                     }
 
-                    const importedStudents: Student[] = data.slice(1).map((row, idx) => ({
-                        id: `temp-${Date.now()}-${idx}`,
-                        nis: String(row[1] || ''),
-                        nama: String(row[2] || ''),
-                        ttl: String(row[3] || ''),
-                        tingkat: parseInt(row[4]) || 1,
-                        kelas: String(row[5] || ''),
-                        paralel: String(row[6] || ''),
-                        ayah: String(row[7] || ''),
-                        ibu: String(row[8] || ''),
-                        jobAyah: String(row[9] || ''),
-                        jobIbu: String(row[10] || ''),
-                        username: String(row[11] || row[1] || ''),
-                    })).filter(s => s.nama);
+                    const importedStudents: Student[] = data.slice(1).map((row, idx) => {
+                        const tingkatVal = String(row[4] || '');
+                        const paralelVal = String(row[6] || '');
+                        // If row[5] (KELAS) is just a number like '1', combine with paralel to get '1A'
+                        const kelasName = (row[5] && String(row[5]).length === 1)
+                            ? `${row[5]}${paralelVal}`
+                            : String(row[5] || `${tingkatVal}${paralelVal}`);
+
+                        return {
+                            id: `temp-${Date.now()}-${idx}`,
+                            nis: String(row[1] || ''),
+                            nama: String(row[2] || ''),
+                            ttl: String(row[3] || ''),
+                            tingkat: parseInt(row[4]) || 1,
+                            kelas: kelasName,
+                            paralel: paralelVal,
+                            ayah: String(row[7] || ''),
+                            ibu: String(row[8] || ''),
+                            jobAyah: String(row[9] || ''),
+                            jobIbu: String(row[10] || ''),
+                            username: String(row[11] || row[1] || ''),
+                        };
+                    }).filter(s => s.nama);
 
                     setStudents(prev => [...prev, ...importedStudents]);
                     toast.success(`${importedStudents.length} data siswa berhasil diimpor (Lokal)`);
@@ -339,14 +352,32 @@ export const useStudents = () => {
                 const classMap: Record<string, string> = {};
                 dbClasses?.forEach(c => classMap[c.name] = c.id);
 
-                const insertData = studentsToSave.map(s => ({
-                    nis: s.nis,
-                    full_name: s.nama,
-                    parent_name: s.ayah,
-                    class_id: classMap[s.kelas] || null,
-                    gender: 'L',
-                    status: 'active'
-                }));
+                const insertData = studentsToSave.map(s => {
+                    // Try to parse TTL: "Place, DD-MM-YYYY"
+                    let bPlace = '';
+                    let bDate = null;
+                    if (s.ttl && s.ttl.includes(',')) {
+                        const parts = s.ttl.split(',');
+                        bPlace = parts[0].trim();
+                        const datePart = parts[1].trim();
+                        // Convert DD-MM-YYYY to YYYY-MM-DD for Postgres
+                        const dateMatch = datePart.match(/(\d{2})-(\d{2})-(\d{4})/);
+                        if (dateMatch) {
+                            bDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+                        }
+                    }
+
+                    return {
+                        nis: s.nis,
+                        full_name: s.nama,
+                        parent_name: s.ayah,
+                        class_id: classMap[s.kelas] || null,
+                        birth_place: bPlace || null,
+                        birth_date: bDate || null,
+                        gender: s.gender || 'L',
+                        status: 'active'
+                    };
+                });
 
                 const { error } = await supabase.from('students').insert(insertData);
                 if (error) throw error;
@@ -362,18 +393,8 @@ export const useStudents = () => {
         );
     }, [students, fetchStudents]);
 
-    // --- AUTO SYNC TO SUPABASE ---
-    useEffect(() => {
-        if (!isSupabaseConfigured() || loading) return;
-
-        const unsynced = students.filter(s => String(s.id).startsWith('temp-') || typeof s.id === 'number');
-        if (unsynced.length === 0) return;
-
-        const timer = setTimeout(() => {
-            handleSaveData(true);
-        }, 15000); // Auto sync every 15 seconds for students
-        return () => clearTimeout(timer);
-    }, [students, loading, handleSaveData]);
+    // --- AUTO SYNC DISABLED ---
+    // User requested only manual save via button.
 
     return {
         students,
