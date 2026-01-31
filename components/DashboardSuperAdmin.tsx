@@ -934,21 +934,26 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
             return;
         }
 
-        const teacherToAdd = {
-            id: Date.now(), // ID will be overwritten by DB if successful, or used locally
+        const teacherToSave = {
+            id: editItem ? editItem.id : Date.now(),
             nama: newTeacher.nama,
             nip: newTeacher.nip,
             jabatan: newTeacher.jabatan,
             mapel: newTeacher.jabatan === 'Guru Mata Pelajaran' ? newTeacher.mapel : '-',
             wali: newTeacher.jabatan === 'Guru Kelas' || newTeacher.jabatan === 'Wali Kelas' ? newTeacher.class : '-',
             username: newTeacher.nama.split(' ')[0].toLowerCase() + Math.floor(Math.random() * 100),
-            password: 'password123' // Default password
+            password: 'password123'
         };
 
-        // Use async addTeacher from hook
-        await addTeacher(teacherToAdd);
+        if (editItem && editType === 'Teacher') {
+            await updateTeacher(editItem.id, teacherToSave);
+        } else {
+            await addTeacher(teacherToSave);
+        }
 
         setShowTeacherModal(false);
+        setEditItem(null);
+        setEditType('');
         setNewTeacher({ nama: '', nip: '', jabatan: 'Guru Mata Pelajaran', mapel: '', class: '' });
     };
 
@@ -1429,9 +1434,19 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     {
                         activeView === 'kelas_wali' && (
                             <div className="bg-white rounded-[2.5rem] p-4 h-full shadow-sm animate-in fade-in flex flex-col">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <School size={28} className="text-blue-800" />
-                                    <h2 className="text-xl font-bold text-[#1E1B4B]">Data Kelas & Wali kelas</h2>
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <School size={28} className="text-blue-800" />
+                                        <h2 className="text-xl font-bold text-[#1E1B4B]">Data Kelas & Wali kelas</h2>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => setShowAddClassModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-bold hover:bg-blue-100 transition-all border border-blue-200">
+                                            <Plus size={18} /> Tambah Kelas
+                                        </button>
+                                        <button onClick={handleSaveClasses} className="flex items-center gap-2 px-5 py-2 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-all shadow-lg shadow-red-200">
+                                            <Save size={18} /> Simpan
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="flex-1 overflow-auto rounded-[1.5rem] border border-slate-200 shadow-inner bg-slate-50/50">
@@ -3476,6 +3491,50 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                             </div>
                         )
                     }
+                    {/* MODAL TAMBAH KELAS */}
+                    {
+                        showAddClassModal && (
+                            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center animate-in fade-in backdrop-blur-sm p-4">
+                                <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8">
+                                    <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                                        <h3 className="font-bold text-lg text-slate-800">Tambah Kelas Baru</h3>
+                                        <button onClick={() => setShowAddClassModal(false)}><X size={24} className="text-slate-400 hover:text-red-500" /></button>
+                                    </div>
+                                    <form onSubmit={(e) => {
+                                        e.preventDefault();
+                                        const form = e.target as HTMLFormElement;
+                                        const tingkat = (form.elements.namedItem('tingkat') as HTMLSelectElement).value;
+                                        const paralel = (form.elements.namedItem('paralel') as HTMLInputElement).value;
+                                        if (tingkat && paralel) {
+                                            handleAddClass(tingkat, paralel);
+                                            toast.success(`Kelas ${tingkat}${paralel} berhasil dibuat!`);
+                                        }
+                                    }} className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Tingkat</label>
+                                            <select name="tingkat" required className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer">
+                                                <option value="1">1</option>
+                                                <option value="2">2</option>
+                                                <option value="3">3</option>
+                                                <option value="4">4</option>
+                                                <option value="5">5</option>
+                                                <option value="6">6</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Paralel (A, B, C...)</label>
+                                            <input name="paralel" required maxLength={2} className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors uppercase" placeholder="Contoh: A" />
+                                        </div>
+                                        <div className="flex gap-4 mt-8">
+                                            <button type="button" onClick={() => setShowAddClassModal(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">Batal</button>
+                                            <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">Buat Kelas</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )
+                    }
+
                     {/* MODAL PLOTTING GURU MAPEL */}
                     {
                         showPlottingModal && (
@@ -3517,7 +3576,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                             >
                                                 <option value="">Pilih Guru</option>
                                                 {teachers.map(t => (
-                                                    <option key={t.id} value={t.id}>{t.nama}</option>
+                                                    <option key={t.id} value={t.id}>{t.nama} ({t.nip || '-'})</option>
                                                 ))}
                                             </select>
                                         </div>
