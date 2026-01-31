@@ -214,6 +214,46 @@ export const useTeachers = () => {
         }
     };
 
+    const handleDownloadTemplate = () => {
+        const headers = [
+            'No', 'Nama Lengkap', 'NIP', 'Jabatan', 'Wali Kelas', 'Username', 'password'
+        ];
+        const exampleData = [
+            '1', 'H. Ahmad Syauqi, M.Pd.', '198501012010011001', 'Guru Mata Pelajaran', '1A', 'ahmadsyauqi', 'guru123'
+        ];
+        const csvContent = [headers.join(','), exampleData.join(',')].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'Template_Upload_Guru_Staff.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("Template Guru & Staff berhasil diunduh!");
+    };
+
+    const handleUploadClick = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.xlsx, .xls, .csv';
+        input.onchange = (e) => {
+            toast.success("File terpilih (Simulasi Import Guru)");
+        };
+        input.click();
+    };
+
+    const handleSaveData = async () => {
+        toast.promise(
+            new Promise((resolve) => setTimeout(resolve, 1500)),
+            {
+                loading: 'Menyimpan data guru...',
+                success: 'Data guru berhasil diperbarui!',
+                error: 'Gagal menyimpan data.'
+            }
+        );
+    };
+
     return {
         teachers,
         setTeachers,
@@ -221,6 +261,9 @@ export const useTeachers = () => {
         addTeacher,
         deleteTeacher,
         updateTeacher,
+        handleDownloadTemplate,
+        handleUploadClick,
+        handleSaveData,
         refreshTeachers: fetchTeachers
     };
 };

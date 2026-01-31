@@ -190,7 +190,16 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     }, [teacherAssignments]);
     const [showPlottingModal, setShowPlottingModal] = useState(false);
     const [showPositionModal, setShowPositionModal] = useState(false);
-    const { teachers, setTeachers, addTeacher, deleteTeacher, updateTeacher } = useTeachers();
+    const {
+        teachers,
+        setTeachers,
+        addTeacher,
+        deleteTeacher,
+        updateTeacher,
+        handleDownloadTemplate: handleDownloadTemplateTeacher,
+        handleUploadClick: handleUploadClickTeacher,
+        handleSaveData: handleSaveDataTeacher
+    } = useTeachers();
     const [newTeacher, setNewTeacher] = useState({ nama: '', nip: '', jabatan: 'Guru Mata Pelajaran', mapel: '', class: '' });
     const [showTeacherModal, setShowTeacherModal] = useState(false);
 
@@ -1301,10 +1310,10 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                             setTeachers={setTeachers}
                             positions={positions}
                             setActiveView={setActiveView}
-                            handleDownloadTemplate={handleDownloadTemplate}
-                            handleUploadClick={handleUploadClick}
+                            handleDownloadTemplate={handleDownloadTemplateTeacher}
+                            handleUploadClick={handleUploadClickTeacher}
                             handleAddTeacher={handleAddTeacher}
-                            handleSaveData={handleSaveData}
+                            handleSaveData={handleSaveDataTeacher}
                             handleEditItem={handleEditItem}
                             handleDeleteTeacher={handleDeleteTeacher}
                         />
