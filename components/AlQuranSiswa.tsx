@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight, Search, PlayCircle, PauseCircle, ArrowLeft, BookOpen, AlertCircle } from 'lucide-react';
+import { quranSurahsGlobal } from './data/quranStaticData';
 
 interface AlQuranSiswaProps {
     onBack: () => void;
@@ -23,60 +24,17 @@ interface Ayah {
 }
 
 const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
-    const [surahs, setSurahs] = useState<Surah[]>([]);
+    // List Surah menggunakan Data Statis (quranStaticData.ts) -> Selalu 114 Surat, Online/Offline sama.
+    const [surahs, setSurahs] = useState<Surah[]>(quranSurahsGlobal);
     const [selectedSurah, setSelectedSurah] = useState<Surah | null>(null);
     const [ayahs, setAyahs] = useState<Ayah[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false); // Hanya untuk detail surat
+    const [error, setError] = useState<string | null>(null); // Hanya untuk detail surat
     const [searchQuery, setSearchQuery] = useState('');
 
     // Audio State
     const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
     const [playingAyah, setPlayingAyah] = useState<number | null>(null); // global ayah number
-
-    // Fetch Surah List on Mount
-    // Fetch Surah List
-    // Fallback Data (Juz Amma & Alfatihah) - Agar 'Otomatis' tampil walau offline
-    const fallbackSurahs = [
-        { number: 1, name: "Al-Fatihah", englishName: "The Opening", englishNameTranslation: "Pembukaan", numberOfAyahs: 7, revelationType: "Meccan" },
-        { number: 112, name: "Al-Ikhlas", englishName: "The Sincerity", englishNameTranslation: "Ikhlas", numberOfAyahs: 4, revelationType: "Meccan" },
-        { number: 113, name: "Al-Falaq", englishName: "The Daybreak", englishNameTranslation: "Waktu Subuh", numberOfAyahs: 5, revelationType: "Meccan" },
-        { number: 114, name: "An-Nas", englishName: "Mankind", englishNameTranslation: "Manusia", numberOfAyahs: 6, revelationType: "Meccan" }
-    ];
-
-    // Fetch Surah List with Auto-Retry and Fallback
-    const fetchSurahs = async (retryCount = 0) => {
-        if (retryCount === 0) setLoading(true);
-        setError(null);
-
-        try {
-            const response = await fetch('https://api.alquran.cloud/v1/surah');
-            const data = await response.json();
-            if (data.code === 200) {
-                setSurahs(data.data);
-                setLoading(false);
-            } else {
-                throw new Error('API returned error code');
-            }
-        } catch (err) {
-            console.error(`Quran Fetch Error (Attempt ${retryCount + 1}):`, err);
-
-            if (retryCount < 2) {
-                // Auto Retry after 1.5s
-                setTimeout(() => fetchSurahs(retryCount + 1), 1500);
-            } else {
-                // Fallback: Use offline data automatically
-                console.log("Using Fallback Data");
-                setSurahs(fallbackSurahs);
-                setLoading(false);
-                // Note: We don't set 'error' here so the UI shows the fallback data smoothly
-            }
-        }
-    };
-
-    useEffect(() => {
-        fetchSurahs();
-    }, []);
 
     // Cleanup audio on unmount
     useEffect(() => {
@@ -87,7 +45,6 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
         };
     }, [currentAudio]);
 
-    // Fetch Surah Details (Arabic, Translation, Audio)
     // Fetch Surah Details (Arabic, Translation, Audio)
     const handleSelectSurah = async (surah: Surah, retryCount = 0) => {
         if (retryCount === 0) {
@@ -288,51 +245,34 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
-                {loading && surahs.length === 0 ? (
-                    <div className="flex justify-center items-center h-40">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#004AAD]"></div>
-                    </div>
-                ) : error ? (
-                    <div className="flex flex-col items-center justify-center h-40 text-red-500 gap-2">
-                        <AlertCircle size={24} />
-                        <p>{error}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredSurahs.map((surah) => (
                         <button
-                            onClick={fetchSurahs}
-                            className="mt-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl text-sm font-bold hover:bg-red-100 transition-colors"
+                            key={surah.number}
+                            onClick={() => handleSelectSurah(surah)}
+                            className="flex items-center p-4 border border-slate-100 rounded-2xl hover:border-[#BFDBFE] hover:bg-blue-50/30 transition-all text-left group"
                         >
-                            Coba Lagi
-                        </button>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {filteredSurahs.map((surah) => (
-                            <button
-                                key={surah.number}
-                                onClick={() => handleSelectSurah(surah)}
-                                className="flex items-center p-4 border border-slate-100 rounded-2xl hover:border-[#BFDBFE] hover:bg-blue-50/30 transition-all text-left group"
-                            >
-                                <div className="w-10 h-10 flex items-center justify-center bg-slate-50 text-[#004AAD] font-bold rounded-lg mr-4 border border-slate-200 group-hover:border-blue-200 group-hover:bg-blue-100 transition-colors">
-                                    {surah.number}
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex justify-between items-center mb-0.5">
-                                        <h4 className="font-bold text-slate-800">{surah.englishName}</h4>
-                                        <span className="text-[#004AAD] font-serif font-bold text-lg">{surah.name}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-xs text-slate-500">
-                                        <span>{surah.englishNameTranslation}</span>
-                                        <span>{surah.numberOfAyahs} Ayat</span>
-                                    </div>
-                                </div>
-                            </button>
-                        ))}
-                        {filteredSurahs.length === 0 && (
-                            <div className="col-span-full text-center py-10 text-slate-400">
-                                Tidak ada surat yang ditemukan.
+                            <div className="w-10 h-10 flex items-center justify-center bg-slate-50 text-[#004AAD] font-bold rounded-lg mr-4 border border-slate-200 group-hover:border-blue-200 group-hover:bg-blue-100 transition-colors">
+                                {surah.number}
                             </div>
-                        )}
-                    </div>
-                )}
+                            <div className="flex-1">
+                                <div className="flex justify-between items-center mb-0.5">
+                                    <h4 className="font-bold text-slate-800">{surah.englishName}</h4>
+                                    <span className="text-[#004AAD] font-serif font-bold text-lg">{surah.name}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs text-slate-500">
+                                    <span>{surah.englishNameTranslation}</span>
+                                    <span>{surah.numberOfAyahs} Ayat</span>
+                                </div>
+                            </div>
+                        </button>
+                    ))}
+                    {filteredSurahs.length === 0 && (
+                        <div className="col-span-full text-center py-10 text-slate-400">
+                            Tidak ada surat yang ditemukan.
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
