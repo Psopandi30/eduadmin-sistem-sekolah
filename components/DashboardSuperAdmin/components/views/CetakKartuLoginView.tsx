@@ -5,10 +5,11 @@ import { studentsDataGlobal, classesDataGlobal } from '../../../../data/sharedDa
 interface CetakKartuLoginViewProps {
     setActiveView: (view: string) => void;
     students?: any[]; // Optional: use dynamic student data from parent
+    classes?: any[]; // Optional: use dynamic class data from parent
     schoolSettings?: any;
 }
 
-const CetakKartuLoginView: React.FC<CetakKartuLoginViewProps> = ({ setActiveView, students, schoolSettings }) => {
+const CetakKartuLoginView: React.FC<CetakKartuLoginViewProps> = ({ setActiveView, students, classes, schoolSettings }) => {
     const componentRef = useRef<HTMLDivElement>(null);
     const [selectedClass, setSelectedClass] = useState('Semua Kelas');
     const [searchQuery, setSearchQuery] = useState('');
@@ -24,8 +25,15 @@ const CetakKartuLoginView: React.FC<CetakKartuLoginViewProps> = ({ setActiveView
         return matchClass && matchSearch;
     });
 
-    // Fix: Get classes from Class Data directly for better filter options
-    const uniqueClasses = ['Semua Kelas', ...Array.from(new Set(classesDataGlobal.map(c => c.nama))).sort()];
+    // Fix: Get classes from Props (most accurate), then Global, then fallback to deriving from Students
+    const availableClasses = classes || classesDataGlobal;
+    const classNamesFromStudents = Array.from(new Set(studentData.map(s => s.kelas)));
+
+    // Combine sources to ensure we have a list even if one source is empty
+    const uniqueClasses = ['Semua Kelas', ...Array.from(new Set([
+        ...availableClasses.map(c => c.nama),
+        ...classNamesFromStudents
+    ])).filter(Boolean).sort()];
 
     const handlePrint = () => {
         const printContent = componentRef.current;

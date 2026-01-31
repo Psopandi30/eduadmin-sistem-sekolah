@@ -1255,7 +1255,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                     {/* --- VIEW: CETAK KARTU LOGIN --- */}
                     {activeView === 'cetak_kartu_login' && (
-                        <CetakKartuLoginView setActiveView={setActiveView} students={students} schoolSettings={schoolSettings} />
+                        <CetakKartuLoginView setActiveView={setActiveView} students={students} classes={classes} schoolSettings={schoolSettings} />
                     )}
 
                     {/* --- VIEW: TAMBAH KELAS --- */}
