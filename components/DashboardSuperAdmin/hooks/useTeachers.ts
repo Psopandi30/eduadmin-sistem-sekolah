@@ -283,9 +283,17 @@ export const useTeachers = () => {
                     })).filter(t => t.nama);
 
                     setTeachers(prev => {
-                        const existingNips = new Set(prev.map(t => t.nip));
-                        const filteredNew = importedTeachers.filter(t => !existingNips.has(t.nip));
-                        return [...prev, ...filteredNew];
+                        const newTeachers = [...prev];
+                        importedTeachers.forEach(imp => {
+                            const index = newTeachers.findIndex(t => t.nip === imp.nip);
+                            if (index >= 0) {
+                                // Update existing data but keep the original ID to maintain sync state
+                                newTeachers[index] = { ...newTeachers[index], ...imp, id: newTeachers[index].id };
+                            } else {
+                                newTeachers.push(imp);
+                            }
+                        });
+                        return newTeachers;
                     });
 
                     toast.success(`${importedTeachers.length} data guru diimpor (Lokal)`);
