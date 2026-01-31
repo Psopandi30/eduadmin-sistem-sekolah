@@ -47,7 +47,7 @@ const TeacherDataView: React.FC<TeacherDataViewProps> = ({
                         <UploadCloud size={18} /> Upload
                     </button>
                     <button onClick={handleAddTeacher} className="flex items-center gap-2 px-5 py-2.5 bg-emerald-50 text-emerald-600 rounded-xl font-bold hover:bg-emerald-100 transition-colors border border-emerald-200 shadow-sm">
-                        <UserPlus size={18} /> Tambah Guru
+                        <Plus size={18} /> Tambah Guru
                     </button>
                     <button onClick={handleSaveData} className="flex items-center gap-2 px-6 py-2.5 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-colors shadow-lg shadow-red-200">
                         <Save size={18} /> Simpan

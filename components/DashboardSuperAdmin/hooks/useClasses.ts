@@ -153,31 +153,15 @@ export const useClasses = () => {
         }
     };
 
-    const handleSaveClasses = useCallback(async (isSilent = false) => {
+    const handleSaveClasses = useCallback(async () => {
         if (!isSupabaseConfigured()) {
-            if (!isSilent) toast.success("Data tersimpan secara lokal");
+            toast.success("Data tersimpan secara lokal");
             return;
         }
 
-        const classesToSave = classes.filter(c => typeof c.id === 'number'); // Local IDs are numeric (Date.now())
+        const classesToSave = classes.filter(c => typeof c.id === 'number');
         if (classesToSave.length === 0) {
-            if (!isSilent) toast("Semua kelas sudah tersinkron", { icon: '✅' });
-            return;
-        }
-
-        if (isSilent) {
-            // Background sync without toast promise
-            try {
-                const insertData = classesToSave.map(c => ({
-                    name: c.nama,
-                    grade_level: c.tingkat,
-                    is_active: true
-                }));
-                const { error } = await supabase.from('classes').insert(insertData);
-                if (!error) await fetchClasses();
-            } catch (e) {
-                console.error("Silent sync failed", e);
-            }
+            toast("Semua kelas sudah tersinkron", { icon: '✅' });
             return;
         }
 
@@ -202,19 +186,6 @@ export const useClasses = () => {
             }
         );
     }, [classes, fetchClasses]);
-
-    // --- AUTO SYNC TO SUPABASE ---
-    useEffect(() => {
-        if (!isSupabaseConfigured() || loading) return;
-
-        const unsynced = classes.filter(c => typeof c.id === 'number');
-        if (unsynced.length === 0) return;
-
-        const timer = setTimeout(() => {
-            handleSaveClasses(true);
-        }, 10000); // Auto sync every 10 seconds if there's unsynced data
-        return () => clearTimeout(timer);
-    }, [classes, loading, handleSaveClasses]);
 
     return {
         classes,
