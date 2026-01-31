@@ -39,6 +39,31 @@ const DashboardKepalaSekolah: React.FC<DashboardKepalaSekolahProps> = ({ user, o
         { id: 'channel', label: 'Channel Sekolah', icon: <Tv size={24} />, color: 'bg-red-600' },
     ];
 
+    // Live Data Stats
+    const [statsStudents, setStatsStudents] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('students_data_v2');
+            if (saved) return JSON.parse(saved);
+        }
+        return studentsDataGlobal;
+    });
+
+    const [statsTeachers, setStatsTeachers] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('teachers_data_v1');
+            if (saved) return JSON.parse(saved);
+        }
+        return teachersDataGlobal;
+    });
+
+    const [statsClasses, setStatsClasses] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('classes_data_v1');
+            if (saved) return JSON.parse(saved);
+        }
+        return classesDataGlobal;
+    });
+
     // Dummy Laporan Data (Cleared)
     const reports: any[] = [];
 
@@ -119,11 +144,11 @@ const DashboardKepalaSekolah: React.FC<DashboardKepalaSekolahProps> = ({ user, o
                                         <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center"><Users size={24} /></div>
                                         <div>
                                             <p className="text-xs text-slate-500 font-bold uppercase">Total Siswa</p>
-                                            <h3 className="text-2xl font-bold text-slate-800">{studentsDataGlobal.length}</h3>
+                                            <h3 className="text-2xl font-bold text-slate-800">{statsStudents.length}</h3>
                                         </div>
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-slate-50 text-xs text-green-600 font-bold flex items-center gap-1">
-                                        <TrendingUp size={12} /> {studentsDataGlobal.length} Siswa aktif
+                                        <TrendingUp size={12} /> {statsStudents.length} Siswa aktif
                                     </div>
                                 </div>
                                 <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
@@ -131,11 +156,11 @@ const DashboardKepalaSekolah: React.FC<DashboardKepalaSekolahProps> = ({ user, o
                                         <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center"><Users size={24} /></div>
                                         <div>
                                             <p className="text-xs text-slate-500 font-bold uppercase">Total Guru</p>
-                                            <h3 className="text-2xl font-bold text-slate-800">{teachersDataGlobal.length}</h3>
+                                            <h3 className="text-2xl font-bold text-slate-800">{statsTeachers.length}</h3>
                                         </div>
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-slate-50 text-xs text-slate-500 font-bold flex items-center gap-1">
-                                        <CheckSquare size={12} /> {classesDataGlobal.length} Rombel Terdata
+                                        <CheckSquare size={12} /> {statsClasses.length} Rombel Terdata
                                     </div>
                                 </div>
                                 <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">

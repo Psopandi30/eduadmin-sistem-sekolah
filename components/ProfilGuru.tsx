@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { ChevronLeft, Camera, LogOut, Save, User, BookOpen, Hash, MapPin } from 'lucide-react';
+import { teachersDataGlobal } from '../data/sharedData';
 
 interface ProfilGuruProps {
     user: any;
@@ -8,10 +9,32 @@ interface ProfilGuruProps {
 }
 
 const ProfilGuru: React.FC<ProfilGuruProps> = ({ user, onBack, onLogout }) => {
-    // Local state for editing
-    const [nama, setNama] = useState(user?.nama || 'Guru Mata Pelajaran');
-    const [nip, setNip] = useState(user?.nip || '19850712 201001 1 009');
-    const [mapel, setMapel] = useState(user?.mapel || 'Pendidikan Agama Islam'); // Bisa jadi array nanti
+    // Helper: Find actual teacher data
+    const getTeacherData = () => {
+        let foundTeacher = null;
+        // 1. Try Local Storage (most up-to-date)
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('teachers_data_v1');
+            if (saved) {
+                try {
+                    const teachers = JSON.parse(saved);
+                    foundTeacher = teachers.find((t: any) => t.nama === user?.nama);
+                } catch (e) { console.error("Error parsing teachers data", e); }
+            }
+        }
+        // 2. Fallback to Global Data
+        if (!foundTeacher) {
+            foundTeacher = teachersDataGlobal.find(t => t.nama === user?.nama);
+        }
+        return foundTeacher;
+    };
+
+    const teacherData = getTeacherData();
+
+    // Local state for editing - Sync with Real Data
+    const [nama, setNama] = useState(teacherData?.nama || user?.nama || 'Guru Mata Pelajaran');
+    const [nip, setNip] = useState(teacherData?.nip || user?.nip || '19850712 201001 1 009');
+    const [mapel, setMapel] = useState(teacherData?.mapel || user?.mapel || 'Pendidikan Agama Islam'); // Bisa jadi array nanti
 
     // File upload ref
     const fileInputRef = useRef<HTMLInputElement>(null);
