@@ -1458,7 +1458,12 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                         {kelas.wali === 'Belum Ditentukan' ? (
                                                             <span className="text-red-500 italic text-xs font-bold bg-red-50 px-2 py-1 rounded-md">Belum Ada</span>
                                                         ) : (
-                                                            <span className="text-slate-700 font-medium">{kelas.wali}</span>
+                                                            <span className="text-slate-700 font-medium">
+                                                                {teachers.find(t =>
+                                                                    t.wali && kelas.nama &&
+                                                                    String(t.wali).trim().toLowerCase() === String(kelas.nama).trim().toLowerCase()
+                                                                )?.nama || kelas.wali}
+                                                            </span>
                                                         )}
                                                     </td>
                                                     <td className="p-4 text-center">
