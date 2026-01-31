@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { ArrowLeft, Printer, Search, Download } from 'lucide-react';
-import { studentsDataGlobal } from '../../../../data/sharedData';
+import { studentsDataGlobal, classesDataGlobal } from '../../../../data/sharedData';
 
 interface CetakKartuLoginViewProps {
     setActiveView: (view: string) => void;
@@ -23,7 +23,8 @@ const CetakKartuLoginView: React.FC<CetakKartuLoginViewProps> = ({ setActiveView
         return matchClass && matchSearch;
     });
 
-    const uniqueClasses = ['Semua Kelas', ...Array.from(new Set(studentData.map(s => s.kelas))).sort()];
+    // Fix: Get classes from Class Data directly for better filter options
+    const uniqueClasses = ['Semua Kelas', ...Array.from(new Set(classesDataGlobal.map(c => c.nama))).sort()];
 
     const handlePrint = () => {
         const printContent = componentRef.current;
