@@ -48,19 +48,27 @@ export const useTeachers = () => {
             if (error) throw error;
 
             if (data && data.length > 0) {
-                const mappedData: Teacher[] = data.map(s => ({
-                    id: s.id,
-                    nip: s.employee_number,
-                    nama: (s.profiles as any)?.full_name || 'Tanpa Nama',
-                    jabatan: s.position,
-                    mapel: '-', // Mapel logic needs separate table or column if strictly followed, currently '-'
-                    wali: '-', // Wali logic also needs relationship
-                    username: (s.profiles as any)?.email?.split('@')[0] || s.employee_number,
-                    password: '***' // Hide password
-                }));
-                // Merge with local state to keep 'mapel' and 'wali' if they are local-only features for now
-                // But for "fixing data", we prioritize DB.
-                setTeachers(mappedData);
+                const mappedData: Teacher[] = data.map(s => {
+                    const profile = (s.profiles as any);
+                    return {
+                        id: s.id,
+                        nip: s.employee_number,
+                        nama: profile?.full_name || 'Tanpa Nama',
+                        jabatan: s.position,
+                        mapel: '-',
+                        wali: '-',
+                        username: profile?.email?.split('@')[0] || s.employee_number,
+                        password: '***'
+                    };
+                });
+
+                setTeachers(prev => {
+                    const dbNips = new Set(mappedData.map(m => m.nip));
+                    const localUnsaved = prev.filter(p =>
+                        String(p.id).startsWith('temp-') && !dbNips.has(p.nip)
+                    );
+                    return [...mappedData, ...localUnsaved];
+                });
                 localStorage.setItem('teachers_data_v10', JSON.stringify(mappedData));
             }
             setIsInitialFetched(true);
@@ -241,22 +249,115 @@ export const useTeachers = () => {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.xlsx, .xls, .csv';
-        input.onchange = (e) => {
-            toast.success("File terpilih (Simulasi Import Guru)");
+        input.onchange = async (e: any) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+                try {
+                    const XLSX = await import('xlsx');
+                    const bstr = evt.target?.result;
+                    const wb = XLSX.read(bstr, { type: 'binary' });
+                    const wsname = wb.SheetNames[0];
+                    const ws = wb.Sheets[wsname];
+                    const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+
+                    if (data.length <= 1) {
+                        toast.error("File kosong atau format salah");
+                        return;
+                    }
+
+                    // Headers: No, Nama Lengkap, NIP, Jabatan, Wali Kelas, Username, password
+                    const importedTeachers: Teacher[] = data.slice(1).map((row, idx) => ({
+                        id: `temp-guru-${Date.now()}-${idx}`,
+                        nama: String(row[1] || ''),
+                        nip: String(row[2] || ''),
+                        jabatan: String(row[3] || 'Guru Mata Pelajaran'),
+                        wali: String(row[4] || '-'),
+                        username: String(row[5] || ''),
+                        password: String(row[6] || 'guru123'),
+                        mapel: '-'
+                    })).filter(t => t.nama);
+
+                    setTeachers(prev => {
+                        const existingNips = new Set(prev.map(t => t.nip));
+                        const filteredNew = importedTeachers.filter(t => !existingNips.has(t.nip));
+                        return [...prev, ...filteredNew];
+                    });
+
+                    toast.success(`${importedTeachers.length} data guru diimpor (Lokal)`);
+                    toast("Klik 'Simpan' untuk menyelaraskan ke database.", { icon: 'ℹ️' });
+                } catch (err) {
+                    console.error("Error parsing file:", err);
+                    toast.error("Gagal membaca file");
+                }
+            };
+            reader.readAsBinaryString(file);
         };
         input.click();
     };
 
-    const handleSaveData = async () => {
+    const handleSaveData = useCallback(async () => {
+        if (!isSupabaseConfigured()) {
+            toast.success("Data tersimpan secara lokal");
+            return;
+        }
+
+        const unsyncedGuru = teachers.filter(t => String(t.id).startsWith('temp-'));
+        if (unsyncedGuru.length === 0) {
+            toast("Semua data guru sudah tersinkron", { icon: '✅' });
+            return;
+        }
+
         toast.promise(
-            new Promise((resolve) => setTimeout(resolve, 1500)),
+            (async () => {
+                // For teachers, we need to create profiles/auth or update existing staff
+                // Since bulk user creation is complex via client API, 
+                // we'll focus on updating STAFF info if NIP already exists.
+                // If NIP doesn't exist, it currently requires manual 'Add Teacher' to handle auth.
+
+                const { data: dbStaff } = await supabase.from('staff').select('id, employee_number');
+                const staffMap: Record<string, string> = {};
+                dbStaff?.forEach(s => staffMap[s.employee_number] = s.id);
+
+                const updates: any[] = [];
+                const toAddManually: string[] = [];
+
+                unsyncedGuru.forEach(g => {
+                    if (staffMap[g.nip]) {
+                        updates.push({
+                            id: staffMap[g.nip],
+                            position: g.jabatan
+                            // Add more updateable fields if needed
+                        });
+                    } else {
+                        toAddManually.push(g.nama);
+                    }
+                });
+
+                if (updates.length > 0) {
+                    for (const up of updates) {
+                        const { id, ...rest } = up;
+                        await supabase.from('staff').update(rest).eq('id', id);
+                    }
+                }
+
+                if (toAddManually.length > 0) {
+                    toast(`${toAddManually.length} guru baru butuh ditambahkan manual (untuk Akun Login)`, { icon: '⚠️' });
+                }
+
+                // Cleanup & Refresh
+                await fetchTeachers();
+                return true;
+            })(),
             {
-                loading: 'Menyimpan data guru...',
-                success: 'Data guru berhasil diperbarui!',
-                error: 'Gagal menyimpan data.'
+                loading: 'Menyelaraskan data guru...',
+                success: 'Sinkronisasi guru selesai!',
+                error: (err) => `Gagal: ${err.message}`
             }
         );
-    };
+    }, [teachers, fetchTeachers]);
 
     return {
         teachers,
