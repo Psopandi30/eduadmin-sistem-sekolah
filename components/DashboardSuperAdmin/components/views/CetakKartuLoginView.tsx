@@ -5,9 +5,10 @@ import { studentsDataGlobal, classesDataGlobal } from '../../../../data/sharedDa
 interface CetakKartuLoginViewProps {
     setActiveView: (view: string) => void;
     students?: any[]; // Optional: use dynamic student data from parent
+    schoolSettings?: any;
 }
 
-const CetakKartuLoginView: React.FC<CetakKartuLoginViewProps> = ({ setActiveView, students }) => {
+const CetakKartuLoginView: React.FC<CetakKartuLoginViewProps> = ({ setActiveView, students, schoolSettings }) => {
     const componentRef = useRef<HTMLDivElement>(null);
     const [selectedClass, setSelectedClass] = useState('Semua Kelas');
     const [searchQuery, setSearchQuery] = useState('');
@@ -121,10 +122,16 @@ const CetakKartuLoginView: React.FC<CetakKartuLoginViewProps> = ({ setActiveView
                                 {/* Header Kartu */}
                                 <div className="bg-slate-800 text-white p-3 flex justify-between items-center">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-800 font-bold text-xs">LOGO</div>
+                                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-800 font-bold text-xs overflow-hidden">
+                                            {schoolSettings?.logo ? (
+                                                <img src={schoolSettings.logo} alt="Logo" className="w-full h-full object-contain" />
+                                            ) : (
+                                                "LOGO"
+                                            )}
+                                        </div>
                                         <div>
                                             <h3 className="font-bold text-sm leading-tight uppercase">Kartu Akses Siswa</h3>
-                                            <p className="text-[10px] opacity-80">SD Normal Islam Samarinda</p>
+                                            <p className="text-[10px] opacity-80">{schoolSettings?.name || "Nama Sekolah"}</p>
                                         </div>
                                     </div>
                                     <div className="text-right">
