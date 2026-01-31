@@ -70,31 +70,36 @@ const TambahKelasView: React.FC<TambahKelasViewProps> = ({
                     </button>
                 </div>
             </div>
-            <div className="flex-1 overflow-x-auto overflow-y-hidden border border-slate-100 rounded-3xl">
+            <div className="flex-1 overflow-x-auto overflow-y-auto border border-slate-100 rounded-3xl custom-scrollbar-thin">
                 <table className="w-full text-left border-collapse">
-                    <thead className="bg-slate-50 sticky top-0 z-20">
+                    <thead className="bg-slate-100/80 sticky top-0 z-20 backdrop-blur-sm">
                         <tr>
-                            <th className="p-3 text-center font-bold text-slate-700 border-r border-slate-100 text-sm w-16">No</th>
-                            <th className="p-3 font-bold text-slate-700 border-r border-slate-100 text-sm">Nama Kelas</th>
-                            <th className="p-3 font-bold text-slate-700 border-r border-slate-100 text-sm">Tingkat</th>
-                            <th className="p-3 font-bold text-slate-700 border-r border-slate-100 text-sm">Paralel</th>
-                            <th className="p-3 text-center font-bold text-slate-700 text-sm w-20">Aksi</th>
+                            <th className="p-4 text-center font-bold text-slate-700 border-r border-slate-200/50 text-sm w-16">No</th>
+                            <th className="p-4 font-bold text-slate-700 border-r border-slate-200/50 text-sm">Nama Kelas</th>
+                            <th className="p-4 font-bold text-slate-700 border-r border-slate-200/50 text-sm">Tingkat</th>
+                            <th className="p-4 font-bold text-slate-700 border-r border-slate-200/50 text-sm">Paralel</th>
+                            <th className="p-4 text-center font-bold text-slate-700 text-sm w-20">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100">
                         {derivedClasses
-                            .sort((a: any, b: any) => a.tingkat - b.tingkat)
+                            .sort((a: any, b: any) => {
+                                if (a.tingkat !== b.tingkat) return a.tingkat - b.tingkat;
+                                return a.nama.localeCompare(b.nama);
+                            })
                             .slice(0, pageSize)
                             .map((cls: any, index: number) => (
-                                <tr key={cls.id} className="border-b border-slate-50 hover:bg-slate-50/50">
-                                    <td className="p-3 text-center text-slate-500 border-r border-slate-50">{index + 1}</td>
-                                    <td className="p-3 font-bold text-slate-700 border-r border-slate-50">{cls.nama}</td>
-                                    <td className="p-3 text-slate-600 border-r border-slate-50">{cls.tingkat}</td>
-                                    <td className="p-3 text-slate-600 border-r border-slate-50">{cls.paralel}</td>
-                                    <td className="p-3 text-center">
+                                <tr key={cls.id} className="hover:bg-blue-50/30 transition-colors group">
+                                    <td className="p-4 text-center text-slate-500 border-r border-slate-50">{index + 1}</td>
+                                    <td className="p-4 font-bold text-[#1E1B4B] border-r border-slate-50">{cls.nama}</td>
+                                    <td className="p-4 text-slate-600 border-r border-slate-50">
+                                        <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold">Tingkat {cls.tingkat}</span>
+                                    </td>
+                                    <td className="p-4 text-slate-600 border-r border-slate-50 font-medium">{cls.paralel}</td>
+                                    <td className="p-4 text-center">
                                         <button
                                             onClick={() => handleDeleteClass(cls.id)}
-                                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                                             title="Hapus Kelas"
                                         >
                                             <Trash2 size={18} />
@@ -102,6 +107,11 @@ const TambahKelasView: React.FC<TambahKelasViewProps> = ({
                                     </td>
                                 </tr>
                             ))}
+                        {derivedClasses.length === 0 && (
+                            <tr>
+                                <td colSpan={5} className="p-20 text-center text-slate-400 font-medium italic">Belum ada data kelas yang ditambahkan.</td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>

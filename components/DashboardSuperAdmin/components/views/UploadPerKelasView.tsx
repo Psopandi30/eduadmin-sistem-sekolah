@@ -25,6 +25,7 @@ const UploadPerKelasView: React.FC<UploadPerKelasViewProps> = ({
     handleDelete
 }) => {
     const [selectedClass, setSelectedClass] = useState('1A');
+    const [pageSize, setPageSize] = useState(24);
 
     return (
         <div className="bg-white rounded-[2.5rem] p-6 h-full shadow-sm animate-in slide-in-from-right flex flex-col">
@@ -95,7 +96,7 @@ const UploadPerKelasView: React.FC<UploadPerKelasViewProps> = ({
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
-                        {students.filter(s => s.kelas === selectedClass).map((siswa, i) => (
+                        {students.filter(s => s.kelas === selectedClass).slice(0, pageSize).map((siswa, i) => (
                             <tr key={i} className="hover:bg-blue-50/50 transition-colors group">
                                 <td className="p-4 text-center text-slate-500 font-medium">{i + 1}</td>
                                 <td className="p-4 font-mono text-slate-600">{siswa.nis}</td>
@@ -125,11 +126,15 @@ const UploadPerKelasView: React.FC<UploadPerKelasViewProps> = ({
             {/* Footer controls */}
             <div className="mt-4 flex justify-end items-center gap-4 text-sm text-slate-500">
                 <span>Pilih Jumlah terlihat</span>
-                <select className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer">
-                    <option>20</option>
-                    <option>30</option>
-                    <option>40</option>
-                    <option>50</option>
+                <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value))}
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
+                >
+                    <option value={10}>10</option>
+                    <option value={24}>24</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
                 </select>
             </div>
         </div>
