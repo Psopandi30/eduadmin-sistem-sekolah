@@ -1448,37 +1448,42 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-slate-100">
-                                            {derivedClasses.map((kelas, i) => (
-                                                <tr key={kelas.id} className="hover:bg-blue-50/50 transition-colors">
-                                                    <td className="p-4 text-center text-slate-500 font-medium">{i + 1}</td>
-                                                    <td className="p-4 font-bold text-slate-800">{kelas.nama}</td>
-                                                    <td className="p-4 text-center text-slate-600">{kelas.tingkat}</td>
-                                                    <td className="p-4 text-center text-slate-600">{kelas.paralel}</td>
-                                                    <td className="p-4">
-                                                        {kelas.wali === 'Belum Ditentukan' ? (
-                                                            <span className="text-red-500 italic text-xs font-bold bg-red-50 px-2 py-1 rounded-md">Belum Ada</span>
-                                                        ) : (
-                                                            <span className="text-slate-700 font-medium">
-                                                                {teachers.find(t =>
-                                                                    t.wali && kelas.nama &&
-                                                                    String(t.wali).trim().toLowerCase() === String(kelas.nama).trim().toLowerCase()
-                                                                )?.nama || kelas.wali}
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                    <td className="p-4 text-center">
-                                                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">{kelas.siswa} Siswa</span>
-                                                    </td>
-                                                    <td className="p-4 flex justify-center gap-2">
-                                                        <button onClick={() => handleEditItem(kelas, 'Kelas')} className="p-2 hover:bg-blue-50 text-blue-500 rounded-lg group tooltip-trigger relative">
-                                                            <Edit size={16} />
-                                                        </button>
-                                                        <button onClick={() => handleDeleteClass(kelas.id)} className="p-2 hover:bg-red-50 text-red-500 rounded-lg">
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                            {classes.map((kelas, i) => {
+                                                const waliGuru = teachers.find(t =>
+                                                    t.wali && kelas.nama &&
+                                                    String(t.wali).trim().toLowerCase() === String(kelas.nama).trim().toLowerCase()
+                                                );
+                                                const studentCount = students.filter(s =>
+                                                    s.kelas && kelas.nama &&
+                                                    String(s.kelas).trim().toLowerCase() === String(kelas.nama).trim().toLowerCase()
+                                                ).length;
+
+                                                return (
+                                                    <tr key={kelas.id} className="hover:bg-blue-50/50 transition-colors">
+                                                        <td className="p-4 text-center text-slate-500 font-medium">{i + 1}</td>
+                                                        <td className="p-4 font-bold text-slate-800">{kelas.nama}</td>
+                                                        <td className="p-4 text-center text-slate-600">{kelas.tingkat}</td>
+                                                        <td className="p-4 text-center text-slate-600">{kelas.paralel}</td>
+                                                        <td className="p-4">
+                                                            {waliGuru ? (
+                                                                <span className="text-slate-700 font-medium">{waliGuru.nama}</span>
+                                                            ) : (
+                                                                <span className="text-red-500 italic text-xs font-bold bg-red-50 px-2 py-1 rounded-md">Belum Ada</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="p-4 text-center">
+                                                            <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">{studentCount} Siswa</span>
+                                                        </td>
+                                                        <td className="p-4 flex justify-center gap-2">
+                                                            <button onClick={() => handleEditItem(kelas, 'Kelas')} className="p-2 hover:bg-blue-50 text-blue-500 rounded-lg group tooltip-trigger relative">
+                                                                <Edit size={16} />
+                                                            </button>
+                                                            <button onClick={() => handleDeleteClass(kelas.id)} className="p-2 hover:bg-red-50 text-red-500 rounded-lg">
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
                                         </tbody>
                                     </table>
                                 </div>
