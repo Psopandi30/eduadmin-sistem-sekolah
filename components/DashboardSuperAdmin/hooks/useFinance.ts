@@ -143,7 +143,7 @@ export const useFinance = () => {
             setIsInitialFetched(true);
         } catch (err) {
             console.error("Error fetching finance data:", err);
-            toast.error("Gagal memuat data keuangan");
+            toast.error("Gagal memuat data keuangan", { id: 'error-fetch-finance' });
         } finally {
             setLoading(false);
             setIsInitialFetched(true);

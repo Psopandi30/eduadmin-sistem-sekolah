@@ -72,7 +72,7 @@ export const useStudents = () => {
             }
         } catch (err) {
             console.error('Error fetching students:', err);
-            toast.error('Gagal memuat data siswa');
+            toast.error('Gagal memuat data siswa', { id: 'error-fetch-students' });
         } finally {
             setLoading(false);
             setIsInitialFetched(true);
