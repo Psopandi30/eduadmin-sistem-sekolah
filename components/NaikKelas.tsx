@@ -93,9 +93,9 @@ const NaikKelas: React.FC = () => {
                         </div>
 
                         {/* Rules Table */}
-                        <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-                            <table className="w-full text-left">
-                                <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                        <div className="border border-slate-200 rounded-2xl overflow-auto max-h-[500px] shadow-sm custom-scrollbar">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10 shadow-sm">
                                     <tr>
                                         <th className="p-4 w-1/3">Kelas Saat Ini</th>
                                         <th className="p-4 w-2/3 flex justify-between items-center">

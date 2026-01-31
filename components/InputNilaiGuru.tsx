@@ -190,9 +190,9 @@ const InputNilaiGuru: React.FC<InputNilaiGuruProps> = ({ onBack, user }) => {
 
                 {/* Grades Table - Mobile Friendly List */}
                 <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto overflow-y-hidden">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50 text-[10px] md:text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                    <div className="overflow-auto max-h-[calc(100vh-350px)] custom-scrollbar">
+                        <table className="w-full text-sm text-left border-collapse">
+                            <thead className="bg-slate-50 text-[10px] md:text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 sticky top-0 z-10 shadow-sm">
                                 <tr>
                                     <th className="px-6 py-4 w-16 text-center">No</th>
                                     <th className="px-6 py-4">Nama Siswa</th>

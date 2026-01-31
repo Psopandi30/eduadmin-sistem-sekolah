@@ -405,9 +405,9 @@ const RaporSettingsView: React.FC<RaporSettingsViewProps> = ({ setActiveView, sh
                             {/* Left Column: Table of Existing Descriptions */}
                             <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm h-fit">
                                 <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><Database size={18} /> Data Tersimpan</h4>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm text-left">
-                                        <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                                <div className="overflow-auto max-h-[500px] border border-slate-200 rounded-xl custom-scrollbar">
+                                    <table className="w-full text-sm text-left border-collapse">
+                                        <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 sticky top-0 z-10 shadow-sm">
                                             <tr>
                                                 <th className="p-3">Jenis Rapor</th>
                                                 <th className="p-3">Deskripsi</th>

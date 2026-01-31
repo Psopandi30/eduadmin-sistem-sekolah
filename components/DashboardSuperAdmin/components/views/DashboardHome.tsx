@@ -22,7 +22,7 @@ interface DashboardHomeProps {
 
 const DashboardHome: React.FC<DashboardHomeProps> = ({ students, setActiveView }) => {
     return (
-        <div className="animate-in fade-in space-y-4">
+        <div className="animate-in fade-in space-y-4 h-full overflow-y-auto pr-2 custom-scrollbar">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Card 1: Total Siswa */}
                 <div className="bg-gradient-to-br from-blue-50 to-white p-5 rounded-3xl shadow-sm border border-blue-100/50 relative hover:shadow-md transition-all group">

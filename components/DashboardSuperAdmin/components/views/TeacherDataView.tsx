@@ -56,8 +56,8 @@ const TeacherDataView: React.FC<TeacherDataViewProps> = ({
             </div>
 
             {/* Table */}
-            <div className="flex-1 overflow-auto rounded-[1.5rem] border border-slate-200 shadow-inner bg-slate-50/50">
-                <table className="w-full text-left text-sm whitespace-nowrap">
+            <div className="flex-1 overflow-auto rounded-[1.5rem] border border-slate-200 shadow-inner bg-slate-50/50 custom-scrollbar">
+                <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
                     <thead className="bg-[#F1F5F9] text-slate-700 font-bold sticky top-0 z-10 shadow-sm">
                         <tr>
                             <th className="p-4 border-r border-slate-200 text-center w-12">No</th>

@@ -333,9 +333,9 @@ const Keuangan: React.FC = () => {
                                     </button>
                                 </div>
 
-                                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                                    <table className="w-full text-left">
-                                        <thead className="bg-slate-50 text-slate-500 uppercase text-xs font-bold">
+                                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-auto max-h-[500px] custom-scrollbar">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead className="bg-slate-50 text-slate-500 uppercase text-xs font-bold sticky top-0 z-10 shadow-sm">
                                             <tr>
                                                 <th className="p-4">Tanggal</th>
                                                 <th className="p-4">Siswa / Sumber</th>
@@ -436,13 +436,13 @@ const Keuangan: React.FC = () => {
                         </div>
 
                         {/* Data Pengeluaran */}
-                        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                            <div className="p-4 border-b border-slate-100 flex justify-between items-center">
+                        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-auto max-h-[600px] custom-scrollbar">
+                            <div className="p-4 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-20">
                                 <h3 className="font-bold text-slate-800">Daftar Pengeluaran</h3>
                                 <span className="font-bold text-rose-600 text-lg">Total: Rp {totalExpense.toLocaleString('id-ID')}</span>
                             </div>
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-slate-50 text-slate-500 uppercase text-xs font-bold">
+                            <table className="w-full text-left text-sm border-collapse">
+                                <thead className="bg-slate-50 text-slate-500 uppercase text-xs font-bold sticky top-[60px] z-10 shadow-sm">
                                     <tr>
                                         <th className="p-3">Tanggal</th>
                                         <th className="p-3">Keterangan</th>

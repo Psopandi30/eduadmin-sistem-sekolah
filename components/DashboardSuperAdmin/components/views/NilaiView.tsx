@@ -405,7 +405,7 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes,
 
                 {/* TABLE AREA */}
                 <div className="flex-1 overflow-auto custom-scrollbar p-0 bg-white">
-                    <table className="w-full text-sm text-left">
+                    <table className="w-full text-sm text-left border-collapse">
                         <thead className="bg-[#F8FAFC] text-slate-500 font-bold sticky top-0 z-10 shadow-sm">
                             <tr>
                                 <th className="py-4 px-6 w-16 text-center border-b font-extrabold bg-[#F8FAFC]">No</th>

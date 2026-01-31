@@ -236,9 +236,9 @@ const MateriLatihanGuru: React.FC<MateriLatihanGuruProps> = ({ onBack, user }) =
                         </div>
                         <span className="text-[10px] font-bold text-slate-400 bg-white px-2 py-0.5 md:px-3 md:py-1 rounded-full border border-slate-100">{materiList.length} Items</span>
                     </div>
-                    <div className="overflow-x-auto overflow-y-hidden">
-                        <table className="w-full text-left min-w-[450px]">
-                            <thead className="bg-slate-50 text-[10px] md:text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <div className="overflow-auto max-h-[400px] border-b border-slate-100 custom-scrollbar">
+                        <table className="w-full text-left min-w-[450px] border-collapse">
+                            <thead className="bg-slate-50 text-[10px] md:text-[11px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 z-10 shadow-sm">
                                 <tr>
                                     <th className="px-5 md:px-6 py-3 md:py-4">Judul</th>
                                     <th className="px-5 md:px-6 py-3 md:py-4">Link Drive</th>
@@ -288,9 +288,9 @@ const MateriLatihanGuru: React.FC<MateriLatihanGuruProps> = ({ onBack, user }) =
                         </div>
                         <span className="text-[10px] font-bold text-slate-400 bg-white px-2 py-0.5 md:px-3 md:py-1 rounded-full border border-slate-100">{latihanList.length} Items</span>
                     </div>
-                    <div className="overflow-x-auto overflow-y-hidden">
-                        <table className="w-full text-left min-w-[450px]">
-                            <thead className="bg-slate-50 text-[10px] md:text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <div className="overflow-auto max-h-[400px] border-b border-slate-100 custom-scrollbar">
+                        <table className="w-full text-left min-w-[450px] border-collapse">
+                            <thead className="bg-slate-50 text-[10px] md:text-[11px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 z-10 shadow-sm">
                                 <tr>
                                     <th className="px-5 md:px-6 py-3 md:py-4">Judul</th>
                                     <th className="px-5 md:px-6 py-3 md:py-4">Jenis</th>

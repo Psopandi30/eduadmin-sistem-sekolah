@@ -283,9 +283,9 @@ const Tabungan: React.FC = () => {
                                 <h3 className="text-lg font-bold text-slate-800">Transaksi Terkini</h3>
                                 <button className="text-sm font-bold text-blue-600 hover:underline">Lihat Semua</button>
                             </div>
-                            <div className="border border-slate-200 rounded-xl overflow-hidden">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                            <div className="border border-slate-200 rounded-xl overflow-auto max-h-[400px] custom-scrollbar">
+                                <table className="w-full text-sm text-left border-collapse">
+                                    <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 sticky top-0 z-10 shadow-sm">
                                         <tr>
                                             <th className="p-4">ID Transaksi</th>
                                             <th className="p-4">Tanggal</th>
@@ -346,9 +346,9 @@ const Tabungan: React.FC = () => {
                         </div>
 
                         {/* Table */}
-                        <div className="overflow-hidden">
-                            <table className="w-full text-sm text-left">
-                                <thead className="text-xs text-slate-400 uppercase font-bold border-b border-slate-100">
+                        <div className="overflow-auto max-h-[600px] custom-scrollbar border border-slate-100 rounded-2xl">
+                            <table className="w-full text-sm text-left border-collapse">
+                                <thead className="text-xs text-slate-400 uppercase font-bold border-b border-slate-100 bg-slate-50 sticky top-0 z-10 shadow-sm">
                                     <tr>
                                         <th className="py-3 pr-4">Siswa</th>
                                         <th className="py-3 px-4">Kelas</th>

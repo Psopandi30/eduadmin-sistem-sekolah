@@ -59,9 +59,9 @@ const TambahKelasView: React.FC<TambahKelasViewProps> = ({
                 </div>
                 <button onClick={() => setShowAddClassModal(true)} className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 flex items-center gap-2"><Plus size={18} /> Buat Kelas</button>
             </div>
-            <div className="border border-slate-100 rounded-3xl overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-slate-50">
+            <div className="flex-1 overflow-x-auto overflow-y-hidden border border-slate-100 rounded-3xl">
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-slate-50 sticky top-0 z-20">
                         <tr>
                             <th className="p-3 text-center font-bold text-slate-700 border-r border-slate-100 text-sm w-16">No</th>
                             <th className="p-3 font-bold text-slate-700 border-r border-slate-100 text-sm">Nama Kelas</th>
