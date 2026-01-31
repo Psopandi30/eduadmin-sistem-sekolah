@@ -203,7 +203,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     const [newTeacher, setNewTeacher] = useState({ nama: '', nip: '', jabatan: 'Guru Mata Pelajaran', mapel: '', class: '' });
     const [showTeacherModal, setShowTeacherModal] = useState(false);
 
-    const { classes, setClasses, showAddClassModal, setShowAddClassModal, handleAddClass, handleDeleteClass } = useClasses();
+    const { classes, setClasses, showAddClassModal, setShowAddClassModal, handleAddClass, handleDeleteClass, handleSaveClasses } = useClasses();
 
     // --- ABSENSI STATE ---
     const [absenDate, setAbsenDate] = useState<Date>(new Date());
@@ -1251,6 +1251,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                             students={students}
                             setShowAddClassModal={setShowAddClassModal}
                             setConfirmModal={setConfirmModal}
+                            handleSaveClasses={handleSaveClasses}
                         />
                     )}
 

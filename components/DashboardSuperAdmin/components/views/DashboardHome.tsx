@@ -15,14 +15,39 @@ import {
 } from 'lucide-react';
 import { studentsDataGlobal, teachersDataGlobal, classesDataGlobal } from '../../../../data/sharedData';
 
+import { checkSupabaseConnection, isSupabaseConfigured } from '../../../../src/lib/supabase';
+
 interface DashboardHomeProps {
     students: any[];
     setActiveView: (view: string) => void;
 }
 
 const DashboardHome: React.FC<DashboardHomeProps> = ({ students, setActiveView }) => {
+    const [dbStatus, setDbStatus] = React.useState<{ success: boolean, message: string } | null>(null);
+
+    React.useEffect(() => {
+        const check = async () => {
+            const status = await checkSupabaseConnection();
+            setDbStatus(status);
+        };
+        check();
+    }, []);
     return (
         <div className="animate-in fade-in space-y-4 h-full overflow-y-auto pr-2 custom-scrollbar">
+            {/* Status Bar */}
+            <div className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${dbStatus?.success ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-amber-50 border-amber-100 text-amber-700'}`}>
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                    <div className={`w-2 h-2 rounded-full animate-pulse ${dbStatus?.success ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
+                    Status Database: {dbStatus ? dbStatus.message : 'Memeriksa...'}
+                </div>
+                {!dbStatus?.success && isSupabaseConfigured() && (
+                    <button onClick={() => window.location.reload()} className="text-[10px] font-bold bg-amber-100 px-2 py-1 rounded-lg hover:bg-amber-200 transition-colors uppercase">Hubungkan Ulang</button>
+                )}
+                {!isSupabaseConfigured() && (
+                    <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-lg uppercase">Mode Offline / Lokal</span>
+                )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Card 1: Total Siswa */}
                 <div className="bg-gradient-to-br from-blue-50 to-white p-5 rounded-3xl shadow-sm border border-blue-100/50 relative hover:shadow-md transition-all group">

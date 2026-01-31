@@ -139,6 +139,40 @@ export const useClasses = () => {
         }
     };
 
+    const handleSaveClasses = async () => {
+        if (!isSupabaseConfigured()) {
+            toast.success("Data tersimpan secara lokal");
+            return;
+        }
+
+        const classesToSave = classes.filter(c => typeof c.id === 'number'); // Local IDs are numeric (Date.now())
+        if (classesToSave.length === 0) {
+            toast("Semua kelas sudah tersinkron", { icon: '✅' });
+            return;
+        }
+
+        toast.promise(
+            (async () => {
+                const insertData = classesToSave.map(c => ({
+                    name: c.nama,
+                    grade_level: c.tingkat,
+                    is_active: true
+                }));
+
+                const { error } = await supabase.from('classes').insert(insertData);
+                if (error) throw error;
+
+                await fetchClasses();
+                return true;
+            })(),
+            {
+                loading: 'Menyimpan data kelas...',
+                success: 'Sinkronisasi kelas berhasil!',
+                error: (err) => `Gagal simpan: ${err.message}`
+            }
+        );
+    };
+
     return {
         classes,
         setClasses,
@@ -147,6 +181,7 @@ export const useClasses = () => {
         setShowAddClassModal,
         handleAddClass,
         handleDeleteClass,
+        handleSaveClasses,
         refreshClasses: fetchClasses
     };
 };

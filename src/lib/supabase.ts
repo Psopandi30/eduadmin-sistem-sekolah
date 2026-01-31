@@ -26,6 +26,18 @@ export const supabase = isConfigured
 
 // Helper to check if Supabase is properly configured
 export const isSupabaseConfigured = () => !!isConfigured;
+
+export const checkSupabaseConnection = async () => {
+  if (!isConfigured) return { success: false, message: 'Supabase is not configured' };
+  try {
+    const { data, error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
+    if (error) throw error;
+    return { success: true, message: 'Connected to Supabase' };
+  } catch (err: any) {
+    return { success: false, message: err.message || 'Connection failed' };
+  }
+};
+
 export const getSupabaseConfigError = () => {
   if (!supabaseUrl || !supabaseAnonKey) return 'Missing Supabase environment variables in .env.local';
   if (!isConfigured) return 'Supabase environment variables are still using placeholder values';
@@ -136,7 +148,64 @@ export type Database = {
           updated_at?: string
         }
       }
-      // Add other table types as needed...
+      classes: {
+        Row: {
+          id: string
+          name: string
+          grade_level: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          grade_level: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          grade_level?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      },
+      teachers: {
+        Row: {
+          id: string
+          nip: string | null
+          full_name: string
+          role: string | null
+          status: string
+          profile_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nip?: string | null
+          full_name: string
+          role?: string | null
+          status?: string
+          profile_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nip?: string | null
+          full_name?: string
+          role?: string | null
+          status?: string
+          profile_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       student_overview: {
