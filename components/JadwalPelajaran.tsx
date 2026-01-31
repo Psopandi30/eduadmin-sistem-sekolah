@@ -19,19 +19,19 @@ const JadwalPelajaran: React.FC<JadwalPelajaranProps> = ({ onBack, user }) => {
             const saved = localStorage.getItem('schedules_data_v2');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                return parsed.find((s: any) => s.status === 'published') || parsed[0] || schedulesDataGlobal[0];
+                return parsed.find((s: any) => s.status === 'published') || parsed[0] || schedulesDataGlobal[0] || { items: [], dailyInfos: [], name: 'Jadwal' };
             }
         }
-        return schedulesDataGlobal.find(s => s.status === 'published') || schedulesDataGlobal[0];
+        return schedulesDataGlobal.find(s => s.status === 'published') || schedulesDataGlobal[0] || { items: [], dailyInfos: [], name: 'Jadwal' };
     });
 
     // 2. Filter Items for Class and Day
-    const items = masterSchedule.items
-        .filter(item => item.classId === studentClass && item.day === selectedDay)
-        .sort((a, b) => a.period - b.period);
+    const items = (masterSchedule?.items || [])
+        .filter((item: any) => item.classId === studentClass && item.day === selectedDay)
+        .sort((a: any, b: any) => a.period - b.period);
 
     // 3. Get Daily Info (Uniform & Notes)
-    const dailyInfo = masterSchedule.dailyInfos?.find(info => info.classId === studentClass && info.day === selectedDay);
+    const dailyInfo = masterSchedule?.dailyInfos?.find((info: any) => info.classId === studentClass && info.day === selectedDay);
 
     // Helper: Get Subject Name
     const getSubjectName = (subjectId: number | string, customName?: string) => {
@@ -58,7 +58,7 @@ const JadwalPelajaran: React.FC<JadwalPelajaranProps> = ({ onBack, user }) => {
                 <div className="flex-1">
                     <h3 className="font-bold text-slate-800 text-lg">Jadwal Pelajaran</h3>
                     <p className="text-xs text-slate-500">
-                        Kelas {studentClass} • {masterSchedule.name}
+                        Kelas {studentClass} • {masterSchedule?.name || 'Jadwal'}
                     </p>
                 </div>
             </div>

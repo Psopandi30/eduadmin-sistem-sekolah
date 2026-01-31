@@ -35,24 +35,27 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
     const [playingAyah, setPlayingAyah] = useState<number | null>(null); // global ayah number
 
     // Fetch Surah List on Mount
-    useEffect(() => {
-        const fetchSurahs = async () => {
-            setLoading(true);
-            try {
-                const response = await fetch('https://api.alquran.cloud/v1/surah');
-                const data = await response.json();
-                if (data.code === 200) {
-                    setSurahs(data.data);
-                } else {
-                    setError('Gagal memuat daftar surat.');
-                }
-            } catch (err) {
-                setError('Terjadi kesalahan koneksi.');
-            } finally {
-                setLoading(false);
+    // Fetch Surah List
+    const fetchSurahs = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await fetch('https://api.alquran.cloud/v1/surah');
+            const data = await response.json();
+            if (data.code === 200) {
+                setSurahs(data.data);
+            } else {
+                setError('Gagal memuat daftar surat.');
             }
-        };
+        } catch (err) {
+            console.error("Quran Fetch Error:", err);
+            setError('Terjadi kesalahan koneksi.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchSurahs();
     }, []);
 
@@ -249,6 +252,12 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
                     <div className="flex flex-col items-center justify-center h-40 text-red-500 gap-2">
                         <AlertCircle size={24} />
                         <p>{error}</p>
+                        <button
+                            onClick={fetchSurahs}
+                            className="mt-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl text-sm font-bold hover:bg-red-100 transition-colors"
+                        >
+                            Coba Lagi
+                        </button>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
