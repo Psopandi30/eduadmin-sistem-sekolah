@@ -342,8 +342,17 @@ export const useTeachers = () => {
 
                 if (updates.length > 0) {
                     for (const up of updates) {
-                        const { id, ...rest } = up;
-                        await supabase.from('staff').update(rest).eq('id', id);
+                        const { id, position } = up;
+                        await supabase.from('staff').update({ position }).eq('id', id);
+
+                        // Sync Nama ke Profile
+                        const teacherInfo = teachers.find(t => latestStaffMap[t.nip] === id || staffMap[t.nip] === id);
+                        if (teacherInfo) {
+                            const { data: sData } = await supabase.from('staff').select('profile_id').eq('id', id).single();
+                            if (sData?.profile_id) {
+                                await supabase.from('profiles').update({ full_name: teacherInfo.nama }).eq('id', sData.profile_id);
+                            }
+                        }
                     }
                 }
 
@@ -351,6 +360,17 @@ export const useTeachers = () => {
                 if (inserts.length > 0) {
                     const { error: insertError } = await supabase.from('staff').insert(inserts);
                     if (insertError) throw insertError;
+
+                    // Sync Nama Guru Baru ke Profile yang dibuat otomatis
+                    for (const ins of inserts) {
+                        const teacherInState = teachers.find(t => t.nip === ins.employee_number);
+                        if (teacherInState) {
+                            const { data: pData } = await supabase.from('profiles').select('id').eq('email', ins.employee_number + '@sekolah.id').single();
+                            if (pData) {
+                                await supabase.from('profiles').update({ full_name: teacherInState.nama }).eq('id', pData.id);
+                            }
+                        }
+                    }
                 }
 
                 // Refresh Staff Map for Homeroom Syncing

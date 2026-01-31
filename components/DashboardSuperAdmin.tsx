@@ -1469,7 +1469,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                         <td className="p-4 text-center text-slate-600">{kelas.tingkat}</td>
                                                         <td className="p-4 text-center text-slate-600">{kelas.paralel}</td>
                                                         <td className="p-4">
-                                                            {waliGuru ? (
+                                                            {(waliGuru && waliGuru.nama !== 'Guru Baru') ? (
                                                                 <span className="text-slate-700 font-medium">{waliGuru.nama}</span>
                                                             ) : (
                                                                 <span className="text-red-500 italic text-xs font-bold bg-red-50 px-2 py-1 rounded-md">Belum Ada</span>
