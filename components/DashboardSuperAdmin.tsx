@@ -812,9 +812,15 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     const derivedClasses = React.useMemo(() => {
         return classes.map(cls => {
             // Find teacher who is assigned as wali for this class
-            const waliGuru = teachers.find(t => t.wali === cls.nama);
+            const waliGuru = teachers.find(t =>
+                t.wali && cls.nama &&
+                String(t.wali).trim().toLowerCase() === String(cls.nama).trim().toLowerCase()
+            );
             // Count students in this class
-            const studentCount = students.filter(s => s.kelas === cls.nama).length;
+            const studentCount = students.filter(s =>
+                s.kelas && cls.nama &&
+                String(s.kelas).trim().toLowerCase() === String(cls.nama).trim().toLowerCase()
+            ).length;
 
             return {
                 ...cls,
