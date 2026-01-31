@@ -348,11 +348,29 @@ export const useStudents = () => {
 
         toast.promise(
             (async () => {
+                // 1. Get Class Map for ID lookup
                 const { data: dbClasses } = await supabase.from('classes').select('id, name');
                 const classMap: Record<string, string> = {};
                 dbClasses?.forEach(c => classMap[c.name] = c.id);
 
-                const insertData = studentsToSave.map(s => {
+                // 2. IMPORTANT: Check for existing NIS to avoid duplicate error
+                const { data: existingStudents } = await supabase
+                    .from('students')
+                    .select('nis')
+                    .in('nis', studentsToSave.map(s => s.nis));
+
+                const existingNisList = existingStudents?.map(s => s.nis) || [];
+
+                // 3. Filter only NEW students (NIS not in DB)
+                const newStudents = studentsToSave.filter(s => !existingNisList.includes(s.nis));
+
+                if (newStudents.length === 0) {
+                    toast.success("Semua siswa sudah ada di database, tidak ada data baru untuk disimpan.");
+                    await fetchStudents(); // Refresh to clean temp IDs
+                    return true;
+                }
+
+                const insertData = newStudents.map(s => {
                     // Try to parse TTL: "Place, DD-MM-YYYY"
                     let bPlace = '';
                     let bDate = null;
@@ -360,7 +378,6 @@ export const useStudents = () => {
                         const parts = s.ttl.split(',');
                         bPlace = parts[0].trim();
                         const datePart = parts[1].trim();
-                        // Convert DD-MM-YYYY to YYYY-MM-DD for Postgres
                         const dateMatch = datePart.match(/(\d{2})-(\d{2})-(\d{4})/);
                         if (dateMatch) {
                             bDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
@@ -382,12 +399,18 @@ export const useStudents = () => {
                 const { error } = await supabase.from('students').insert(insertData);
                 if (error) throw error;
 
+                // 4. Refresh data from server to discard temp objects
                 await fetchStudents();
+
+                if (existingNisList.length > 0) {
+                    toast(`${newStudents.length} baru disimpan, ${existingNisList.length} dilewati karena sudah ada.`, { icon: 'ℹ️' });
+                }
+
                 return true;
             })(),
             {
-                loading: `Menyimpan ${studentsToSave.length} data ke database...`,
-                success: 'Sinkronisasi berhasil!',
+                loading: `Sedang memproses ${studentsToSave.length} data...`,
+                success: 'Proses sinkronisasi berhasil!',
                 error: (err) => `Gagal simpan: ${err.message}`
             }
         );
