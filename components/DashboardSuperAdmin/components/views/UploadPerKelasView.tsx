@@ -5,7 +5,6 @@ interface UploadPerKelasViewProps {
     setActiveView: (view: string) => void;
     handleDownloadTemplate: () => void;
     handleUploadClick: () => void;
-    handleSaveData: () => void;
     students: any[];
     handleAddStudent: () => void;
     handleViewStudent: (student: any) => void;
@@ -17,7 +16,6 @@ const UploadPerKelasView: React.FC<UploadPerKelasViewProps> = ({
     setActiveView,
     handleDownloadTemplate,
     handleUploadClick,
-    handleSaveData,
     students,
     handleAddStudent,
     handleViewStudent,
@@ -65,9 +63,6 @@ const UploadPerKelasView: React.FC<UploadPerKelasViewProps> = ({
                     </button>
                     <button onClick={handleAddStudent} className="flex items-center gap-2 px-5 py-2.5 bg-emerald-50 text-emerald-600 rounded-xl font-bold hover:bg-emerald-100 transition-colors border border-emerald-200 shadow-sm">
                         <Plus size={18} /> <span className="hidden md:inline">Tambah Siswa</span>
-                    </button>
-                    <button onClick={handleSaveData} className="flex items-center gap-2 px-6 py-2.5 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-colors shadow-lg shadow-red-200">
-                        <Save size={18} /> Simpan
                     </button>
                 </div>
             </div>

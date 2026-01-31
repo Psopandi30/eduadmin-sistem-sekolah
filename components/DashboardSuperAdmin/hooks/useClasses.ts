@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { classesDataGlobal } from '../../../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
+import { toast } from 'react-hot-toast';
 
 export interface Class {
     id: string | number;
@@ -73,6 +74,19 @@ export const useClasses = () => {
         return () => clearTimeout(timer);
     }, [classes, loading]);
 
+    // --- AUTO SYNC TO SUPABASE ---
+    useEffect(() => {
+        if (!isSupabaseConfigured() || loading) return;
+
+        const unsynced = classes.filter(c => typeof c.id === 'number');
+        if (unsynced.length === 0) return;
+
+        const timer = setTimeout(() => {
+            handleSaveClasses();
+        }, 10000); // Auto sync every 10 seconds if there's unsynced data
+        return () => clearTimeout(timer);
+    }, [classes, loading]);
+
     const [showAddClassModal, setShowAddClassModal] = useState(false);
 
     const handleAddClass = async (tingkat: string, paralel: string, customName?: string) => {
@@ -139,15 +153,31 @@ export const useClasses = () => {
         }
     };
 
-    const handleSaveClasses = async () => {
+    const handleSaveClasses = useCallback(async (isSilent = false) => {
         if (!isSupabaseConfigured()) {
-            toast.success("Data tersimpan secara lokal");
+            if (!isSilent) toast.success("Data tersimpan secara lokal");
             return;
         }
 
         const classesToSave = classes.filter(c => typeof c.id === 'number'); // Local IDs are numeric (Date.now())
         if (classesToSave.length === 0) {
-            toast("Semua kelas sudah tersinkron", { icon: '✅' });
+            if (!isSilent) toast("Semua kelas sudah tersinkron", { icon: '✅' });
+            return;
+        }
+
+        if (isSilent) {
+            // Background sync without toast promise
+            try {
+                const insertData = classesToSave.map(c => ({
+                    name: c.nama,
+                    grade_level: c.tingkat,
+                    is_active: true
+                }));
+                const { error } = await supabase.from('classes').insert(insertData);
+                if (!error) await fetchClasses();
+            } catch (e) {
+                console.error("Silent sync failed", e);
+            }
             return;
         }
 
@@ -171,7 +201,20 @@ export const useClasses = () => {
                 error: (err) => `Gagal simpan: ${err.message}`
             }
         );
-    };
+    }, [classes, fetchClasses]);
+
+    // --- AUTO SYNC TO SUPABASE ---
+    useEffect(() => {
+        if (!isSupabaseConfigured() || loading) return;
+
+        const unsynced = classes.filter(c => typeof c.id === 'number');
+        if (unsynced.length === 0) return;
+
+        const timer = setTimeout(() => {
+            handleSaveClasses(true);
+        }, 10000); // Auto sync every 10 seconds if there's unsynced data
+        return () => clearTimeout(timer);
+    }, [classes, loading, handleSaveClasses]);
 
     return {
         classes,

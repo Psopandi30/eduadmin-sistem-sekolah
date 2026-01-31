@@ -5,7 +5,6 @@ interface UploadSiswaViewProps {
     setActiveView: (view: string) => void;
     handleDownloadTemplate: () => void;
     handleUploadClick: () => void;
-    handleSaveData: () => void;
     students: any[];
     handleViewStudent: (student: any) => void;
     handleEditStudent: (student: any) => void;
@@ -16,7 +15,6 @@ const UploadSiswaView: React.FC<UploadSiswaViewProps> = ({
     setActiveView,
     handleDownloadTemplate,
     handleUploadClick,
-    handleSaveData,
     students,
     handleViewStudent,
     handleEditStudent,
@@ -41,9 +39,6 @@ const UploadSiswaView: React.FC<UploadSiswaViewProps> = ({
                     </button>
                     <button onClick={handleUploadClick} className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-600 rounded-xl font-bold hover:bg-blue-100 transition-colors border border-blue-200 shadow-sm">
                         <UploadCloud size={18} /> <span className="hidden md:inline">Upload</span>
-                    </button>
-                    <button onClick={handleSaveData} className="flex items-center gap-2 px-6 py-2.5 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-colors shadow-lg shadow-red-200">
-                        <Save size={18} /> Simpan
                     </button>
                 </div>
             </div>

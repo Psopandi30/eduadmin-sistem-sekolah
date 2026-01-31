@@ -94,6 +94,19 @@ export const useStudents = () => {
         return () => clearTimeout(timer);
     }, [students, loading]);
 
+    // --- AUTO SYNC TO SUPABASE ---
+    useEffect(() => {
+        if (!isSupabaseConfigured() || loading) return;
+
+        const unsynced = students.filter(s => String(s.id).startsWith('temp-') || typeof s.id === 'number');
+        if (unsynced.length === 0) return;
+
+        const timer = setTimeout(() => {
+            handleSaveData();
+        }, 15000); // Auto sync every 15 seconds for students
+        return () => clearTimeout(timer);
+    }, [students, loading]);
+
     const addNewStudent = async (student: Student) => {
         if (isSupabaseConfigured()) {
             try {
@@ -320,42 +333,60 @@ export const useStudents = () => {
         input.click();
     };
 
-    const handleSaveData = async () => {
+    const handleSaveData = useCallback(async (isSilent = false) => {
         if (!isSupabaseConfigured()) {
-            toast.success("Data tersimpan secara lokal (Supabase belum dikonfigurasi)");
+            if (!isSilent) toast.success("Data tersimpan secara lokal (Supabase belum dikonfigurasi)");
             return;
         }
 
-        // Logic: Find students with temp IDs and save them to Supabase
         const studentsToSave = students.filter(s => String(s.id).startsWith('temp-') || typeof s.id === 'number');
 
         if (studentsToSave.length === 0) {
-            toast("Semua data sudah tersinkron", { icon: '✅' });
+            if (!isSilent) toast("Semua data sudah tersinkron", { icon: '✅' });
             return;
         }
 
-        toast.promise(
-            (async () => {
-                // 1. Get unique classes to ensure they exist
-                const uniqueClasses = [...new Set(studentsToSave.map(s => s.kelas))];
+        if (isSilent) {
+            try {
                 const { data: dbClasses } = await supabase.from('classes').select('id, name');
                 const classMap: Record<string, string> = {};
                 dbClasses?.forEach(c => classMap[c.name] = c.id);
 
-                // 2. Prepare for batch insert
                 const insertData = studentsToSave.map(s => ({
                     nis: s.nis,
                     full_name: s.nama,
                     parent_name: s.ayah,
                     class_id: classMap[s.kelas] || null,
-                    gender: 'L', // Default
+                    gender: 'L',
+                    status: 'active'
+                }));
+
+                const { error } = await supabase.from('students').insert(insertData);
+                if (!error) await fetchStudents();
+            } catch (e) {
+                console.error("Silent sync students failed", e);
+            }
+            return;
+        }
+
+        toast.promise(
+            (async () => {
+                const { data: dbClasses } = await supabase.from('classes').select('id, name');
+                const classMap: Record<string, string> = {};
+                dbClasses?.forEach(c => classMap[c.name] = c.id);
+
+                const insertData = studentsToSave.map(s => ({
+                    nis: s.nis,
+                    full_name: s.nama,
+                    parent_name: s.ayah,
+                    class_id: classMap[s.kelas] || null,
+                    gender: 'L',
                     status: 'active'
                 }));
 
                 const { error } = await supabase.from('students').insert(insertData);
                 if (error) throw error;
 
-                // 3. Refresh to get real IDs
                 await fetchStudents();
                 return true;
             })(),
@@ -365,7 +396,20 @@ export const useStudents = () => {
                 error: (err) => `Gagal simpan: ${err.message}`
             }
         );
-    };
+    }, [students, fetchStudents]);
+
+    // --- AUTO SYNC TO SUPABASE ---
+    useEffect(() => {
+        if (!isSupabaseConfigured() || loading) return;
+
+        const unsynced = students.filter(s => String(s.id).startsWith('temp-') || typeof s.id === 'number');
+        if (unsynced.length === 0) return;
+
+        const timer = setTimeout(() => {
+            handleSaveData(true);
+        }, 15000); // Auto sync every 15 seconds for students
+        return () => clearTimeout(timer);
+    }, [students, loading, handleSaveData]);
 
     return {
         students,

@@ -9,7 +9,6 @@ interface TambahKelasViewProps {
     students: any[];
     setShowAddClassModal: (show: boolean) => void;
     setConfirmModal: (modal: any) => void;
-    handleSaveClasses?: () => void;
 }
 
 const TambahKelasView: React.FC<TambahKelasViewProps> = ({
@@ -19,8 +18,7 @@ const TambahKelasView: React.FC<TambahKelasViewProps> = ({
     teachers,
     students,
     setShowAddClassModal,
-    setConfirmModal,
-    handleSaveClasses
+    setConfirmModal
 }) => {
     const [pageSize, setPageSize] = useState(6);
 
@@ -60,11 +58,6 @@ const TambahKelasView: React.FC<TambahKelasViewProps> = ({
                     <h2 className="text-xl font-bold">Tambahkan Kelas</h2>
                 </div>
                 <div className="flex gap-2">
-                    {handleSaveClasses && (
-                        <button onClick={handleSaveClasses} className="px-6 py-2 bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 flex items-center gap-2 hover:bg-emerald-600 transition-all">
-                            <Save size={18} /> Simpan ke Supabase
-                        </button>
-                    )}
                     <button onClick={() => setShowAddClassModal(true)} className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 flex items-center gap-2 hover:bg-blue-700 transition-all">
                         <Plus size={18} /> Buat Kelas
                     </button>
