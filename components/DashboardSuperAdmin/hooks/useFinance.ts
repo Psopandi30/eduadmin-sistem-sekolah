@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { initialFinanceDataGlobal, schoolSettingsGlobal } from '../../../data/sharedData';
+import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
+import { toast } from 'react-hot-toast';
 
 export interface CashAccount {
     id: number;
@@ -44,8 +46,9 @@ const initialPaymentTypes: PaymentType[] = [];
 
 export const useFinance = () => {
     const [financialYear, setFinancialYear] = useState(schoolSettingsGlobal.academicYear || '2025/2026');
+    const [loading, setLoading] = useState(false);
 
-    // Initialize from LocalStorage or Fallback
+    // Initialize state
     const [cashAccounts, setCashAccounts] = useState<CashAccount[]>(() => {
         const saved = localStorage.getItem('finance_cash_accounts_v10');
         return saved ? JSON.parse(saved) : initialFinanceDataGlobal.cashAccounts;
@@ -71,7 +74,140 @@ export const useFinance = () => {
         return saved ? JSON.parse(saved) : [];
     });
 
-    // Auto-save effects
+    // --- SUPABASE INTEGRATION ---
+
+    const fetchFinanceData = useCallback(async () => {
+        if (!isSupabaseConfigured()) return;
+        setLoading(true);
+        try {
+            // 1. Cash Accounts
+            const { data: accountsData } = await supabase.from('finance_accounts').select('*');
+            if (accountsData) {
+                setCashAccounts(accountsData.map(a => ({
+                    id: a.id,
+                    name: a.name,
+                    type: a.type,
+                    balance: a.balance,
+                    isPrimary: a.is_primary,
+                    number: a.number
+                })));
+            }
+
+            // 2. Payment Types
+            const { data: typesData } = await supabase.from('payment_types').select('*');
+            if (typesData) {
+                setPaymentTypes(typesData.map(t => ({
+                    id: t.id,
+                    name: t.name,
+                    type: t.type,
+                    amount: t.amount,
+                    category: t.category
+                })));
+            }
+
+            // 3. Bills (Limit to recent for checking)
+            const { data: billsData } = await supabase.from('student_bills').select('*').limit(500);
+            if (billsData) {
+                setStudentBills(billsData.map(b => ({
+                    id: b.id,
+                    studentId: b.student_id,
+                    studentName: b.student_name,
+                    class: b.class_name,
+                    paymentName: b.payment_name,
+                    amount: b.amount,
+                    period: b.period,
+                    status: b.status,
+                    dueDate: b.due_date,
+                    type: b.billing_type
+                })));
+            }
+
+            // 4. Expenses
+            const { data: expensesData } = await supabase.from('expenses').select('*').order('date', { ascending: false }).limit(100);
+            if (expensesData) {
+                setExpenses(expensesData.map(e => ({
+                    id: e.id,
+                    date: e.date,
+                    description: e.description,
+                    category: e.category,
+                    amount: e.amount,
+                    proof: e.proof_url || ''
+                })));
+            }
+
+        } catch (err) {
+            console.error("Error fetching finance data:", err);
+            toast.error("Gagal memuat data keuangan");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchFinanceData();
+    }, [fetchFinanceData]);
+
+    // --- ACTIONS ---
+
+    const addCashAccount = async (account: Omit<CashAccount, 'id'>) => {
+        if (isSupabaseConfigured()) {
+            const { data, error } = await supabase.from('finance_accounts').insert([{
+                name: account.name,
+                type: account.type,
+                balance: account.balance,
+                is_primary: account.isPrimary,
+                number: account.number
+            }]).select();
+
+            if (!error && data) {
+                setCashAccounts(prev => [...prev, { ...account, id: data[0].id }]);
+                toast.success("Akun kas berhasil ditambahkan");
+            } else {
+                toast.error("Gagal menambahkan akun kas");
+            }
+        } else {
+            setCashAccounts(prev => [...prev, { ...account, id: Date.now() }]);
+        }
+    };
+
+    const addPaymentType = async (type: Omit<PaymentType, 'id'>) => {
+        if (isSupabaseConfigured()) {
+            const { data, error } = await supabase.from('payment_types').insert([{
+                name: type.name,
+                type: type.type,
+                amount: type.amount,
+                category: type.category
+            }]).select();
+
+            if (!error && data) {
+                setPaymentTypes(prev => [...prev, { ...type, id: data[0].id }]);
+                toast.success("Jenis pembayaran disimpan");
+            }
+        } else {
+            setPaymentTypes(prev => [...prev, { ...type, id: Date.now() }]);
+        }
+    };
+
+    const addExpense = async (expense: Omit<Expense, 'id'>) => {
+        if (isSupabaseConfigured()) {
+            const { data, error } = await supabase.from('expenses').insert([{
+                date: expense.date,
+                description: expense.description,
+                category: expense.category,
+                amount: expense.amount,
+                proof_url: expense.proof
+            }]).select();
+
+            if (!error && data) {
+                setExpenses(prev => [{ ...expense, id: data[0].id }, ...prev]);
+                toast.success("Pengeluaran dicatat");
+            }
+        } else {
+            setExpenses(prev => [{ ...expense, id: Date.now() }, ...prev]);
+        }
+    }
+
+    // Auto-save effects (Legacy Support for fallback)
     useEffect(() => {
         localStorage.setItem('finance_cash_accounts_v10', JSON.stringify(cashAccounts));
     }, [cashAccounts]);
@@ -97,13 +233,18 @@ export const useFinance = () => {
         setFinancialYear,
         cashAccounts,
         setCashAccounts,
+        addCashAccount,
         paymentTypes,
         setPaymentTypes,
+        addPaymentType,
         studentBills,
         setStudentBills,
         expenses,
         setExpenses,
+        addExpense,
         paymentHistory,
         setPaymentHistory,
+        loading,
+        refreshFinance: fetchFinanceData
     };
 };

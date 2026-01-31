@@ -46,3 +46,35 @@ export interface MenuItem {
 }
 
 export const DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'] as const;
+
+export interface GradeRow {
+    studentId: number;
+    studentName: string;
+    studentNis: string;
+    tp1: number;
+    tp2: number;
+    tp3: number;
+    tp4: number;
+    tp5: number;
+    tp6: number;
+    tp7: number;
+    tp8: number;
+    tp9: number;
+    tp10: number;
+    tp11: number;
+    tp12: number;
+    tp13: number;
+    tp14: number;
+    tp15: number;
+    avgSumatif: number;
+    pts: number;
+    pas: number;
+    pat: number;
+    ujisn: number;
+    sas: number;
+    finalScore: number;
+    predicate: string;
+    description: string;
+    [key: string]: any;
+}
+

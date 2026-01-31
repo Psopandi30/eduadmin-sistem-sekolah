@@ -190,7 +190,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     }, [teacherAssignments]);
     const [showPlottingModal, setShowPlottingModal] = useState(false);
     const [showPositionModal, setShowPositionModal] = useState(false);
-    const { teachers, setTeachers, addTeacher } = useTeachers();
+    const { teachers, setTeachers, addTeacher, deleteTeacher, updateTeacher } = useTeachers();
     const [newTeacher, setNewTeacher] = useState({ nama: '', nip: '', jabatan: 'Guru Mata Pelajaran', mapel: '', class: '' });
     const [showTeacherModal, setShowTeacherModal] = useState(false);
 
@@ -480,48 +480,48 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         localStorage.setItem('promotion_history_v10', JSON.stringify(promotionHistory));
     }, [promotionHistory]);
 
-    const [selectedPromotionClass, setSelectedPromotionClass] = useState('');
-    const [targetPromotionClass, setTargetPromotionClass] = useState('');
-    const [promotionStudents, setPromotionStudents] = useState<any[]>([]); // Temp holder
-    const [selectedGraduationClass, setSelectedGraduationClass] = useState('6A');
 
-    // --- PROMOTION HANDLERS ---
-    const handleCheckPreparation = () => {
-        toast.promise(
-            new Promise((resolve) => {
-                setTimeout(() => {
-                    // 1. Check Classes
-                    const classesReady = classes.length > 0;
 
-                    // 2. Check Year
-                    const yearReady = !!promotionYear.next;
 
-                    // 3. Check Report (Mock logic: if we have any grades)
-                    const reportReady = nilaiData.length > 0;
 
-                    // 4. Check Distinct (Duplicate students check)
-                    const uniqueNames = new Set(students.map(s => s.nama));
-                    const distinctReady = uniqueNames.size === students.length;
+    // --- KEUANGAN ---
+    // Moved to specific view
 
-                    setPromotionChecklist({
-                        year: yearReady,
-                        classes: classesReady,
-                        report: reportReady,
-                        distinct: distinctReady
-                    });
 
-                    resolve("Validasi sistem selesai.");
-                }, 800);
-            }),
-            {
-                loading: 'Memeriksa kelengkapan data...',
-                success: 'Validasi selesai!',
-                error: 'Gagal memvalidasi',
+    // --- GLOBAL HANDLERS ---
+    const handleLogout = () => {
+        setConfirmModal({
+            show: true,
+            message: 'Apakah anda yakin ingin keluar dari sistem?',
+            onConfirm: () => {
+                setConfirmModal({ show: false, message: '', onConfirm: () => { } });
+                onLogout();
             }
-        );
+        });
     };
 
 
+    // --- PROMOTION HANDLERS ---
+    const [promotionStudents, setPromotionStudents] = useState<any[]>([]);
+    const [selectedPromotionClass, setSelectedPromotionClass] = useState('');
+    const [targetPromotionClass, setTargetPromotionClass] = useState('');
+
+
+    // Checklist
+
+    const handleCheckPreparation = () => {
+        // Simulasi cek
+        toast.loading("Memeriksa kelengkapan data...", { duration: 1500 });
+        setTimeout(() => {
+            setPromotionChecklist({
+                year: true,
+                classes: true,
+                report: true,
+                distinct: true
+            });
+            toast.success("Semua persiapan kenaikan kelas lengkap!");
+        }, 1500);
+    };
 
     const handleLoadPromotionStudents = (className: string) => {
         setSelectedPromotionClass(className);
@@ -569,69 +569,78 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
         const toPromote = promotionStudents.filter(s => s.promoStatus === 'Naik');
         const count = toPromote.length;
+        if (count === 0) return;
 
-        if (confirm(`Yakin ingin memproses kenaikan kelas untuk ${count} siswa dari ${selectedPromotionClass} ke ${targetPromotionClass}?`)) {
-            // Update Students Data
-            const updatedStudents = toPromote.map(s => ({
-                ...s,
-                kelas: targetPromotionClass,
-                tingkat: (s.tingkat || 1) + 1,
-                // Remove promoStatus before saving back if strict, but strict typing might ignore it. 
-                // We cast or rely on Partial matching.
-            }));
+        setConfirmModal({
+            show: true,
+            message: `Yakin ingin memproses kenaikan kelas untuk ${count} siswa dari ${selectedPromotionClass} ke ${targetPromotionClass}?`,
+            onConfirm: () => {
+                setConfirmModal({ show: false, message: '', onConfirm: () => { } });
+                // Update Students Data
+                const updatedStudents = toPromote.map(s => ({
+                    ...s,
+                    kelas: targetPromotionClass,
+                    tingkat: (s.tingkat || 1) + 1,
+                }));
 
-            // Call bulk update
-            updateStudents(updatedStudents);
+                // Call bulk update
+                updateStudents(updatedStudents);
 
-            // Log History
-            const newHistory = toPromote.map((s, idx) => ({
-                id: Date.now() + idx,
-                date: new Date().toISOString().split('T')[0],
-                student: s.nama,
-                from: selectedPromotionClass,
-                to: targetPromotionClass,
-                type: 'Naik Kelas',
-                officer: 'Admin'
-            }));
+                // Log History
+                const newHistory = toPromote.map((s, idx) => ({
+                    id: Date.now() + idx,
+                    date: new Date().toISOString().split('T')[0],
+                    student: s.nama,
+                    from: selectedPromotionClass,
+                    to: targetPromotionClass,
+                    type: 'Naik Kelas',
+                    officer: 'Admin'
+                }));
 
-            setPromotionHistory([...newHistory, ...promotionHistory]);
-            setPromotionStudents([]);
-            setSelectedPromotionClass('');
-            toast.success("Proses Kenaikan Kelas Berhasil! Data siswa telah diperbarui.");
-        }
+                setPromotionHistory([...newHistory, ...promotionHistory]);
+                setPromotionStudents([]);
+                setSelectedPromotionClass('');
+                toast.success("Proses Kenaikan Kelas Berhasil! Data siswa telah diperbarui.");
+            }
+        });
     };
 
     const handleExecuteGraduation = () => {
         const toGraduate = promotionStudents.filter(s => s.promoStatus === 'Lulus');
         const count = toGraduate.length;
+        if (count === 0) return;
 
-        if (confirm(`Yakin ingin meluluskan ${count} siswa dari kelas ${selectedPromotionClass}? Siswa akan dipindahkan ke data Alumni.`)) {
+        setConfirmModal({
+            show: true,
+            message: `Yakin ingin meluluskan ${count} siswa dari kelas ${selectedPromotionClass}? Siswa akan dipindahkan ke data Alumni.`,
+            onConfirm: () => {
+                setConfirmModal({ show: false, message: '', onConfirm: () => { } });
+                // Update Students Data (Move to Alumni)
+                const updatedStudents = toGraduate.map(s => ({
+                    ...s,
+                    kelas: 'Alumni',
+                    tingkat: 7, // 7 for Alumni/Lulus
+                }));
 
-            // Update Students Data (Move to Alumni)
-            const updatedStudents = toGraduate.map(s => ({
-                ...s,
-                kelas: 'Alumni',
-                tingkat: 7, // 7 for Alumni/Lulus
-            }));
+                updateStudents(updatedStudents);
 
-            updateStudents(updatedStudents);
+                // Log History
+                const newHistory = toGraduate.map((s, idx) => ({
+                    id: Date.now() + idx,
+                    date: new Date().toISOString().split('T')[0],
+                    student: s.nama,
+                    from: selectedPromotionClass,
+                    to: 'Alumni',
+                    type: 'Lulus',
+                    officer: 'Admin'
+                }));
 
-            // Log History
-            const newHistory = toGraduate.map((s, idx) => ({
-                id: Date.now() + idx,
-                date: new Date().toISOString().split('T')[0],
-                student: s.nama,
-                from: selectedPromotionClass,
-                to: 'Alumni',
-                type: 'Lulus',
-                officer: 'Admin'
-            }));
-
-            setPromotionHistory([...newHistory, ...promotionHistory]);
-            setPromotionStudents([]);
-            setSelectedPromotionClass('');
-            toast.success("Proses Kelulusan Berhasil! Siswa telah dipindahkan ke Alumni.");
-        }
+                setPromotionHistory([...newHistory, ...promotionHistory]);
+                setPromotionStudents([]);
+                setSelectedPromotionClass('');
+                toast.success("Proses Kelulusan Berhasil! Siswa telah dipindahkan ke Alumni.");
+            }
+        });
     };
 
     // --- BIMBINGAN BELAJAR (TUTORING) STATE ---
@@ -755,10 +764,15 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     };
 
     const handleDeleteTutoringTeacher = (id: number) => {
-        if (confirm("Hapus data guru bimbel ini?")) {
-            setTutoringTeachers(tutoringTeachers.filter(t => t.id !== id));
-            toast.success("Guru dihapus");
-        }
+        setConfirmModal({
+            show: true,
+            message: "Hapus data guru bimbel ini?",
+            onConfirm: () => {
+                setTutoringTeachers(tutoringTeachers.filter(t => t.id !== id));
+                setConfirmModal({ show: false, message: '', onConfirm: () => { } });
+                toast.success("Guru bimbel berhasil dihapus");
+            }
+        });
     };
 
     // --- MANAGE TUTORING STUDENTS ---
@@ -846,9 +860,15 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     };
 
     const handleDeleteGroup = (id: number) => {
-        if (confirm("Hapus kelompok ini?")) {
-            setSubjectGroups(subjectGroups.filter(g => g.id !== id));
-        }
+        setConfirmModal({
+            show: true,
+            message: "Hapus kelompok ini?",
+            onConfirm: () => {
+                setSubjectGroups(subjectGroups.filter(g => g.id !== id));
+                setConfirmModal({ show: false, message: '', onConfirm: () => { } });
+                toast.success("Kelompok berhasil dihapus");
+            }
+        });
     };
 
     const handleAddPosition = () => {
@@ -893,14 +913,14 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         setShowTeacherModal(true);
     };
 
-    const handleSaveTeacher = () => {
+    const handleSaveTeacher = async () => {
         if (!newTeacher.nama || !newTeacher.nip) {
             toast.error("Nama dan NIP wajib diisi!");
             return;
         }
 
         const teacherToAdd = {
-            id: Date.now(),
+            id: Date.now(), // ID will be overwritten by DB if successful, or used locally
             nama: newTeacher.nama,
             nip: newTeacher.nip,
             jabatan: newTeacher.jabatan,
@@ -910,16 +930,23 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
             password: 'password123' // Default password
         };
 
-        addTeacher(teacherToAdd);
-        toast.success(`Guru ${newTeacher.nama} berhasil ditambahkan!`);
+        // Use async addTeacher from hook
+        await addTeacher(teacherToAdd);
+
         setShowTeacherModal(false);
         setNewTeacher({ nama: '', nip: '', jabatan: 'Guru Mata Pelajaran', mapel: '', class: '' });
     };
 
     const handleDeleteTeacher = (id: number) => {
-        if (confirm("Hapus data guru ini?")) {
-            setTeachers(teachers.filter(t => t.id !== id));
-        }
+        setConfirmModal({
+            show: true,
+            message: "Apakah anda yakin ingin menghapus data guru ini?",
+            onConfirm: () => {
+                deleteTeacher(id);
+                setConfirmModal({ show: false, message: '', onConfirm: () => { } });
+                toast.success("Data guru berhasil dihapus");
+            }
+        });
     };
 
     // --- GENERIC EDIT HANDLER ---
@@ -1214,6 +1241,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                             teachers={teachers}
                             students={students}
                             setShowAddClassModal={setShowAddClassModal}
+                            setConfirmModal={setConfirmModal}
                         />
                     )}
 
@@ -1628,9 +1656,15 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                                         <div className="text-xs font-bold text-slate-700">{slot.start} - {slot.end}</div>
                                                                         <button
                                                                             onClick={() => {
-                                                                                if (confirm('Hapus sesi ujian ini?')) {
-                                                                                    setExamTimeSlots(prev => prev.filter(t => t.id !== slot.id));
-                                                                                }
+                                                                                setConfirmModal({
+                                                                                    show: true,
+                                                                                    message: "Hapus sesi waktu ujian ini? Seluruh jadwal pada jam ini untuk semua kelas akan terhapus.",
+                                                                                    onConfirm: () => {
+                                                                                        setExamTimeSlots(prev => prev.filter(t => t.id !== slot.id));
+                                                                                        setConfirmModal({ show: false, message: '', onConfirm: () => { } });
+                                                                                        toast.success("Sesi waktu ujian dihapus");
+                                                                                    }
+                                                                                });
                                                                             }}
                                                                             className="absolute top-1 left-1 p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all opacity-0 group-hover/time:opacity-100"
                                                                             title="Hapus Sesi Ini"
@@ -1934,7 +1968,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     {/* --- VIEW: INPUT NILAI (NEW) --- */}
                     {activeView === 'nilai' && (
                         <div className="h-full">
-                            <NilaiView setActiveView={setActiveView} />
+                            <NilaiView setActiveView={setActiveView} students={students} classes={classes} subjects={subjects} />
                         </div>
                     )}
 

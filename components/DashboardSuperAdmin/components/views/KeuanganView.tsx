@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import * as XLSX from 'xlsx';
 import {
     LayoutDashboard, Files as FilesIcon, FileText, CreditCard, TrendingDown,
     Wallet, Printer, Settings, Calendar, Plus, X, ArrowUpCircle, UserCheck,
@@ -36,6 +37,7 @@ const KeuanganView: React.FC<KeuanganViewProps> = ({ students: rawStudents }) =>
         setStudentBills,
         expenses,
         setExpenses,
+        addExpense,
         paymentHistory,
         setPaymentHistory,
     } = useFinance();
@@ -409,14 +411,53 @@ const KeuanganView: React.FC<KeuanganViewProps> = ({ students: rawStudents }) =>
                                 </div>
                                 <button
                                     onClick={() => {
-                                        const loadingToast = toast.loading('Memproses data tagihan...');
-                                        // Mock processing
-                                        setTimeout(() => {
-                                            toast.dismiss(loadingToast);
-                                            handleGenerateBills(); // Reuse generate logic as mock import
-                                            toast.success(`Berhasil mengimport data tagihan dari ${uploadedBillFile.name}`);
-                                            setUploadedBillFile(null);
-                                        }, 1500);
+                                        if (!uploadedBillFile) return;
+
+                                        const loadingToast = toast.loading('Membaca file Excel...');
+                                        const reader = new FileReader();
+
+                                        reader.onload = (e) => {
+                                            try {
+                                                const data = e.target?.result;
+                                                const workbook = XLSX.read(data, { type: 'array' });
+                                                const sheetName = workbook.SheetNames[0]; // Read first sheet
+                                                const worksheet = workbook.Sheets[sheetName];
+                                                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                                                if (jsonData.length === 0) {
+                                                    toast.dismiss(loadingToast);
+                                                    toast.error("File Excel kosong atau format salah!");
+                                                    return;
+                                                }
+
+                                                // Map Excel Columns to App Data
+                                                // Expected Columns: NO, NIS, NAMA SISWA, KELAS, JENIS TAGIHAN, NOMINAL, BULAN/TAHUN
+                                                const newBills = jsonData.map((row: any, index: number) => ({
+                                                    id: Date.now() + index,
+                                                    studentId: 0, // In real app, perform lookup by NIS here
+                                                    studentName: row['NAMA SISWA'] || 'Unknown',
+                                                    class: row['KELAS'] || '-',
+                                                    paymentName: row['JENIS TAGIHAN'] || 'Tagihan Lainnya',
+                                                    amount: parseInt(row['NOMINAL']) || 0,
+                                                    period: row['BULAN/TAHUN'] || '-',
+                                                    status: 'Belum Lunas',
+                                                    dueDate: new Date().toISOString().split('T')[0],
+                                                    type: 'SPP'
+                                                }));
+
+                                                setStudentBills([...studentBills, ...newBills]);
+
+                                                toast.dismiss(loadingToast);
+                                                toast.success(`Berhasil mengimport ${newBills.length} data tagihan!`);
+                                                setUploadedBillFile(null);
+                                            } catch (err) {
+                                                console.error(err);
+                                                toast.dismiss(loadingToast);
+                                                toast.error("Gagal memproses file. Pastikan menggunakan Template.");
+                                            }
+                                        };
+
+                                        reader.readAsArrayBuffer(uploadedBillFile);
                                     }}
                                     className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all"
                                 >
@@ -737,16 +778,17 @@ const KeuanganView: React.FC<KeuanganViewProps> = ({ students: rawStudents }) =>
                                     onClick={() => {
                                         if (newExpense.amount > 0 && newExpense.description) {
                                             const exp = {
-                                                id: Date.now(),
                                                 date: newExpense.date || new Date().toISOString().split('T')[0],
                                                 description: newExpense.description,
                                                 category: newExpense.category,
                                                 amount: newExpense.amount,
                                                 proof: 'file.jpg' // mock
                                             };
-                                            setExpenses([exp, ...expenses]);
+
+                                            // Asynchronous add via hook
+                                            addExpense(exp);
+
                                             setNewExpense({ date: '', description: '', category: 'Operasional', amount: 0 });
-                                            toast.success("Pengeluaran berhasil disimpan!");
                                         } else {
                                             toast.error("Mohon isi keterangan dan nominal!");
                                         }

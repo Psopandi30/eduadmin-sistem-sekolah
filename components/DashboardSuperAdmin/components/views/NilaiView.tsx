@@ -7,78 +7,77 @@ import {
 import { studentsDataGlobal, classesDataGlobal } from '../../../../data/sharedData';
 import { toast } from 'react-hot-toast';
 
+
+import { GradeRow } from '../../types'; // Move interface if shared, or keep here for now but generic is okay
+
 interface NilaiViewProps {
     setActiveView: (view: string) => void;
+    students: any[];
+    classes: any[];
+    subjects: any[];
 }
 
-// Tipe data untuk struktur nilai lokal
-interface GradeRow {
-    studentId: number;
-    studentName: string;
-    studentNis: string;
-    tp1: number;
-    tp2: number;
-    tp3: number;
-    tp4: number;
-    avgSumatif: number; // Rata-rata TP
 
-    // Asesmen Sumatif Tengah Semester & Akhir
-    pts: number;        // Penilaian Tengah Semester
-    pas: number;        // Penilaian Akhir Semester (Ganjil)
-    pat: number;        // Penilaian Akhir Tahun (Genap)
-    ujisn: number;      // Ujian Sekolah (Jika ada)
 
-    sas: number;        // LEGACY: Keep for compatibility if needed, or mapped to PAS/PAT
-    finalScore: number; // Nilai Akhir Rapor
-    predicate: string;  // A, B, C
-    description: string;
-    [key: string]: any; // Allow dynamic TP columns
-}
-
-const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView }) => {
+const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes, subjects }) => {
     // --- STATE FILTER ---
-    const [selectedClass, setSelectedClass] = useState(classesDataGlobal[0]?.nama || '1A');
-    const [selectedSubject, setSelectedSubject] = useState('Matematika');
+    // Use optional chaining and default to empty string or first item if available
+    const [selectedClass, setSelectedClass] = useState('');
+    const [selectedSubject, setSelectedSubject] = useState('');
     const [selectedSemester, setSelectedSemester] = useState('1 (Ganjil)');
 
-    // --- DYNAMIC TP STATE ---
-    const [tpCount, setTpCount] = useState(4); // Default 4 columns
+    // Initialize defaults when props are loaded
+    useEffect(() => {
+        if (classes.length > 0 && !selectedClass) {
+            setSelectedClass(classes[0].nama);
+        }
+    }, [classes]);
 
-    // --- STATE TABLE ---
-    // Expanded tabs to support specific exam types
+    useEffect(() => {
+        if (subjects.length > 0 && !selectedSubject) {
+            // Handle object or string structure for subjects
+            const subjectName = typeof subjects[0] === 'string' ? subjects[0] : subjects[0]?.name;
+            setSelectedSubject(subjectName || 'Matematika');
+        }
+    }, [subjects]);
+
     const [activeTab, setActiveTab] = useState<'sumatif' | 'pts' | 'pas_pat' | 'rapor'>('sumatif');
     const [searchQuery, setSearchQuery] = useState('');
     const [grades, setGrades] = useState<GradeRow[]>([]);
     const [isDirty, setIsDirty] = useState(false);
+    const [tpCount, setTpCount] = useState(4);
     const [masterDescriptions, setMasterDescriptions] = useState<any[]>([]);
 
-    // --- SUBJECTS DATA ---
-    const subjects = localStorage.getItem('subjects_data_v2')
-        ? JSON.parse(localStorage.getItem('subjects_data_v2')!).map((s: any) => s.name)
-        : ["Matematika", "B. Indonesia", "IPA", "IPS"];
+    const getStorageKey = () => {
+        return `grades_${selectedClass}_${selectedSubject}_${selectedSemester}`;
+    };
 
-    // --- INITIALIZE DATA ---
-    // --- STORAGE KEY HELPER ---
-    const getStorageKey = () => `grades_v2_${selectedClass}_${selectedSubject}_${selectedSemester}`;
 
     // --- INITIALIZE DATA ---
     useEffect(() => {
+        if (!selectedClass || !selectedSubject) return;
+
         const key = getStorageKey();
         const savedData = localStorage.getItem(key);
 
         if (savedData) {
-            setGrades(JSON.parse(savedData));
-            setIsDirty(false);
-            return;
+            try {
+                setGrades(JSON.parse(savedData));
+                setIsDirty(false);
+                return;
+            } catch (e) {
+                console.error("Failed to parse saved grades:", e);
+                localStorage.removeItem(key);
+            }
         }
 
-        const classStudents = studentsDataGlobal.filter(s => s.kelas === selectedClass);
+        const classStudents = students.filter(s => s.kelas === selectedClass || s.class === selectedClass); // Handle varying key casing if needed
 
         // Initial empty state (0) instead of random mock
         const initialGrades: GradeRow[] = classStudents.map(s => ({
             studentId: s.id,
             studentName: s.nama,
-            studentNis: s.nis,
+            studentNis: s.nis || s.username || '', // Fallback
             tp1: 0,
             tp2: 0,
             tp3: 0,
@@ -96,7 +95,8 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView }) => {
 
         setGrades(initialGrades);
         setIsDirty(false);
-    }, [selectedClass, selectedSubject, selectedSemester]);
+    }, [selectedClass, selectedSubject, selectedSemester, students]);
+
 
     // --- AUTO SAVE TO LOCAL STORAGE ---
     useEffect(() => {
@@ -275,7 +275,8 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView }) => {
                                         onChange={(e) => setSelectedClass(e.target.value)}
                                         className="appearance-none bg-transparent font-bold text-slate-700 outline-none text-sm cursor-pointer pr-6 w-20"
                                     >
-                                        {classesDataGlobal.map(c => <option key={c.id} value={c.nama} className="text-slate-800">{c.nama}</option>)}
+                                        {classes.map(c => <option key={c.id} value={c.nama} className="text-slate-800">{c.nama}</option>)}
+
                                     </select>
                                     <ChevronDown size={14} className="absolute right-0 top-1 text-slate-400 pointer-events-none" />
                                 </div>
@@ -289,7 +290,11 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView }) => {
                                         onChange={(e) => setSelectedSubject(e.target.value)}
                                         className="appearance-none bg-transparent font-bold text-slate-700 outline-none text-sm cursor-pointer pr-6 w-40 truncate"
                                     >
-                                        {subjects.map(s => <option key={s} value={s} className="text-slate-800">{s}</option>)}
+                                        {subjects.map(s => {
+                                            const name = typeof s === 'string' ? s : s.name;
+                                            return <option key={name} value={name} className="text-slate-800">{name}</option>;
+                                        })}
+
                                     </select>
                                     <ChevronDown size={14} className="absolute right-0 top-1 text-slate-400 pointer-events-none" />
                                 </div>

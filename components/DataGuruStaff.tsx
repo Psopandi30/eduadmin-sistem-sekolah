@@ -20,8 +20,10 @@ import {
   FolderPlus,
   FileSpreadsheet,
   Bookmark,
-  X
+  X,
+  CheckCircle
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 interface MapelItem {
   no: number;
@@ -50,18 +52,23 @@ const DataGuruStaff: React.FC<DataGuruStaffProps> = ({
 }) => {
   const [activeView, setActiveView] = useState('menu');
   const [visibleCount, setVisibleCount] = useState('100');
+  const [confirmModal, setConfirmModal] = useState({
+    show: false,
+    message: '',
+    onConfirm: () => { }
+  });
 
   // --- GENERIC HANDLERS ---
   const handleDownloadTemplate = (type: string) => {
-    alert(`Mengunduh template untuk ${type}...`);
+    toast.success(`Mengunduh template untuk ${type}...`);
   };
 
   const handleUploadFile = (type: string) => {
-    alert(`Membuka dialog upload untuk ${type}...`);
+    toast.success(`Membuka dialog upload untuk ${type}...`);
   };
 
   const handleSimpanData = () => {
-    alert("Semua perubahan berhasil disimpan!");
+    toast.success("Semua perubahan berhasil disimpan!");
   };
 
   // ==================== STATE MANAGEMENT ====================
@@ -147,13 +154,20 @@ const DataGuruStaff: React.FC<DataGuruStaffProps> = ({
     setIsMapelModalOpen(true);
   };
   const handleDeleteMapel = (id: number) => {
-    if (confirm('Apakah anda yakin ingin menghapus mata pelajaran ini?')) {
-      setMapelList(prev => prev.filter(item => item.no !== id));
-    }
+    const mapel = mapelList.find(m => m.no === id);
+    setConfirmModal({
+      show: true,
+      message: `Apakah Anda yakin ingin menghapus mata pelajaran ${mapel?.nama}?`,
+      onConfirm: () => {
+        setMapelList(prev => prev.filter(item => item.no !== id));
+        setConfirmModal({ show: false, message: '', onConfirm: () => { } });
+        toast.success("Mata pelajaran dihapus");
+      }
+    });
   };
   const handleSaveMapel = () => {
     if (!mapelForm.nama || !mapelForm.kelompok) {
-      alert("Nama dan Kelompok Mata Pelajaran wajib diisi!");
+      toast.error("Nama dan Kelompok Mata Pelajaran wajib diisi!");
       return;
     }
     if (mapelForm.id) {
@@ -172,12 +186,18 @@ const DataGuruStaff: React.FC<DataGuruStaffProps> = ({
     }
   };
   const handleDeleteKelompok = (kelompok: string) => {
-    if (confirm(`Yakin ingin menghapus kelompok '${kelompok}'?`)) {
-      setKelompokList(prev => prev.filter(k => k !== kelompok));
-      if (selectedKelompokFilter === kelompok) {
-        setSelectedKelompokFilter(null);
+    setConfirmModal({
+      show: true,
+      message: `Yakin ingin menghapus kelompok '${kelompok}'?`,
+      onConfirm: () => {
+        setKelompokList(prev => prev.filter(k => k !== kelompok));
+        if (selectedKelompokFilter === kelompok) {
+          setSelectedKelompokFilter(null);
+        }
+        setConfirmModal({ show: false, message: '', onConfirm: () => { } });
+        toast.success("Kelompok dihapus");
       }
-    }
+    });
   };
 
   // --- JABATAN HANDLERS ---
@@ -211,9 +231,16 @@ const DataGuruStaff: React.FC<DataGuruStaffProps> = ({
     setIsJabatanModalOpen(false);
   };
   const handleDeleteJabatan = (no: number) => {
-    if (confirm('Yakin ingin menghapus jabatan ini?')) {
-      setJabatanList(prev => prev.filter(item => item.no !== no));
-    }
+    const jabatan = jabatanList.find(j => j.no === no);
+    setConfirmModal({
+      show: true,
+      message: `Yakin ingin menghapus jabatan '${jabatan?.nama}'? Pegawai yang memiliki jabatan ini mungkin perlu diperbarui.`,
+      onConfirm: () => {
+        setJabatanList(prev => prev.filter(item => item.no !== no));
+        setConfirmModal({ show: false, message: '', onConfirm: () => { } });
+        toast.success("Jabatan dihapus");
+      }
+    });
   };
 
   // --- STAF HANDLERS ---
@@ -243,9 +270,16 @@ const DataGuruStaff: React.FC<DataGuruStaffProps> = ({
     setIsStafModalOpen(false);
   };
   const handleDeleteStaf = (no: number) => {
-    if (confirm('Yakin ingin menghapus data pegawai ini?')) {
-      setStafList(prev => prev.filter(item => item.no !== no));
-    }
+    const staf = stafList.find(s => s.no === no);
+    setConfirmModal({
+      show: true,
+      message: `Yakin ingin menghapus data pegawai '${staf?.nama}'? Data ini tidak dapat dikembalikan.`,
+      onConfirm: () => {
+        setStafList(prev => prev.filter(item => item.no !== no));
+        setConfirmModal({ show: false, message: '', onConfirm: () => { } });
+        toast.success("Pegawai dihapus");
+      }
+    });
   };
 
   // --- WALI KELAS HANDLERS ---
@@ -278,7 +312,7 @@ const DataGuruStaff: React.FC<DataGuruStaffProps> = ({
 
   const handleSaveWali = () => {
     if (!setKelasData) return;
-    
+
     if (waliForm.id) {
       // Edit existing
       setKelasData(prev => prev.map(cls =>
@@ -307,10 +341,30 @@ const DataGuruStaff: React.FC<DataGuruStaffProps> = ({
 
   const handleDeleteWali = (id: number) => {
     if (!setKelasData) return;
-    
-    if (confirm('Yakin ingin mereset wali kelas ini?')) {
-      setKelasData(prev => prev.map(cls => cls.id === id ? { ...cls, wali: '-', waliNip: '-' } : cls));
+
+    if (id === 0) {
+      setConfirmModal({
+        show: true,
+        message: "Yakin ingin mereset semua data wali kelas? Tindakan ini tidak dapat dibatalkan.",
+        onConfirm: () => {
+          setKelasData(prev => prev.map(cls => ({ ...cls, wali: '-', waliNip: '-' })));
+          setConfirmModal({ show: false, message: '', onConfirm: () => { } });
+          toast.success("Semua wali kelas telah direset");
+        }
+      });
+      return;
     }
+
+    const kelas = kelasData.find(c => c.id === id);
+    setConfirmModal({
+      show: true,
+      message: `Yakin ingin mereset wali kelas untuk ${kelas?.nama}?`,
+      onConfirm: () => {
+        setKelasData(prev => prev.map(cls => cls.id === id ? { ...cls, wali: '-', waliNip: '-' } : cls));
+        setConfirmModal({ show: false, message: '', onConfirm: () => { } });
+        toast.success(`Wali kelas ${kelas?.nama} direset`);
+      }
+    });
   };
 
 
@@ -784,6 +838,35 @@ const DataGuruStaff: React.FC<DataGuruStaffProps> = ({
               <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
                 <button onClick={() => setIsWaliModalOpen(false)} className="px-4 py-2 text-slate-600 font-bold hover:bg-white rounded-lg border border-transparent hover:border-slate-200">Batal</button>
                 <button onClick={handleSaveWali} className="px-4 py-2 bg-[#004AAD] text-white font-bold rounded-lg hover:bg-[#003380]">Simpan</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Global Confirm Modal */}
+        {confirmModal.show && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300 border border-white/20">
+              <div className="p-8 text-center">
+                <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-rose-50/50">
+                  <Info size={40} className="text-rose-500" />
+                </div>
+                <h3 className="text-2xl font-black text-slate-800 mb-4 tracking-tight">Konfirmasi Tindakan</h3>
+                <p className="text-slate-500 font-medium leading-relaxed">{confirmModal.message}</p>
+              </div>
+              <div className="p-6 bg-slate-50/80 backdrop-blur-md border-t border-slate-100 flex gap-3">
+                <button
+                  onClick={() => setConfirmModal({ show: false, message: '', onConfirm: () => { } })}
+                  className="flex-1 py-4 bg-white hover:bg-slate-100 text-slate-600 font-bold rounded-2xl transition-all border border-slate-200 active:scale-95"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmModal.onConfirm}
+                  className="flex-1 py-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-2xl shadow-lg shadow-rose-200 transition-all active:scale-95"
+                >
+                  Ya, Lanjutkan
+                </button>
               </div>
             </div>
           </div>

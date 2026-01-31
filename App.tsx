@@ -85,28 +85,42 @@ const App: React.FC = () => {
   // --- PERSISTENT SESSION CHECK ---
   useEffect(() => {
     const checkSession = async () => {
-      if (!isSupabaseConfigured()) {
-        setIsCheckingSession(false);
-        return;
-      }
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-          if (profile) {
-            setUserRole(profile.role);
-            setCurrentUser({
-              id: session.user.id,
-              nama: profile.full_name,
-              email: profile.email,
-              role: profile.role,
-              avatar: profile.avatar_url || 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=100&auto=format&fit=crop'
-            });
-            setIsLoggedIn(true);
+      // 1. Try Supabase Session first
+      if (isSupabaseConfigured()) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+            if (profile) {
+              setUserRole(profile.role);
+              setCurrentUser({
+                id: session.user.id,
+                nama: profile.full_name,
+                email: profile.email,
+                role: profile.role,
+                avatar: profile.avatar_url || 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=100&auto=format&fit=crop'
+              });
+              setIsLoggedIn(true);
+              setIsCheckingSession(false);
+              return;
+            }
           }
+        } catch (e) {
+          console.error("Auth Session Check Error:", e);
+        }
+      }
+
+      // 2. Fallback to Mock Session (LocalStorage)
+      try {
+        const savedMock = localStorage.getItem('mock_session_v1');
+        if (savedMock) {
+          const { role, user } = JSON.parse(savedMock);
+          setUserRole(role);
+          setCurrentUser(user);
+          setIsLoggedIn(true);
         }
       } catch (e) {
-        console.error("Auth Session Check Error:", e);
+        console.error("Mock Session Check Error:", e);
       } finally {
         setIsCheckingSession(false);
       }
@@ -119,6 +133,8 @@ const App: React.FC = () => {
     setUserRole(role);
     setCurrentUser(user);
     setIsLoggedIn(true);
+    // Persist mock session
+    localStorage.setItem('mock_session_v1', JSON.stringify({ role, user }));
   };
 
   const handleLogout = async () => {
@@ -134,6 +150,7 @@ const App: React.FC = () => {
     setCurrentUser(null);
     setActiveTab('beranda');
     localStorage.removeItem('supabase.auth.token');
+    localStorage.removeItem('mock_session_v1');
   };
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);

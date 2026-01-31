@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ChevronRight, Plus, Trash2 } from 'lucide-react';
 
 interface TambahKelasViewProps {
@@ -8,6 +8,7 @@ interface TambahKelasViewProps {
     teachers: any[];
     students: any[];
     setShowAddClassModal: (show: boolean) => void;
+    setConfirmModal: (modal: any) => void;
 }
 
 const TambahKelasView: React.FC<TambahKelasViewProps> = ({
@@ -16,8 +17,10 @@ const TambahKelasView: React.FC<TambahKelasViewProps> = ({
     setClasses,
     teachers,
     students,
-    setShowAddClassModal
+    setShowAddClassModal,
+    setConfirmModal
 }) => {
+    const [pageSize, setPageSize] = useState(6);
 
     const derivedClasses = useMemo(() => {
         return classes.map(cls => {
@@ -35,9 +38,16 @@ const TambahKelasView: React.FC<TambahKelasViewProps> = ({
     }, [classes, teachers, students]);
 
     const handleDeleteClass = (id: number) => {
-        if (confirm("Hapus kelas ini?")) {
-            setClasses(classes.filter(c => c.id !== id));
-        }
+        const classToDelete = classes.find(c => c.id === id);
+        setConfirmModal({
+            show: true,
+            message: `Apakah Anda yakin ingin menghapus kelas ${classToDelete?.nama}? Data yang terkait dengan kelas ini mungkin akan terdampak.`,
+            onConfirm: () => {
+                setClasses(classes.filter(c => c.id !== id));
+                setConfirmModal({ show: false, message: '', onConfirm: () => { } });
+                import('react-hot-toast').then(m => m.toast.success("Kelas berhasil dihapus"));
+            }
+        });
     };
 
     return (
@@ -61,23 +71,26 @@ const TambahKelasView: React.FC<TambahKelasViewProps> = ({
                         </tr>
                     </thead>
                     <tbody>
-                        {derivedClasses.sort((a: any, b: any) => a.tingkat - b.tingkat).map((cls: any, index: number) => (
-                            <tr key={cls.id} className="border-b border-slate-50 hover:bg-slate-50/50">
-                                <td className="p-3 text-center text-slate-500 border-r border-slate-50">{index + 1}</td>
-                                <td className="p-3 font-bold text-slate-700 border-r border-slate-50">{cls.nama}</td>
-                                <td className="p-3 text-slate-600 border-r border-slate-50">{cls.tingkat}</td>
-                                <td className="p-3 text-slate-600 border-r border-slate-50">{cls.paralel}</td>
-                                <td className="p-3 text-center">
-                                    <button
-                                        onClick={() => handleDeleteClass(cls.id)}
-                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                        title="Hapus Kelas"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                        {derivedClasses
+                            .sort((a: any, b: any) => a.tingkat - b.tingkat)
+                            .slice(0, pageSize)
+                            .map((cls: any, index: number) => (
+                                <tr key={cls.id} className="border-b border-slate-50 hover:bg-slate-50/50">
+                                    <td className="p-3 text-center text-slate-500 border-r border-slate-50">{index + 1}</td>
+                                    <td className="p-3 font-bold text-slate-700 border-r border-slate-50">{cls.nama}</td>
+                                    <td className="p-3 text-slate-600 border-r border-slate-50">{cls.tingkat}</td>
+                                    <td className="p-3 text-slate-600 border-r border-slate-50">{cls.paralel}</td>
+                                    <td className="p-3 text-center">
+                                        <button
+                                            onClick={() => handleDeleteClass(cls.id)}
+                                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="Hapus Kelas"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
                     </tbody>
                 </table>
             </div>
@@ -85,11 +98,15 @@ const TambahKelasView: React.FC<TambahKelasViewProps> = ({
             {/* Footer controls */}
             <div className="mt-4 flex justify-end items-center gap-4 text-sm text-slate-500">
                 <span>Pilih Jumlah terlihat</span>
-                <select className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer">
-                    <option>20</option>
-                    <option>30</option>
-                    <option>40</option>
-                    <option>50</option>
+                <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value))}
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
+                >
+                    <option value={6}>6</option>
+                    <option value={12}>12</option>
+                    <option value={24}>24</option>
+                    <option value={48}>48</option>
                 </select>
             </div>
         </div>
