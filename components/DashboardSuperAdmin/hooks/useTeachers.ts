@@ -324,17 +324,19 @@ export const useTeachers = () => {
                 dbStaff?.forEach(s => staffMap[s.employee_number] = s.id);
 
                 const updates: any[] = [];
-                const toAddManually: string[] = [];
+                const inserts: any[] = [];
 
                 unsyncedGuru.forEach(g => {
                     if (staffMap[g.nip]) {
                         updates.push({
                             id: staffMap[g.nip],
                             position: g.jabatan
-                            // Add more updateable fields if needed
                         });
                     } else {
-                        toAddManually.push(g.nama);
+                        inserts.push({
+                            employee_number: g.nip,
+                            position: g.jabatan
+                        });
                     }
                 });
 
@@ -345,6 +347,17 @@ export const useTeachers = () => {
                     }
                 }
 
+                // 2. Jalankan Inserts untuk Guru Baru
+                if (inserts.length > 0) {
+                    const { error: insertError } = await supabase.from('staff').insert(inserts);
+                    if (insertError) throw insertError;
+                }
+
+                // Refresh Staff Map for Homeroom Syncing
+                const { data: refreshedStaff } = await supabase.from('staff').select('id, employee_number');
+                const latestStaffMap: Record<string, string> = {};
+                refreshedStaff?.forEach(s => latestStaffMap[s.employee_number] = s.id);
+
                 // Sync Homeroom Teacher Assignments to 'classes' table
                 const { data: dbClasses } = await supabase.from('classes').select('id, name');
                 const classMap: Record<string, string> = {};
@@ -353,7 +366,7 @@ export const useTeachers = () => {
                 for (const g of teachers) {
                     if (g.wali && g.wali !== '-') {
                         const classId = classMap[g.wali];
-                        const teacherId = staffMap[g.nip] || (typeof g.id === 'string' ? g.id : null);
+                        const teacherId = latestStaffMap[g.nip] || (typeof g.id === 'string' ? g.id : null);
                         if (classId && teacherId) {
                             // First, clear this teacher from any other classes they might be a homeroom for
                             await supabase.from('classes').update({ homeroom_teacher_id: null }).eq('homeroom_teacher_id', teacherId);
@@ -361,15 +374,11 @@ export const useTeachers = () => {
                             await supabase.from('classes').update({ homeroom_teacher_id: teacherId }).eq('id', classId);
                         }
                     } else if (g.wali === '-') {
-                        const teacherId = staffMap[g.nip] || (typeof g.id === 'string' ? g.id : null);
+                        const teacherId = latestStaffMap[g.nip] || (typeof g.id === 'string' ? g.id : null);
                         if (teacherId) {
                             await supabase.from('classes').update({ homeroom_teacher_id: null }).eq('homeroom_teacher_id', teacherId);
                         }
                     }
-                }
-
-                if (toAddManually.length > 0) {
-                    toast(`${toAddManually.length} guru baru butuh ditambahkan manual (untuk Akun Login)`, { icon: '⚠️' });
                 }
 
                 // Cleanup & Refresh
