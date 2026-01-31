@@ -3420,7 +3420,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                     onChange={(e) => setNewTeacher({ ...newTeacher, jabatan: e.target.value })}
                                                     className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer"
                                                 >
-                                                    {positions.map(p => (
+                                                    {positions && positions.map(p => (
                                                         <option key={p.id} value={p.nama}>{p.nama}</option>
                                                     ))}
                                                 </select>
@@ -3434,7 +3434,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                     disabled={newTeacher.jabatan !== 'Guru Kelas' && newTeacher.jabatan !== 'Wali Kelas'}
                                                 >
                                                     <option value="">- Bukan Wali Kelas -</option>
-                                                    {classes.map(c => (
+                                                    {classes && classes.map(c => (
                                                         <option key={c.id} value={c.nama}>{c.nama}</option>
                                                     ))}
                                                 </select>

@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    ChevronRight, Download, UploadCloud, UserPlus, Save, Edit, Trash2
+    ChevronRight, Download, UploadCloud, UserPlus, Save, Edit, Trash2, Plus
 } from 'lucide-react';
 
 interface TeacherDataViewProps {
@@ -72,7 +72,7 @@ const TeacherDataView: React.FC<TeacherDataViewProps> = ({
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
-                        {teachers.map((guru, i) => (
+                        {teachers && teachers.map((guru, i) => (
                             <tr key={guru.id} className="hover:bg-green-50/50 transition-colors">
                                 <td className="p-4 text-center text-slate-500 font-medium">{i + 1}</td>
                                 <td className="p-4 font-bold text-slate-700">{guru.nama}</td>
@@ -88,7 +88,7 @@ const TeacherDataView: React.FC<TeacherDataViewProps> = ({
                                             setTeachers(newTeachers);
                                         }}
                                     >
-                                        {positions.map(p => (
+                                        {positions && positions.map(p => (
                                             <option key={p.id} value={p.nama}>{p.nama}</option>
                                         ))}
                                     </select>
