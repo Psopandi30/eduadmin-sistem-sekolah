@@ -60,10 +60,10 @@ export const useStudents = () => {
                     kelas: classObj?.name || '-',
                     tingkat: classObj?.grade_level || 1,
                     paralel: classObj?.name ? String(classObj.name).replace(/[0-9]/g, '') : '-',
-                    ayah: s.parent_name || '-',
-                    ibu: s.mother_name || '-',
-                    jobAyah: s.father_job || '-',
-                    jobIbu: s.mother_job || '-',
+                    ayah: s.parent_name || '',
+                    ibu: s.mother_name || '',
+                    jobAyah: s.father_job || '',
+                    jobIbu: s.mother_job || '',
                     username: s.nis,
                     gender: s.gender,
                     status: s.status
@@ -120,6 +120,10 @@ export const useStudents = () => {
                         nis: student.nis,
                         full_name: student.nama,
                         parent_name: student.ayah,
+                        mother_name: student.ibu,
+                        father_job: student.jobAyah,
+                        mother_job: student.jobIbu,
+                        birth_place: student.ttl?.split(',')[0]?.trim() || null,
                         class_id: classData?.id || null,
                         gender: student.gender || 'L',
                         status: 'active'
@@ -154,6 +158,9 @@ export const useStudents = () => {
                 if (updates.nama) dbUpdates.full_name = updates.nama;
                 if (updates.nis) dbUpdates.nis = updates.nis;
                 if (updates.ayah) dbUpdates.parent_name = updates.ayah;
+                if (updates.ibu) dbUpdates.mother_name = updates.ibu;
+                if (updates.jobAyah) dbUpdates.father_job = updates.jobAyah;
+                if (updates.jobIbu) dbUpdates.mother_job = updates.jobIbu;
                 if (updates.gender) dbUpdates.gender = updates.gender;
 
                 // If kelas changed, need to lookup class_id again
@@ -305,14 +312,16 @@ export const useStudents = () => {
                     const importedStudents: Student[] = data.slice(1).map((row, idx) => {
                         const tingkatVal = String(row[4] || '');
                         const paralelVal = String(row[6] || '');
-                        // If row[5] (KELAS) is just a number like '1', combine with paralel to get '1A'
+                        const nisVal = String(row[1] || row[11] || '').trim(); // Smart NIS detection
+                        const usernameVal = String(row[11] || row[1] || '').trim();
+
                         const kelasName = (row[5] && String(row[5]).length === 1)
                             ? `${row[5]}${paralelVal}`
                             : String(row[5] || `${tingkatVal}${paralelVal}`);
 
                         return {
                             id: `temp-${Date.now()}-${idx}`,
-                            nis: String(row[1] || ''),
+                            nis: nisVal,
                             nama: String(row[2] || ''),
                             ttl: String(row[3] || ''),
                             tingkat: parseInt(row[4]) || 1,
@@ -322,9 +331,9 @@ export const useStudents = () => {
                             ibu: String(row[8] || ''),
                             jobAyah: String(row[9] || ''),
                             jobIbu: String(row[10] || ''),
-                            username: String(row[11] || row[1] || ''),
+                            username: usernameVal,
                         };
-                    }).filter(s => s.nama);
+                    }).filter(s => s.nama && s.nis);
 
                     setStudents(prev => {
                         const existingNisMap = new Map(prev.map((s, i) => [s.nis, i]));

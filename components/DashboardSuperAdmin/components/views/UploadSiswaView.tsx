@@ -81,10 +81,10 @@ const UploadSiswaView: React.FC<UploadSiswaViewProps> = ({
                                 <td className="p-4"><span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">{siswa.kelas}</span></td>
                                 <td className="p-4 text-slate-600">Kelas {siswa.tingkat}</td>
                                 <td className="p-4 text-center font-bold text-[#1E1B4B]">{siswa.paralel}</td>
-                                <td className="p-4 text-slate-600">{siswa.ayah}</td>
-                                <td className="p-4 text-slate-600">{siswa.ibu}</td>
-                                <td className="p-4 text-slate-600">{siswa.jobAyah}</td>
-                                <td className="p-4 text-slate-600">{siswa.jobIbu}</td>
+                                <td className="p-4 text-slate-600">{siswa.ayah || '-'}</td>
+                                <td className="p-4 text-slate-600">{siswa.ibu || '-'}</td>
+                                <td className="p-4 text-slate-600">{siswa.jobAyah || '-'}</td>
+                                <td className="p-4 text-slate-600">{siswa.jobIbu || '-'}</td>
                                 <td className="p-4 flex items-center gap-2">
                                     <span className="font-mono text-xs bg-slate-100 px-2 py-1 rounded">{siswa.username}</span>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
