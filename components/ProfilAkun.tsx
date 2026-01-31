@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Camera, LogOut, Save, MapPin, Calendar, Edit2, UserCheck } from 'lucide-react';
+import { studentsDataGlobal } from '../data/sharedData';
 
 interface ProfilAkunProps {
     user: any;
@@ -8,13 +9,38 @@ interface ProfilAkunProps {
 }
 
 const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
+    // Helper: Find actual student data
+    const getStudentData = () => {
+        let foundStudent = null;
+        // 1. Try Local Storage (most up-to-date)
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('students_data_v2');
+            if (saved) {
+                try {
+                    const students = JSON.parse(saved);
+                    foundStudent = students.find((s: any) => s.nama === user?.studentName);
+                } catch (e) { console.error("Error parsing students data", e); }
+            }
+        }
+        // 2. Fallback to Global Data
+        if (!foundStudent) {
+            foundStudent = studentsDataGlobal.find(s => s.nama === user?.studentName);
+        }
+        return foundStudent;
+    };
+
+    const studentData = getStudentData();
+
     // Mock State for Profile Data
     // Fix: Sync with actual User Data
     const [namaAyah, setNamaAyah] = useState(user?.nama || user?.namaAyah || 'Budi Santoso');
-    const [namaIbu, setNamaIbu] = useState(user?.namaIbu || 'Siti Aminah');
+    // Fix: Sync Mother's Name from Student Data
+    const [namaIbu, setNamaIbu] = useState(studentData?.namaIbu || user?.namaIbu || 'Siti Aminah');
     const [namaAnak, setNamaAnak] = useState(user?.studentName || 'Ananda Tercinta');
-    const [tempatLahir, setTempatLahir] = useState('Samarinda');
-    const [tanggalLahir, setTanggalLahir] = useState('2015-05-20');
+
+    // Fix: Sync Birth Details from Student Data
+    const [tempatLahir, setTempatLahir] = useState(studentData?.tempatLahir || 'Samarinda');
+    const [tanggalLahir, setTanggalLahir] = useState(studentData?.tanggalLahir || '2015-05-20');
 
     // Photo State
     const [previewUrl, setPreviewUrl] = useState<string | null>(user?.avatar || null);
