@@ -61,9 +61,9 @@ export const useStudents = () => {
                     tingkat: classObj?.grade_level || 1,
                     paralel: classObj?.name ? String(classObj.name).replace(/[0-9]/g, '') : '-',
                     ayah: s.parent_name || '-',
-                    ibu: '-',
-                    jobAyah: '-',
-                    jobIbu: '-',
+                    ibu: s.mother_name || '-',
+                    jobAyah: s.father_job || '-',
+                    jobIbu: s.mother_job || '-',
                     username: s.nis,
                     gender: s.gender,
                     status: s.status
@@ -326,7 +326,23 @@ export const useStudents = () => {
                         };
                     }).filter(s => s.nama);
 
-                    setStudents(prev => [...prev, ...importedStudents]);
+                    setStudents(prev => {
+                        const existingNisMap = new Map(prev.map((s, i) => [s.nis, i]));
+                        const newStudents = [...prev];
+
+                        importedStudents.forEach(imported => {
+                            if (existingNisMap.has(imported.nis)) {
+                                const idx = existingNisMap.get(imported.nis)!;
+                                // Keep the original ID if it was a UUID, but update data
+                                const originalId = newStudents[idx].id;
+                                newStudents[idx] = { ...imported, id: originalId };
+                            } else {
+                                newStudents.push(imported);
+                            }
+                        });
+                        return newStudents;
+                    });
+
                     toast.success(`${importedStudents.length} data siswa berhasil diimpor (Lokal)`);
                     toast("Klik 'Simpan' untuk menyimpan permanen ke database.", { icon: 'ℹ️' });
                 } catch (err) {
@@ -384,6 +400,9 @@ export const useStudents = () => {
                         nis: s.nis,
                         full_name: s.nama,
                         parent_name: s.ayah,
+                        mother_name: s.ibu,
+                        father_job: s.jobAyah,
+                        mother_job: s.jobIbu,
                         class_id: classMap[s.kelas] || null,
                         birth_place: bPlace || null,
                         birth_date: bDate || null,
