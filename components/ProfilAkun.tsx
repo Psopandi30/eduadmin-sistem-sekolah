@@ -35,12 +35,25 @@ const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
     // Fix: Sync with actual User Data
     const [namaAyah, setNamaAyah] = useState(user?.nama || user?.namaAyah || 'Budi Santoso');
     // Fix: Sync Mother's Name from Student Data
-    const [namaIbu, setNamaIbu] = useState(studentData?.namaIbu || user?.namaIbu || 'Siti Aminah');
+    const [namaIbu, setNamaIbu] = useState(studentData?.ibu || user?.namaIbu || 'Siti Aminah');
     const [namaAnak, setNamaAnak] = useState(user?.studentName || 'Ananda Tercinta');
 
     // Fix: Sync Birth Details from Student Data
-    const [tempatLahir, setTempatLahir] = useState(studentData?.tempatLahir || 'Samarinda');
-    const [tanggalLahir, setTanggalLahir] = useState(studentData?.tanggalLahir || '2015-05-20');
+    const [tempatLahir, setTempatLahir] = useState(() => {
+        if (studentData?.ttl) return studentData.ttl.split(',')[0].trim();
+        return 'Samarinda';
+    });
+    const [tanggalLahir, setTanggalLahir] = useState(() => {
+        if (studentData?.ttl) {
+            const parts = studentData.ttl.split(',');
+            if (parts.length > 1) {
+                const datePart = parts[1].trim();
+                const dmy = datePart.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+                if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+            }
+        }
+        return '2015-05-20';
+    });
 
     // Photo State
     const [previewUrl, setPreviewUrl] = useState<string | null>(user?.avatar || null);
