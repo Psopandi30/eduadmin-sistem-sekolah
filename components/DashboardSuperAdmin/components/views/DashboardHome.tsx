@@ -19,10 +19,19 @@ import { checkSupabaseConnection, isSupabaseConfigured } from '../../../../src/l
 
 interface DashboardHomeProps {
     students: any[];
+    teachers: any[];
+    classes: any[];
+    attendanceData: any[];
     setActiveView: (view: string) => void;
 }
 
-const DashboardHome: React.FC<DashboardHomeProps> = ({ students, setActiveView }) => {
+const DashboardHome: React.FC<DashboardHomeProps> = ({
+    students,
+    teachers,
+    classes,
+    attendanceData,
+    setActiveView
+}) => {
     const [dbStatus, setDbStatus] = React.useState<{ success: boolean, message: string } | null>(null);
 
     React.useEffect(() => {
@@ -32,6 +41,15 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ students, setActiveView }
         };
         check();
     }, []);
+
+    // Calculate Today's Attendance
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayAttendance = attendanceData?.filter(a => a.date === todayStr) || [];
+    const presentCount = todayAttendance.filter(a => a.status === 'H').length;
+    const attendancePercentage = students.length > 0
+        ? Math.round((presentCount / students.length) * 100)
+        : 0;
+
     return (
         <div className="animate-in fade-in space-y-4 h-full overflow-y-auto pr-2 custom-scrollbar">
             {/* Status Bar */}
@@ -68,7 +86,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ students, setActiveView }
                         <div className="p-1.5 bg-white rounded-lg shadow-sm text-indigo-500 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-colors"><UserCog size={18} /></div>
                     </div>
                     <div className="flex items-end gap-2">
-                        <span className="text-3xl font-bold text-slate-800 tracking-tight">{teachersDataGlobal?.length || 0}</span>
+                        <span className="text-3xl font-bold text-slate-800 tracking-tight">{teachers?.length || 0}</span>
                         <p className="text-xs text-slate-400 mb-1 font-medium">Pengajar</p>
                     </div>
                 </div>
@@ -80,7 +98,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ students, setActiveView }
                         <div className="p-1.5 bg-white rounded-lg shadow-sm text-orange-500 group-hover:text-orange-600 group-hover:bg-orange-50 transition-colors"><School size={18} /></div>
                     </div>
                     <div className="flex items-end gap-2">
-                        <span className="text-3xl font-bold text-slate-800 tracking-tight">{classesDataGlobal?.length || 0}</span>
+                        <span className="text-3xl font-bold text-slate-800 tracking-tight">{classes?.length || 0}</span>
                         <p className="text-xs text-slate-400 mb-1 font-medium">Rombel</p>
                     </div>
                 </div>
@@ -92,7 +110,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ students, setActiveView }
                         <div className="p-1.5 bg-white rounded-lg shadow-sm text-emerald-500 group-hover:text-emerald-600 group-hover:bg-emerald-50 transition-colors"><UserCheck size={18} /></div>
                     </div>
                     <div className="flex items-end gap-2">
-                        <span className="text-3xl font-bold text-slate-800 tracking-tight">0%</span>
+                        <span className="text-3xl font-bold text-slate-800 tracking-tight">{attendancePercentage}%</span>
                         <p className="text-xs text-slate-400 mb-1 font-medium">Hadir Hari Ini</p>
                     </div>
                 </div>
