@@ -27,8 +27,8 @@ export const useTeachers = () => {
     const [loading, setLoading] = useState(false);
     const [isInitialFetched, setIsInitialFetched] = useState(false);
 
-    const fetchTeachers = useCallback(async () => {
-        if (isInitialFetched) return;
+    const fetchTeachers = useCallback(async (force = false) => {
+        if (isInitialFetched && !force) return;
         if (!isSupabaseConfigured()) {
             setIsInitialFetched(true);
             return;
@@ -48,14 +48,14 @@ export const useTeachers = () => {
 
             if (error) throw error;
 
-            if (data && data.length > 0) {
+            if (data) {
                 const mappedData: Teacher[] = data.map(s => {
                     const profile = (s.profiles as any);
                     const homeroomClass = (s.classes as any)?.[0]?.name || '-';
                     return {
                         id: s.id,
                         nip: s.employee_number,
-                        nama: profile?.full_name || 'Tanpa Nama',
+                        nama: profile?.full_name || '-',
                         jabatan: s.position,
                         mapel: '-',
                         wali: homeroomClass,
@@ -64,13 +64,7 @@ export const useTeachers = () => {
                     };
                 });
 
-                setTeachers(prev => {
-                    const dbNips = new Set(mappedData.map(m => m.nip));
-                    const localUnsaved = prev.filter(p =>
-                        String(p.id).startsWith('temp-') && !dbNips.has(p.nip)
-                    );
-                    return [...mappedData, ...localUnsaved];
-                });
+                setTeachers(mappedData);
                 localStorage.setItem('teachers_data_v10', JSON.stringify(mappedData));
             }
             setIsInitialFetched(true);
@@ -80,7 +74,7 @@ export const useTeachers = () => {
             setLoading(false);
             setIsInitialFetched(true);
         }
-    }, []); // Removed isInitialFetched dependency to allow manual refresh
+    }, [isInitialFetched]);
 
     useEffect(() => {
         if (!isInitialFetched) {
@@ -101,21 +95,14 @@ export const useTeachers = () => {
         if (isSupabaseConfigured()) {
             return toast.promise(
                 (async () => {
-                    // 1. Create Auth User
-                    // Note: In a real app, you should use supabase.auth.admin.createUser (server-side)
-                    // or have a separate registration flow. 
-                    // To make this work client-side for "fixing data", we try signUp (might auto-login, which is risky)
-                    // OR check if we can insert profile directly? No, FK exists.
-                    // So we MUST signUp.
-
-                    const email = `${newTeacher.username}@sekolah.id`.toLowerCase();
+                    const email = `${newTeacher.username.trim()}@sekolah.id`.toLowerCase();
                     const password = newTeacher.password || '12345678';
 
                     const { data: authData, error: authError } = await supabase.auth.signUp({
                         email,
                         password,
                         options: {
-                            data: { full_name: newTeacher.nama, role: 'gb' } // Role: Guru ('gb')
+                            data: { full_name: newTeacher.nama.trim(), role: 'gb' }
                         }
                     });
 
@@ -124,43 +111,31 @@ export const useTeachers = () => {
 
                     const userId = authData.user.id;
 
-                    // 2. Insert Profile (might be unnecessary if trigger exists, but safe to try/upsert)
-                    // Schema usually creates profile on auth trigger, check schema... 
-                    // Schema doesn't show trigger for "on auth user created" -> insert profile.
-                    // So we must insert manually.
-
                     const { error: profileError } = await supabase
                         .from('profiles')
                         .insert({
                             id: userId,
                             email,
-                            full_name: newTeacher.nama,
+                            full_name: newTeacher.nama.trim(),
                             role: 'gb',
                             is_active: true
                         });
 
-                    if (profileError) {
-                        // If trigger already created it, we might get duplicate error, so let's try update/upsert?
-                        // But standard simple insert.
-                        if (!profileError.message.includes('duplicate')) throw profileError;
-                    }
+                    if (profileError && !profileError.message.includes('duplicate')) throw profileError;
 
-                    // 3. Insert Staff
                     const { data: staffData, error: staffError } = await supabase
                         .from('staff')
                         .insert({
                             profile_id: userId,
-                            employee_number: newTeacher.nip,
+                            employee_number: newTeacher.nip.trim(),
                             position: newTeacher.jabatan,
-                            // Add other fields if needed
                         })
                         .select()
                         .single();
 
                     if (staffError) throw new Error(`Staff Insert Error: ${staffError.message}`);
 
-                    // 4. Update local state
-                    const createdTeacher = { ...newTeacher, id: staffData.id };
+                    const createdTeacher = { ...newTeacher, id: staffData.id, nama: newTeacher.nama.trim(), nip: newTeacher.nip.trim() };
                     setTeachers(prev => [createdTeacher, ...prev]);
                     return createdTeacher;
                 })(),
@@ -178,13 +153,6 @@ export const useTeachers = () => {
 
     const deleteTeacher = async (id: string | number) => {
         if (isSupabaseConfigured() && typeof id === 'string') {
-            // If ID is string (UUID), it's likely from Supabase.
-            // We need to delete from 'staff'. Profile delete? 
-            // Staff has ON DELETE CASCADE from profile? No, Profile -> Staff. 
-            // Deleting Staff row is enough, but user/profile remains. 
-            // For cleanup, we ideally delete the User. Client can't delete User usually.
-            // We will delete 'staff' record.
-
             try {
                 const { error } = await supabase.from('staff').delete().eq('id', id);
                 if (error) throw error;
@@ -194,7 +162,6 @@ export const useTeachers = () => {
                 toast.error(`Gagal menghapus: ${err.message}`);
             }
         } else {
-            // Local fallback
             setTeachers(prev => prev.filter(t => t.id !== id));
             toast.success("Data guru dihapus (Lokal)");
         }
@@ -202,21 +169,24 @@ export const useTeachers = () => {
 
     const updateTeacher = async (id: string | number, updates: Partial<Teacher>) => {
         if (isSupabaseConfigured() && typeof id === 'string') {
-            // Implementing basic update for position/NIP
             try {
+                const staffPayload: any = {};
+                if (updates.nip) staffPayload.employee_number = updates.nip.trim();
+                if (updates.jabatan) staffPayload.position = updates.jabatan;
+
                 const { error } = await supabase
                     .from('staff')
-                    .update({
-                        employee_number: updates.nip,
-                        position: updates.jabatan
-                    })
+                    .update(staffPayload)
                     .eq('id', id);
 
                 if (error) throw error;
 
-                // If name changed, update profile? 
-                // Need profile_id from staff...
-                // This is complex without proper join in fetch, but let's assume simple staff update for now.
+                if (updates.nama) {
+                    const { data: sData } = await supabase.from('staff').select('profile_id').eq('id', id).single();
+                    if (sData?.profile_id) {
+                        await supabase.from('profiles').update({ full_name: updates.nama.trim() }).eq('id', sData.profile_id);
+                    }
+                }
 
                 setTeachers(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
                 toast.success("Data guru diperbarui");
@@ -270,14 +240,13 @@ export const useTeachers = () => {
                         return;
                     }
 
-                    // Headers: No, Nama Lengkap, NIP, Jabatan, Wali Kelas, Username, password
                     const importedTeachers: Teacher[] = data.slice(1).map((row, idx) => ({
                         id: `temp-guru-${Date.now()}-${idx}`,
-                        nama: String(row[1] || ''),
-                        nip: String(row[2] || ''),
+                        nama: String(row[1] || '').trim(),
+                        nip: String(row[2] || '').trim(),
                         jabatan: String(row[3] || 'Guru Mata Pelajaran'),
                         wali: String(row[4] || '-'),
-                        username: String(row[5] || ''),
+                        username: String(row[5] || '').trim(),
                         password: String(row[6] || 'guru123'),
                         mapel: '-'
                     })).filter(t => t.nama);
@@ -287,7 +256,6 @@ export const useTeachers = () => {
                         importedTeachers.forEach(imp => {
                             const index = newTeachers.findIndex(t => t.nip === imp.nip);
                             if (index >= 0) {
-                                // Update existing data but keep the original ID to maintain sync state
                                 newTeachers[index] = { ...newTeachers[index], ...imp, id: newTeachers[index].id };
                             } else {
                                 newTeachers.push(imp);
@@ -314,7 +282,6 @@ export const useTeachers = () => {
             return;
         }
 
-        // Ingin menyinkronkan semua data yang ada di state dengan DB
         const allTeachersToSync = teachers;
         if (allTeachersToSync.length === 0) {
             toast("Tidak ada data guru untuk disinkron", { icon: 'ℹ️' });
@@ -323,18 +290,11 @@ export const useTeachers = () => {
 
         toast.promise(
             (async () => {
-                // For teachers, we need to create profiles/auth or update existing staff
-                // Since bulk user creation is complex via client API, 
-                // we'll focus on updating STAFF info if NIP already exists.
-                // If NIP doesn't exist, it currently requires manual 'Add Teacher' to handle auth.
-
                 const { data: dbStaff } = await supabase.from('staff').select('id, employee_number');
                 const staffMap: Record<string, string> = {};
                 dbStaff?.forEach(s => staffMap[s.employee_number] = s.id);
 
-                // Initial map for existing staff
                 const latestStaffMap: Record<string, string> = { ...staffMap };
-
                 const updates: any[] = [];
                 const inserts: any[] = [];
 
@@ -343,13 +303,13 @@ export const useTeachers = () => {
                         updates.push({
                             id: staffMap[g.nip],
                             position: g.jabatan,
-                            nama: g.nama
+                            nama: g.nama.trim()
                         });
                     } else {
                         inserts.push({
-                            employee_number: g.nip,
+                            employee_number: g.nip.trim(),
                             position: g.jabatan,
-                            nama: g.nama // Store temp name to sync later
+                            nama_temp: g.nama.trim() // Temp storage for sync
                         });
                     }
                 });
@@ -359,8 +319,7 @@ export const useTeachers = () => {
                         const { id, position, nama } = up;
                         await supabase.from('staff').update({ position }).eq('id', id);
 
-                        // Sync Nama ke Profile
-                        if (nama && nama !== 'Guru Baru') {
+                        if (nama) {
                             const { data: sData } = await supabase.from('staff').select('profile_id').eq('id', id).single();
                             if (sData?.profile_id) {
                                 await supabase.from('profiles').update({ full_name: nama }).eq('id', sData.profile_id);
@@ -369,28 +328,25 @@ export const useTeachers = () => {
                     }
                 }
 
-                // 2. Jalankan Inserts untuk Guru Baru
                 if (inserts.length > 0) {
-                    const { error: insertError } = await supabase.from('staff').insert(inserts);
+                    // Stripping nama_temp before insert to staff table
+                    const staffInserts = inserts.map(({ employee_number, position }) => ({ employee_number, position }));
+                    const { error: insertError } = await supabase.from('staff').insert(staffInserts);
                     if (insertError) throw insertError;
 
-                    // Sync Nama Guru Baru ke Profile yang dibuat otomatis
                     for (const ins of inserts) {
-                        if (ins.nama && ins.nama !== 'Guru Baru') {
+                        if (ins.nama_temp) {
                             const { data: pData } = await supabase.from('profiles').select('id').eq('email', ins.employee_number + '@sekolah.id').single();
                             if (pData) {
-                                await supabase.from('profiles').update({ full_name: ins.nama }).eq('id', pData.id);
+                                await supabase.from('profiles').update({ full_name: ins.nama_temp }).eq('id', pData.id);
                             }
                         }
                     }
                 }
 
-                // Refresh Staff Map for Homeroom Syncing
                 const { data: refreshedStaff } = await supabase.from('staff').select('id, employee_number');
-                // Use a local copy instead of redefining const if possible, or just update the one we moved up
                 refreshedStaff?.forEach(s => latestStaffMap[s.employee_number] = s.id);
 
-                // Sync Homeroom Teacher Assignments to 'classes' table
                 const { data: dbClasses } = await supabase.from('classes').select('id, name');
                 const classMap: Record<string, string> = {};
                 dbClasses?.forEach(c => classMap[c.name] = c.id);
@@ -400,9 +356,7 @@ export const useTeachers = () => {
                         const classId = classMap[g.wali];
                         const teacherId = latestStaffMap[g.nip] || (typeof g.id === 'string' ? g.id : null);
                         if (classId && teacherId) {
-                            // First, clear this teacher from any other classes they might be a homeroom for
                             await supabase.from('classes').update({ homeroom_teacher_id: null }).eq('homeroom_teacher_id', teacherId);
-                            // Then assign to new class
                             await supabase.from('classes').update({ homeroom_teacher_id: teacherId }).eq('id', classId);
                         }
                     } else if (g.wali === '-') {
@@ -413,14 +367,13 @@ export const useTeachers = () => {
                     }
                 }
 
-                // Cleanup & Refresh
-                await fetchTeachers();
+                await fetchTeachers(true); // Forced refresh
                 return true;
             })(),
             {
                 loading: 'Menyelaraskan data guru...',
                 success: 'Sinkronisasi guru selesai!',
-                error: (err) => `Gagal: ${err.message}`
+                error: (err) => `Gagal Sinkron: ${err.message}`
             }
         );
     }, [teachers, fetchTeachers]);
