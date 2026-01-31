@@ -9,9 +9,10 @@ interface ProfilAkunProps {
 
 const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
     // Mock State for Profile Data
-    const [namaAyah, setNamaAyah] = useState(user?.namaAyah || 'Budi Santoso');
+    // Fix: Sync with actual User Data
+    const [namaAyah, setNamaAyah] = useState(user?.nama || user?.namaAyah || 'Budi Santoso');
     const [namaIbu, setNamaIbu] = useState(user?.namaIbu || 'Siti Aminah');
-    const [namaAnak, setNamaAnak] = useState('Ananda Tercinta'); // Hardcoded based on dashboard header
+    const [namaAnak, setNamaAnak] = useState(user?.studentName || 'Ananda Tercinta');
     const [tempatLahir, setTempatLahir] = useState('Samarinda');
     const [tanggalLahir, setTanggalLahir] = useState('2015-05-20');
 
