@@ -84,7 +84,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
 
             const studentAccount = studentsSource.find((s: any) => s.nis === username || s.username === username);
 
-            if (studentAccount && (password === studentAccount.nis || password === '123456' || password === 'ortu123')) {
+            if (studentAccount && (password === studentAccount.password || password === studentAccount.nis || password === '123456' || password === 'ortu123')) {
                 // Cari info Wali
                 const classInfo = classesSource.find((c: any) => c.nama === studentAccount.kelas);
                 const waliName = classInfo ? classInfo.wali : "Guru Wali";
