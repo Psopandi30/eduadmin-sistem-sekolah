@@ -65,6 +65,7 @@ export const useStudents = () => {
                     jobAyah: s.father_job || '',
                     jobIbu: s.mother_job || '',
                     username: s.nis,
+                    password: s.password || s.nis, // Use stored password or fallback to NIS
                     gender: s.gender,
                     status: s.status
                 };
@@ -402,8 +403,15 @@ export const useStudents = () => {
                         const parts = s.ttl.split(',');
                         bPlace = parts[0].trim();
                         const datePart = parts[1].trim();
+                        // Support both DD-MM-YYYY and YYYY-MM-DD
                         const dateMatch = datePart.match(/(\d{2})-(\d{2})-(\d{4})/);
-                        if (dateMatch) bDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+                        const isoMatch = datePart.match(/(\d{4})-(\d{2})-(\d{2})/);
+
+                        if (dateMatch) {
+                            bDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+                        } else if (isoMatch) {
+                            bDate = datePart;
+                        }
                     }
 
                     const payload = {
@@ -417,7 +425,8 @@ export const useStudents = () => {
                         birth_place: bPlace || null,
                         birth_date: bDate || null,
                         gender: s.gender || 'L',
-                        status: 'active'
+                        status: 'active',
+                        password: s.password || s.nis // Add password field to sync
                     };
 
                     if (existingMap[s.nis]) {

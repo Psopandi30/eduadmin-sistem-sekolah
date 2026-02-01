@@ -50,7 +50,46 @@ export const updateMultimediaSettingsGlobal = (newSettings: any) => {
 };
 
 // --- 2. DATA SISWA & ORANG TUA (MASTER) ---
-export let studentsDataGlobal: any[] = [];
+// Default data as fallback if localStorage is cleared
+export let studentsDataGlobal: any[] = [
+    {
+        id: 2024004,
+        nis: "2024004",
+        username: "2024004",
+        password: "2024004",
+        nama: "Nurul Hidayah",
+        kelas: "1A",
+        ayah: "Bapak Muhammad",
+        ibu: "Ibu Muhammad",
+        ttl: "Bandung, 2012-01-12"
+    },
+    {
+        id: 2024005,
+        nis: "2024005",
+        username: "2024005",
+        password: "2024005",
+        nama: "Andi Pratama",
+        kelas: "1A",
+        ayah: "Bapak Nurul",
+        ibu: "Ibu Nurul",
+        ttl: "Bandung, 2012-01-12"
+    },
+    {
+        id: 2024008,
+        nis: "2024008",
+        username: "2024008",
+        password: "2024008",
+        nama: "Siswa Delapan",
+        kelas: "1B",
+        ayah: "Bapak Dewi",
+        ibu: "Ibu Dewi",
+        ttl: "Bandung, 2012-01-12"
+    }
+];
+
+export const updateStudentsGlobal = (newData: any[]) => {
+    studentsDataGlobal = newData;
+};
 
 export const addStudent = (student: any) => {
     studentsDataGlobal = [...studentsDataGlobal, student];
