@@ -84,7 +84,19 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
 
             const studentAccount = studentsSource.find((s: any) => s.nis === username || s.username === username);
 
+            console.log('🔍 Login Debug:');
+            console.log('Username entered:', username);
+            console.log('Password entered:', password);
+            console.log('Student account found:', studentAccount);
+            if (studentAccount) {
+                console.log('Student NIS:', studentAccount.nis);
+                console.log('Student password from DB:', studentAccount.password);
+                console.log('Password matches DB?', password === studentAccount.password);
+                console.log('Password matches NIS?', password === studentAccount.nis);
+            }
+
             if (studentAccount && (password === studentAccount.password || password === studentAccount.nis || password === '123456' || password === 'ortu123')) {
+                console.log('✅ Login successful for student:', studentAccount.nama);
                 // Cari info Wali
                 const classInfo = classesSource.find((c: any) => c.nama === studentAccount.kelas);
                 const waliName = classInfo ? classInfo.wali : "Guru Wali";
