@@ -77,7 +77,7 @@ const MataPelajaranView: React.FC<MataPelajaranViewProps> = ({
                             {Array.isArray(teacherAssignments) && teacherAssignments.map((assign, i) => {
                                 const guru = Array.isArray(teachers) ? teachers.find(t => t.id.toString() === assign.teacherId.toString()) : null;
                                 const mapelNames = (Array.isArray(assign.subjectIds) && Array.isArray(subjects))
-                                    ? assign.subjectIds.map((sid: any) => subjects.find(s => s.id === sid)?.name).filter(Boolean).join(', ')
+                                    ? assign.subjectIds.map((sid: any) => subjects.find(s => s.id.toString() === sid.toString())?.name).filter(Boolean).join(', ')
                                     : '-';
 
                                 return (

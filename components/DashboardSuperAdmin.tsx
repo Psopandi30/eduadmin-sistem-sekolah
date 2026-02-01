@@ -191,6 +191,14 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         localStorage.setItem('teacher_assignments_v2', JSON.stringify(teacherAssignments));
     }, [teacherAssignments]);
     const [showPlottingModal, setShowPlottingModal] = useState(false);
+    useEffect(() => {
+        if (!showPlottingModal) {
+            setPlottingTeacherId('');
+            setPlottingClassNama('');
+            setPlottingSubjectIds([]);
+            setPlottingNip('');
+        }
+    }, [showPlottingModal]);
     const [showPositionModal, setShowPositionModal] = useState(false);
     const {
         teachers,
@@ -204,6 +212,10 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     } = useTeachers();
     const [newTeacher, setNewTeacher] = useState({ nama: '', nip: '', jabatan: 'Guru Mata Pelajaran', mapel: '', class: '' });
     const [showTeacherModal, setShowTeacherModal] = useState(false);
+    const [plottingTeacherId, setPlottingTeacherId] = useState('');
+    const [plottingClassNama, setPlottingClassNama] = useState('');
+    const [plottingSubjectIds, setPlottingSubjectIds] = useState<any[]>([]);
+    const [plottingNip, setPlottingNip] = useState('');
 
     const { classes, setClasses, showAddClassModal, setShowAddClassModal, handleAddClass, handleDeleteClass, handleSaveClasses } = useClasses();
 
@@ -3744,18 +3756,12 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                     </div>
                                     <form onSubmit={(e) => {
                                         e.preventDefault();
-                                        const form = e.target as HTMLFormElement;
-                                        const teacherId = (form.elements.namedItem('teacherId') as HTMLSelectElement).value;
-                                        const classNama = (form.elements.namedItem('classNama') as HTMLSelectElement).value;
-                                        const mapelOptions = (form.elements.namedItem('mapelIds') as HTMLSelectElement).selectedOptions;
-                                        const subjectIds = Array.from(mapelOptions).map(opt => parseInt(opt.value));
-
-                                        if (teacherId && classNama && subjectIds.length > 0) {
+                                        if (plottingTeacherId && plottingClassNama && plottingSubjectIds.length > 0) {
                                             setTeacherAssignments([...teacherAssignments, {
                                                 id: Date.now(),
-                                                teacherId,
-                                                classNama,
-                                                subjectIds
+                                                teacherId: plottingTeacherId,
+                                                classNama: plottingClassNama,
+                                                subjectIds: plottingSubjectIds
                                             }]);
                                             setShowPlottingModal(false);
                                         } else {
@@ -3764,39 +3770,65 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                     }} className="space-y-4">
                                         <div>
                                             <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Nama Guru</label>
-                                            <select name="teacherId" required className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer"
+                                            <select
+                                                name="teacherId"
+                                                required
+                                                className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer"
+                                                value={plottingTeacherId}
                                                 onChange={(e) => {
                                                     const tid = e.target.value;
+                                                    setPlottingTeacherId(tid);
                                                     const guru = teachers.find(t => t.id.toString() === tid);
-                                                    const nipInput = document.getElementById('plotting-nip') as HTMLInputElement;
-                                                    if (nipInput) nipInput.value = guru?.nip || '';
+                                                    setPlottingNip(guru?.nip || '');
                                                 }}
                                             >
                                                 <option value="">Pilih Guru</option>
                                                 {teachers.map(t => (
-                                                    <option key={t.id} value={t.id}>{t.nama} ({t.nip || '-'})</option>
+                                                    <option key={t.id.toString()} value={t.id.toString()}>{t.nama} ({t.nip || '-'})</option>
                                                 ))}
                                             </select>
                                         </div>
                                         <div>
                                             <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">NIP</label>
-                                            <input id="plotting-nip" readOnly className="w-full p-3 border border-slate-200 rounded-xl bg-slate-100 text-slate-500 cursor-not-allowed" placeholder="Otomatis terisi..." />
+                                            <input
+                                                value={plottingNip}
+                                                readOnly
+                                                className="w-full p-3 border border-slate-200 rounded-xl bg-slate-100 text-slate-500 cursor-not-allowed"
+                                                placeholder="Otomatis terisi..."
+                                            />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Untuk Kelas</label>
-                                            <select name="classNama" required className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer">
+                                            <select
+                                                name="classNama"
+                                                required
+                                                className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer"
+                                                value={plottingClassNama}
+                                                onChange={(e) => setPlottingClassNama(e.target.value)}
+                                            >
                                                 <option value="">Pilih Kelas</option>
                                                 {classes.map(c => (
-                                                    <option key={c.id} value={c.nama}>{c.nama}</option>
+                                                    <option key={c.id.toString()} value={c.nama}>{c.nama}</option>
                                                 ))}
 
                                             </select>
                                         </div>
                                         <div>
                                             <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Mata Pelajaran (Bisa Pilih Banyak: Tahan Ctrl)</label>
-                                            <select name="mapelIds" multiple required className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer h-32">
+                                            <select
+                                                name="mapelIds"
+                                                multiple
+                                                required
+                                                className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer h-32"
+                                                value={plottingSubjectIds.map(id => id.toString())}
+                                                onChange={(e) => {
+                                                    const options = Array.from(e.target.selectedOptions);
+                                                    const values = options.map(opt => opt.value);
+                                                    setPlottingSubjectIds(values);
+                                                }}
+                                            >
                                                 {subjects.map(s => (
-                                                    <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
+                                                    <option key={s.id.toString()} value={s.id.toString()}>{s.name} ({s.code})</option>
                                                 ))}
                                             </select>
                                             <p className="text-xs text-slate-400 mt-1 italic ml-1">*Tahan tombol Ctrl (Windows) atau Command (Mac) untuk memilih lebih dari satu.</p>
