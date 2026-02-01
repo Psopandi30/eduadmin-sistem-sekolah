@@ -1248,7 +1248,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
             if (typeof other.subjectId === 'string') return false;
             const otherAssignment = teacherAssignments.find(ta => ta.classNama === other.classId && ta.subjectIds.includes(other.subjectId as number));
 
-            return otherAssignment?.teacherId === assignment.teacherId;
+            return otherAssignment?.teacherId?.toString() === assignment.teacherId?.toString();
         });
     };
 
@@ -3745,7 +3745,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                     <form onSubmit={(e) => {
                                         e.preventDefault();
                                         const form = e.target as HTMLFormElement;
-                                        const teacherId = parseInt((form.elements.namedItem('teacherId') as HTMLSelectElement).value);
+                                        const teacherId = (form.elements.namedItem('teacherId') as HTMLSelectElement).value;
                                         const classNama = (form.elements.namedItem('classNama') as HTMLSelectElement).value;
                                         const mapelOptions = (form.elements.namedItem('mapelIds') as HTMLSelectElement).selectedOptions;
                                         const subjectIds = Array.from(mapelOptions).map(opt => parseInt(opt.value));
@@ -3766,10 +3766,10 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                             <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Nama Guru</label>
                                             <select name="teacherId" required className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer"
                                                 onChange={(e) => {
-                                                    const tid = parseInt(e.target.value);
-                                                    const guru = teachers.find(t => t.id === tid);
+                                                    const tid = e.target.value;
+                                                    const guru = teachers.find(t => t.id.toString() === tid);
                                                     const nipInput = document.getElementById('plotting-nip') as HTMLInputElement;
-                                                    if (nipInput && guru) nipInput.value = guru.nip;
+                                                    if (nipInput) nipInput.value = guru?.nip || '';
                                                 }}
                                             >
                                                 <option value="">Pilih Guru</option>

@@ -292,7 +292,7 @@ const JadwalPelajaranView: React.FC<JadwalPelajaranViewProps> = ({
                                                                 <div className={`text-[10px] ${conflict ? 'text-red-500' : 'text-blue-400'} mt-1 truncate`}>
                                                                     {(() => {
                                                                         const assign = teacherAssignments.find((ta: any) => ta.classNama === item.classId && ta.subjectIds.includes(item.subjectId as number));
-                                                                        return assign ? teachers.find((t: any) => t.id === assign.teacherId)?.nama : 'Belum ada guru';
+                                                                        return assign ? teachers.find((t: any) => t.id.toString() === assign.teacherId.toString())?.nama : 'Belum ada guru';
                                                                     })()}
                                                                 </div>
                                                             )}
