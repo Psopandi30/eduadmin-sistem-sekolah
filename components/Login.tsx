@@ -60,9 +60,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                     return;
                 }
             } catch (err: any) {
-                console.error("Auth error:", err);
-                setError(err.message || "Gagal melakukan login database");
-                setIsLoading(false);
+                console.warn("⚠️ Supabase auth failed, falling back to legacy login:", err.message);
+                // Fallback to legacy login if Supabase fails
+                handleLegacyLogin();
                 return;
             }
         } else {
