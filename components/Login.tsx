@@ -79,6 +79,10 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
             const localStudents = localStorage.getItem('students_data_v10');
             const studentsSource = localStudents ? JSON.parse(localStudents) : studentsDataGlobal;
 
+            console.log('📦 Students data source:', localStudents ? 'localStorage' : 'global');
+            console.log('📊 Total students:', studentsSource.length);
+            console.log('📋 First 3 students:', studentsSource.slice(0, 3));
+
             const localClasses = localStorage.getItem('classes_data_v10');
             const classesSource = localClasses ? JSON.parse(localClasses) : classesDataGlobal;
 
