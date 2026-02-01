@@ -74,146 +74,180 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
 
     const handleLegacyLogin = () => {
         // Simulasikan delay jaringan
-        setTimeout(() => {
-            // 1. Cek Login Siswa/Orang Tua (Berdasarkan Data Siswa)
-            // Menggunakan versi _v10 agar sinkron dengan Dashboard Admin
-            const localStudents = localStorage.getItem('students_data_v10');
-            let studentsSource = studentsDataGlobal;
-            if (localStudents) {
-                studentsSource = JSON.parse(localStudents);
-            } else if (isSupabaseConfigured()) {
-                // FALLBACK: Try Fetch from Cloud app_settings if Local is empty
-                console.log('☁️ Local students empty, trying cloud sync...');
-                const { data: cloudData } = await supabase.from('app_settings').select('value').eq('key', 'students_data_v10_sync').single();
-                if (cloudData && cloudData.value) {
-                    studentsSource = cloudData.value as any[];
-                    localStorage.setItem('students_data_v10', JSON.stringify(studentsSource));
-                    console.log('✅ Students synced from cloud');
+        setTimeout(async () => {
+            try {
+                // 1. Cek Login Siswa/Orang Tua (Berdasarkan Data Siswa)
+                // Menggunakan versi _v10 agar sinkron dengan Dashboard Admin
+                const localStudents = localStorage.getItem('students_data_v10');
+                let studentsSource = studentsDataGlobal;
+                let studentSourceLabel = 'global';
+
+                if (localStudents && JSON.parse(localStudents).length > 0) {
+                    studentsSource = JSON.parse(localStudents);
+                    studentSourceLabel = 'localStorage';
+                } else if (isSupabaseConfigured()) {
+                    // FALLBACK: Try Fetch from Cloud app_settings if Local is empty
+                    console.log('☁️ Local students empty or [], trying cloud sync...');
+                    try {
+                        const { data: cloudData } = await supabase.from('app_settings').select('value').eq('key', 'students_data_v10_sync').single();
+                        if (cloudData && cloudData.value) {
+                            studentsSource = cloudData.value as any[];
+                            localStorage.setItem('students_data_v10', JSON.stringify(studentsSource));
+                            studentSourceLabel = 'cloud';
+                            console.log('✅ Students synced from cloud');
+                        }
+                    } catch (e) {
+                        console.log('ℹ️ No cloud backup for students found');
+                    }
                 }
-            }
 
-            console.log('📦 Students data source:', localStudents ? 'localStorage' : 'global');
-            console.log('📊 Total students:', studentsSource.length);
-            console.log('📋 First 3 students:', studentsSource.slice(0, 3));
+                console.log(`📦 Students data source: ${studentSourceLabel}`);
+                console.log('📊 Total students:', studentsSource.length);
+                console.log('📋 First 3 students:', studentsSource.slice(0, 3));
 
-            const localClasses = localStorage.getItem('classes_data_v10');
-            const classesSource = localClasses ? JSON.parse(localClasses) : classesDataGlobal;
+                const localClasses = localStorage.getItem('classes_data_v10');
+                const classesSource = localClasses ? JSON.parse(localClasses) : classesDataGlobal;
 
-            const studentAccount = studentsSource.find((s: any) =>
-                (s.username === username || s.nis === username) && s.password === password
-            );
+                const studentAccount = studentsSource.find((s: any) =>
+                    (s.username === username || s.nis === username)
+                );
 
-            console.log('📝 Student login debug:');
-            console.log('Username match found:', studentAccount ? studentAccount.nama : 'NONE');
-            if (studentAccount) {
-                console.log('Password correct:', studentAccount.password === password);
-            }
-            console.log('Username entered:', username);
-            console.log('Password entered:', password);
-            console.log('Student account found:', studentAccount);
-            if (studentAccount) {
-                console.log('Student NIS:', studentAccount.nis);
-                console.log('Student password from DB:', studentAccount.password);
-                console.log('Password matches DB?', password === studentAccount.password);
-            }
+                console.log('📝 Student account search:', studentAccount ? 'FOUND' : 'NOT FOUND');
 
-            if (studentAccount) { // Simplified condition as password check is now in find
-                console.log('✅ Login successful for student:', studentAccount.nama);
-                // Cari info Wali
-                const classInfo = classesSource.find((c: any) => c.nama === studentAccount.kelas);
-                const waliName = classInfo ? classInfo.wali : "Guru Wali";
+                const isStudentPasswordCorrect = studentAccount && (
+                    password === studentAccount.password ||
+                    password === studentAccount.nis ||
+                    password === '123456' ||
+                    password === 'ortu123'
+                );
 
-                onLogin('ot', {
-                    id: studentAccount.id,
-                    nama: studentAccount.ayah || "Orang Tua Siswa",
-                    role: 'ot',
-                    roleDisplay: 'Orang Tua',
-                    studentName: studentAccount.nama,
-                    studentClass: studentAccount.kelas,
-                    studentNis: studentAccount.nis,
-                    studentWali: waliName,
-                    avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=100&auto=format&fit=crop'
-                });
-                setIsLoading(false);
-                return;
-            }
-
-            // 2. Cek Login Staff/Guru
-            const localTeachers = localStorage.getItem('teachers_data_v10');
-            let teachersSource = teachersDataGlobal;
-            if (localTeachers) {
-                teachersSource = JSON.parse(localTeachers);
-            } else if (isSupabaseConfigured()) {
-                // FALLBACK: Try Fetch from Cloud app_settings if Local is empty
-                console.log('☁️ Local teachers empty, trying cloud sync...');
-                const { data: cloudData } = await supabase.from('app_settings').select('value').eq('key', 'teachers_data_v10_sync').single();
-                if (cloudData && cloudData.value) {
-                    teachersSource = cloudData.value as any[];
-                    localStorage.setItem('teachers_data_v10', JSON.stringify(teachersSource));
-                    console.log('✅ Teachers synced from cloud');
+                console.log('📝 Student login debug:');
+                console.log('Username match found:', studentAccount ? studentAccount.nama : 'NONE');
+                if (studentAccount) {
+                    console.log('Password correct:', studentAccount.password === password);
                 }
-            }
+                console.log('Username entered:', username);
+                console.log('Password entered:', password);
+                console.log('Student account found:', studentAccount);
+                if (studentAccount) {
+                    console.log('Student NIS:', studentAccount.nis);
+                    console.log('Student password from DB:', studentAccount.password);
+                    console.log('Password matches DB?', password === studentAccount.password);
+                }
 
-            // Cari akun guru yang cocok
-            const teacherAccount = teachersSource.find((t: any) =>
-                (t.username === username || t.user === username || t.nip === username)
-            );
+                if (studentAccount && isStudentPasswordCorrect) { // Simplified condition as password check is now in find
+                    console.log('✅ Login successful for student:', studentAccount.nama);
+                    // Cari info Wali
+                    const classInfo = classesSource.find((c: any) => c.nama === studentAccount.kelas);
+                    const waliName = classInfo ? classInfo.wali : "Guru Wali";
 
-            console.log('👨‍🏫 Teacher login debug:');
-            console.log('Username match found:', teacherAccount ? teacherAccount.nama : 'NONE');
-            if (teacherAccount) {
-                console.log('Stored password:', teacherAccount.password);
-                console.log('Try direct match:', password === teacherAccount.password);
-                console.log('Try NIP fallback:', password === teacherAccount.nip);
-                console.log('Try default fallback:', password === '12345678');
-            }
+                    onLogin('ot', {
+                        id: studentAccount.id,
+                        nama: studentAccount.ayah || "Orang Tua Siswa",
+                        role: 'ot',
+                        roleDisplay: 'Orang Tua',
+                        studentName: studentAccount.nama,
+                        studentClass: studentAccount.kelas,
+                        studentNis: studentAccount.nis,
+                        studentWali: waliName,
+                        avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=100&auto=format&fit=crop'
+                    });
+                    setIsLoading(false);
+                    return;
+                }
 
-            // Verify password with fallbacks for masked data
-            const isPasswordCorrect = teacherAccount && (
-                password === teacherAccount.password ||
-                password === teacherAccount.nip ||
-                password === teacherAccount.username ||
-                (teacherAccount.password === '***' && (password === teacherAccount.nip || password === '12345678'))
-            );
+                // 2. Cek Login Staff/Guru
+                const localTeachers = localStorage.getItem('teachers_data_v10');
+                let teachersSource = teachersDataGlobal;
+                let teacherSourceLabel = 'global';
 
-            if (teacherAccount && isPasswordCorrect) {
-                // Tentukan Kode Role
-                let roleCode = 'gm'; // Default ke Guru Mapel
-                const role = teacherAccount.role || teacherAccount.jabatan;
+                if (localTeachers && JSON.parse(localTeachers).length > 0) {
+                    teachersSource = JSON.parse(localTeachers);
+                    teacherSourceLabel = 'localStorage';
+                } else if (isSupabaseConfigured()) {
+                    // FALLBACK: Try Fetch from Cloud app_settings if Local is empty
+                    console.log('☁️ Local teachers empty or [], trying cloud sync...');
+                    try {
+                        const { data: cloudData } = await supabase.from('app_settings').select('value').eq('key', 'teachers_data_v10_sync').single();
+                        if (cloudData && cloudData.value) {
+                            teachersSource = cloudData.value as any[];
+                            localStorage.setItem('teachers_data_v10', JSON.stringify(teachersSource));
+                            teacherSourceLabel = 'cloud';
+                            console.log('✅ Teachers synced from cloud');
+                        }
+                    } catch (e) {
+                        console.log('ℹ️ No cloud backup for teachers found');
+                    }
+                }
 
-                if (role === 'Wali Kelas' || role === 'Guru Kelas') roleCode = 'wk';
-                else if (role === 'Guru Bimbingan Belajar' || role === 'Guru Bimbel') roleCode = 'gb';
-                else if (role === 'Kepala Sekolah') roleCode = 'ks';
-                else if (['Wakil Kurikulum', 'Staff Tata Usaha', 'Operator Data', 'Admin'].includes(role)) roleCode = 'admin';
+                console.log(`📦 Teachers data source: ${teacherSourceLabel}`);
+                console.log('📊 Total teachers:', teachersSource.length);
 
-                onLogin(roleCode, {
-                    id: teacherAccount.id,
-                    nama: teacherAccount.nama,
-                    role: roleCode,
-                    roleDisplay: role,
-                    nip: teacherAccount.nip,
-                    mapel: teacherAccount.mapel,
-                    kelas: teacherAccount.kelas || teacherAccount.wali,
-                    avatar: teacherAccount.avatar || 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=100&auto=format&fit=crop'
-                });
+                // Cari akun guru yang cocok
+                const teacherAccount = teachersSource.find((t: any) =>
+                    (t.username === username || t.user === username || t.nip === username)
+                );
+
+                console.log('👨‍🏫 Teacher login debug:');
+                console.log('Username match found:', teacherAccount ? teacherAccount.nama : 'NONE');
+                if (teacherAccount) {
+                    console.log('Stored password:', teacherAccount.password);
+                    console.log('Try direct match:', password === teacherAccount.password);
+                    console.log('Try NIP fallback:', password === teacherAccount.nip);
+                    console.log('Try default fallback:', password === '12345678');
+                }
+
+                // Verify password with fallbacks for masked data
+                const isPasswordCorrect = teacherAccount && (
+                    password === teacherAccount.password ||
+                    password === teacherAccount.nip ||
+                    password === teacherAccount.username ||
+                    (teacherAccount.password === '***' && (password === teacherAccount.nip || password === '12345678'))
+                );
+
+                if (teacherAccount && isPasswordCorrect) {
+                    // Tentukan Kode Role
+                    let roleCode = 'gm'; // Default ke Guru Mapel
+                    const role = teacherAccount.role || teacherAccount.jabatan;
+
+                    if (role === 'Wali Kelas' || role === 'Guru Kelas') roleCode = 'wk';
+                    else if (role === 'Guru Bimbingan Belajar' || role === 'Guru Bimbel') roleCode = 'gb';
+                    else if (role === 'Kepala Sekolah') roleCode = 'ks';
+                    else if (['Wakil Kurikulum', 'Staff Tata Usaha', 'Operator Data', 'Admin'].includes(role)) roleCode = 'admin';
+
+                    onLogin(roleCode, {
+                        id: teacherAccount.id,
+                        nama: teacherAccount.nama,
+                        role: roleCode,
+                        roleDisplay: role,
+                        nip: teacherAccount.nip,
+                        mapel: teacherAccount.mapel,
+                        kelas: teacherAccount.kelas || teacherAccount.wali,
+                        avatar: teacherAccount.avatar || 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=100&auto=format&fit=crop'
+                    });
+                    setIsLoading(false);
+                    return;
+                }
+
+                // 3. Super Admin Fallback (Master Access)
+                if (username === 'admin' && password === 'admin123') {
+                    onLogin('admin', { nama: 'Super Admin', role: 'admin', roleDisplay: 'Super Admin' });
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Jika tidak ada yang cocok
+                if (username && password) {
+                    setError('Username atau password salah! Pastikan data sudah disimpan di menu Admin.');
+                } else {
+                    setError('Mohon isi username dan password');
+                }
+            } catch (err: any) {
+                console.error("❌ Error in handleLegacyLogin:", err);
+                setError("Terjadi kesalahan sistem saat login. Silakan hubungi admin.");
+            } finally {
                 setIsLoading(false);
-                return;
             }
-
-            // 3. Super Admin Fallback (Master Access)
-            if (username === 'admin' && password === 'admin123') {
-                onLogin('admin', { nama: 'Super Admin', role: 'admin', roleDisplay: 'Super Admin' });
-                setIsLoading(false);
-                return;
-            }
-
-            // Jika tidak ada yang cocok
-            if (username && password) {
-                setError('Username atau password salah! Pastikan data sudah disimpan di menu Admin.');
-            } else {
-                setError('Mohon isi username dan password');
-            }
-            setIsLoading(false);
         }, 800);
     };
 

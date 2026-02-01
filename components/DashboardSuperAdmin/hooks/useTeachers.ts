@@ -49,18 +49,29 @@ export const useTeachers = () => {
             if (error) throw error;
 
             if (data) {
+                // 1. Fetch Cloud Backup to PRESERVE PASSWORDS
+                const { data: cloudBackup } = await supabase.from('app_settings').select('value').eq('key', 'teachers_data_v10_sync').single();
+                const preservedTeachers: Teacher[] = cloudBackup?.value as Teacher[] || [];
+                const passwordMap: Record<string, string> = {};
+                preservedTeachers.forEach(t => {
+                    if (t.password && t.password !== '***') {
+                        passwordMap[t.nip] = t.password;
+                    }
+                });
+
                 const mappedData: Teacher[] = data.map(s => {
                     const profile = (s.profiles as any);
                     const homeroomClass = (s.classes as any)?.[0]?.name || '-';
+                    const nip = s.employee_number;
                     return {
                         id: s.id,
-                        nip: s.employee_number,
+                        nip: nip,
                         nama: profile?.full_name || '-',
                         jabatan: s.position,
                         mapel: '-',
                         wali: homeroomClass,
-                        username: profile?.email?.split('@')[0] || s.employee_number,
-                        password: '***'
+                        username: profile?.email?.split('@')[0] || nip,
+                        password: passwordMap[nip] || '***'
                     };
                 });
 
