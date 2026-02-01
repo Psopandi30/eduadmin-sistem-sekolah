@@ -27,6 +27,7 @@ interface AbsensiViewProps {
     setAbsenSearchQuery: (query: string) => void;
     attendanceData: AttendanceRecord[];
     setAttendanceData: (data: AttendanceRecord[]) => void;
+    saveAttendance: (data: AttendanceRecord[]) => void;
     students: any[];
     classes: any[];
     subjects: any[];
@@ -46,6 +47,7 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
     setAbsenSearchQuery,
     attendanceData,
     setAttendanceData,
+    saveAttendance,
     students,
     classes,
     subjects
@@ -235,11 +237,7 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
                                 className="h-10 pl-9 pr-4 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-500 w-48 md:w-64"
                             />
                         </div>
-                        <button onClick={() => {
-                            // Mock Save
-                            toast.success(`Data Absensi Semester ${absenSemester} untuk kelas ${absenClass} tanggal ${absenDate.toLocaleDateString()} berhasil disinkronkan!`);
-                            console.log("Saved Attendance:", { semester: absenSemester, data: attendanceData });
-                        }} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all h-10">
+                        <button onClick={() => saveAttendance(attendanceData)} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all h-10">
                             <Save size={18} /> Simpan
                         </button>
                     </div>

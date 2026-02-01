@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
 import { ChevronLeft, FolderInput, Save, Plus, Minus, Info } from 'lucide-react';
+import { useGrades } from './DashboardSuperAdmin/hooks/useGrades';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 
 interface InputNilaiGuruProps {
     onBack: () => void;
@@ -16,46 +17,62 @@ const InputNilaiGuru: React.FC<InputNilaiGuruProps> = ({ onBack, user }) => {
     const [selectedSemester, setSelectedSemester] = useState('1 (Ganjil)');
     const [tpCount, setTpCount] = useState(4);
 
-    // --- DATA MANAGEMENT ---
-    const [gradesData, setGradesData] = useState<any[]>([]);
+    // --- DATA MANAGEMENT (Refactored to Hook) ---
+    const {
+        gradesData,
+        setGradesData,
+        fetchGrades,
+        saveGrades,
+        loading: gradesLoading
+    } = useGrades();
 
-    // Load data based on Admin's Key Format
+    // Load data
     useEffect(() => {
-        // 1. Sync TP Count
-        const countKey = `tp_count_${selectedClass}_${selectedMapel}_${selectedSemester}`;
-        const savedCount = localStorage.getItem(countKey);
-        if (savedCount) {
-            setTpCount(parseInt(savedCount));
-        } else {
-            setTpCount(4);
-        }
+        const loadInitial = async () => {
+            // 1. Sync TP Count
+            const countKey = `tp_count_${selectedClass}_${selectedMapel}_${selectedSemester}`;
+            const savedCount = localStorage.getItem(countKey);
+            if (savedCount) setTpCount(parseInt(savedCount));
+            else setTpCount(4);
 
-        // 2. Load Grades
-        const key = `grades_v2_${selectedClass}_${selectedMapel}_${selectedSemester}`;
-        const saved = localStorage.getItem(key);
+            // 2. Load Grades (Try Cloud and Fallback)
+            const cloudGrades = await fetchGrades(selectedClass, selectedMapel, selectedSemester);
 
-        if (saved) {
-            setGradesData(JSON.parse(saved));
-        } else {
-            const studentsRaw = localStorage.getItem('students_data_v2');
-            const allStudents = studentsRaw ? JSON.parse(studentsRaw) : [];
-            const classStudents = allStudents.filter((s: any) => s.kelas === selectedClass);
+            if (!cloudGrades) {
+                // Legacy Local Load
+                const key = `grades_v2_${selectedClass}_${selectedMapel}_${selectedSemester}`;
+                const saved = localStorage.getItem(key);
 
-            if (classStudents.length > 0) {
-                const initialGrades = classStudents.map((s: any) => ({
-                    studentId: s.id,
-                    studentName: s.nama,
-                    studentNis: s.nis,
-                    tp1: 0, tp2: 0, tp3: 0, tp4: 0,
-                    avgSumatif: 0, pts: 0, pas: 0, pat: 0,
-                    finalScore: 0, predicate: '-', description: ''
-                }));
-                setGradesData(initialGrades);
-            } else {
-                setGradesData([]);
+                if (saved) {
+                    setGradesData(JSON.parse(saved));
+                } else {
+                    const studentsRaw = localStorage.getItem('students_data_v10'); // Unified to v10
+                    const allStudents = studentsRaw ? JSON.parse(studentsRaw) : [];
+                    const classStudents = allStudents.filter((s: any) => s.kelas === selectedClass);
+
+                    if (classStudents.length > 0) {
+                        const initialGrades = classStudents.map((s: any) => ({
+                            studentId: s.id,
+                            studentName: s.nama,
+                            studentNis: s.nis,
+                            tp1: 0, tp2: 0, tp3: 0, tp4: 0,
+                            avgSumatif: 0, pts: 0, pas: 0, pat: 0,
+                            finalScore: 0, predicate: '-', description: ''
+                        }));
+                        setGradesData(initialGrades);
+                    } else {
+                        setGradesData([]);
+                    }
+                }
             }
-        }
-    }, [selectedClass, selectedMapel, selectedSemester]);
+        };
+
+        loadInitial();
+    }, [selectedClass, selectedMapel, selectedSemester, fetchGrades]);
+
+    const saveToStorage = async () => {
+        await saveGrades(selectedClass, selectedMapel, selectedSemester, gradesData);
+    };
 
     const updateTpCount = () => {
         const newCount = Math.min(tpCount + 1, 15);
@@ -77,18 +94,12 @@ const InputNilaiGuru: React.FC<InputNilaiGuruProps> = ({ onBack, user }) => {
     };
 
     const handleScoreChange = (studentId: number, val: string) => {
-        setGradesData(prev => prev.map(row => {
+        setGradesData((prev: any[]) => prev.map(row => {
             if (row.studentId === studentId) {
                 return { ...row, [tipeNilai]: Number(val) };
             }
             return row;
         }));
-    };
-
-    const saveToStorage = () => {
-        const key = `grades_v2_${selectedClass}_${selectedMapel}_${selectedSemester}`;
-        localStorage.setItem(key, JSON.stringify(gradesData));
-        alert(`Nilai ${selectedMapel} untuk Kelas ${selectedClass} berhasil disimpan!`);
     };
 
     return (

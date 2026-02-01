@@ -37,6 +37,7 @@ interface JadwalPelajaranViewProps {
     handleDeleteScheduleItem: (itemId: string) => void;
     handleDailyInfoChange: (day: string, field: 'seragam' | 'catatan', value: string) => void;
     getConflictingItem: (item: ScheduleItem) => any;
+    handleSaveSchedules: () => void;
 }
 
 const JadwalPelajaranView: React.FC<JadwalPelajaranViewProps> = ({
@@ -63,7 +64,8 @@ const JadwalPelajaranView: React.FC<JadwalPelajaranViewProps> = ({
     handleScheduleDrop,
     handleDeleteScheduleItem,
     handleDailyInfoChange,
-    getConflictingItem
+    getConflictingItem,
+    handleSaveSchedules
 }) => {
     return (
         <div className="bg-white rounded-[2.5rem] p-4 h-full shadow-sm animate-in fade-in flex flex-col overflow-hidden">
@@ -149,7 +151,7 @@ const JadwalPelajaranView: React.FC<JadwalPelajaranViewProps> = ({
                     </button>
 
                     <button
-                        onClick={() => toast.success("Simpan jadwal berhasil!")}
+                        onClick={handleSaveSchedules}
                         className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold transition-colors shadow-lg shadow-blue-200"
                     >
                         <Save size={18} /> Simpan

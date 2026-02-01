@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
+import { toast } from 'react-hot-toast';
 
 interface RapotSiswaProps {
     onBack: () => void;
@@ -39,71 +41,89 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
 
     // Load Grades and Supplementary Data
     useEffect(() => {
-        const studentId = user?.studentId || user?.id || 4; // Mock student if needed for testing
+        const studentId = user?.studentId?.toString() || user?.id?.toString() || user?.nis?.toString() || '4';
         const currentSemesterFull = selectedSemester === 'Semester 1' ? '1 (Ganjil)' : '2 (Genap)';
 
-        // 1. Load Grades
-        const loadGrades = () => {
-            const loadedSubjects: any[] = [];
-            subjectList.forEach((subj, index) => {
-                const key = `grades_v2_${selectedClass}_${subj}_${currentSemesterFull}`;
-                const localData = localStorage.getItem(key);
-                let daily = 0, exam = 0, report = 0;
+        const loadContent = async () => {
+            if (!isSupabaseConfigured()) return;
 
-                if (localData) {
-                    try {
-                        const parsed = JSON.parse(localData);
-                        const studentRow = parsed.find((s: any) => s.studentName === user?.studentName || s.studentName === user?.nama);
+            // 1. Load Grades from Cloud
+            const loadedSubjects: any[] = [];
+            for (let i = 0; i < subjectList.length; i++) {
+                const subj = subjectList[i];
+                const key = `grades_v2_${selectedClass}_${subj}_${currentSemesterFull}`;
+
+                try {
+                    const { data } = await supabase.from('app_settings').select('value').eq('key', key).single();
+                    let daily = 0, exam = 0, report = 0;
+
+                    if (data?.value) {
+                        const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+                        const studentRow = parsed.find((s: any) => s.studentName === user?.studentName || s.studentName === user?.nama || s.studentId?.toString() === studentId);
                         if (studentRow) {
                             daily = studentRow.avgSumatif || 0;
-                            exam = Math.max(studentRow.pas || 0, studentRow.pat || 0, studentRow.ujisn || 0);
+                            exam = Math.max(studentRow.pas || 0, studentRow.pat || 0, studentRow.pts || 0);
                             report = studentRow.finalScore || 0;
                         }
-                    } catch (e) { console.error("Error parsing grades", e); }
+                    }
+                    loadedSubjects.push({ id: i + 1, name: subj, daily, exam, report });
+                } catch (e) {
+                    loadedSubjects.push({ id: i + 1, name: subj, daily: 0, exam: 0, report: 0 });
                 }
-                loadedSubjects.push({ id: index + 1, name: subj, daily, exam, report });
-            });
-            setSubjects(loadedSubjects);
-        };
-
-        // 2. Load Supplementary Data (The Pipeline Hook)
-        const loadSupp = () => {
-            const suppKey = `rapor_supp_${selectedClass}_${studentId}_${currentSemesterFull}`;
-            const saved = localStorage.getItem(suppKey);
-            if (saved) {
-                setSuppData(JSON.parse(saved));
-            } else {
-                // Reset to default if no data
-                setSuppData({
-                    attitudes: [
-                        { id: 1, type: "Spiritual", desc: "Ananda sangat taat beribadah dan berperilaku jujur." },
-                        { id: 2, type: "Sosial", desc: "Ananda memiliki sikap sosial yang baik dan disiplin." }
-                    ],
-                    extracurriculars: [{ id: 1, name: "-", desc: "-" }],
-                    attendance: { sakit: 0, izin: 0, alpha: 0 },
-                    personalities: [
-                        { aspect: "Kerapihan", desc: "Baik" },
-                        { aspect: "Kedisiplinan", desc: "Baik" },
-                        { aspect: "Kesehatan", desc: "Sehat" },
-                    ],
-                    note: "Pertahankan prestasimu dan tingkatkan belajarmu.",
-                    decision: "Naik Ke Kelas"
-                });
             }
+            setSubjects(loadedSubjects);
+
+            // 2. Load Supplementary Data from Cloud
+            const suppKey = `rapor_supp_${selectedClass}_${studentId}_${currentSemesterFull}`;
+            try {
+                const { data } = await supabase.from('app_settings').select('value').eq('key', suppKey).single();
+                if (data?.value) {
+                    setSuppData(typeof data.value === 'string' ? JSON.parse(data.value) : data.value);
+                } else {
+                    // Fallback to default
+                    setSuppData({
+                        attitudes: [
+                            { id: 1, type: "Spiritual", desc: "Ananda sangat taat beribadah dan berperilaku jujur." },
+                            { id: 2, type: "Sosial", desc: "Ananda memiliki sikap sosial yang baik dan disiplin." }
+                        ],
+                        extracurriculars: [{ id: 1, name: "-", desc: "-" }],
+                        attendance: { sakit: 0, izin: 0, alpha: 0 },
+                        personalities: [
+                            { aspect: "Kerapihan", desc: "Baik" },
+                            { aspect: "Kedisiplinan", desc: "Baik" },
+                            { aspect: "Kesehatan", desc: "Sehat" },
+                        ],
+                        note: "Pertahankan prestasimu dan tingkatkan belajarmu.",
+                        decision: "Naik Ke Kelas"
+                    });
+                }
+            } catch (e) { }
         };
 
-        loadGrades();
-        loadSupp();
+        loadContent();
     }, [selectedClass, selectedSemester, user]);
 
-    const handleSaveSupp = () => {
-        const studentId = user?.studentId || user?.id || 4;
+    const handleSaveSupp = async () => {
+        const studentId = user?.studentId?.toString() || user?.id?.toString() || user?.nis?.toString() || '4';
         const currentSemesterFull = selectedSemester === 'Semester 1' ? '1 (Ganjil)' : '2 (Genap)';
         const suppKey = `rapor_supp_${selectedClass}_${studentId}_${currentSemesterFull}`;
 
         localStorage.setItem(suppKey, JSON.stringify(suppData));
+
+        if (isSupabaseConfigured()) {
+            try {
+                await supabase.from('app_settings').upsert({
+                    key: suppKey,
+                    value: suppData,
+                    updated_at: new Date().toISOString()
+                });
+                toast.success("Data pelengkap rapor berhasil disinkronkan!");
+            } catch (e) {
+                toast.error("Gagal sinkron ke cloud.");
+            }
+        }
+
         setIsEditing(false);
-        alert("Data pelengkap rapor berhasil disimpan!");
     };
 
     // Calculate Averages

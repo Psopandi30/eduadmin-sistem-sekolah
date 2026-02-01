@@ -35,7 +35,7 @@ const Pengumuman: React.FC<PengumumanProps> = ({ classes = [] }) => {
     const [activeView, setActiveView] = useState<'dashboard' | 'list' | 'create' | 'detail'>('dashboard');
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
 
-    const { announcements, setAnnouncements } = useAnnouncements();
+    const { announcements, setAnnouncements, saveAnnouncements } = useAnnouncements();
 
     // Form State
     const [formData, setFormData] = useState<Partial<Announcement>>({
@@ -50,7 +50,7 @@ const Pengumuman: React.FC<PengumumanProps> = ({ classes = [] }) => {
     });
 
     // Helper functions
-    const handleSave = (statusOverride?: 'Draft' | 'Terbit') => {
+    const handleSave = async (statusOverride?: 'Draft' | 'Terbit') => {
         if (!formData.title || !formData.content) {
             toast.error("Judul dan Isi pengumuman wajib diisi!");
             return;
@@ -59,9 +59,10 @@ const Pengumuman: React.FC<PengumumanProps> = ({ classes = [] }) => {
         const finalStatus = statusOverride || formData.status || 'Draft';
         const finalData = { ...formData, status: finalStatus };
 
+        let updatedAnnouncements: Announcement[];
         if (formData.id) {
             // Edit
-            setAnnouncements(announcements.map(a => a.id === formData.id ? { ...a, ...finalData } as Announcement : a));
+            updatedAnnouncements = announcements.map(a => a.id === formData.id ? { ...a, ...finalData } as Announcement : a);
             toast.success("Pengumuman diperbarui!");
         } else {
             // New
@@ -71,9 +72,11 @@ const Pengumuman: React.FC<PengumumanProps> = ({ classes = [] }) => {
                 viewers: 0,
                 isPinned: false
             } as Announcement;
-            setAnnouncements([newAnnouncement, ...announcements]);
+            updatedAnnouncements = [newAnnouncement, ...announcements];
             toast.success("Pengumuman berhasil diterbitkan!");
         }
+
+        await saveAnnouncements(updatedAnnouncements);
         setActiveView('list');
         resetForm();
     };
@@ -97,17 +100,19 @@ const Pengumuman: React.FC<PengumumanProps> = ({ classes = [] }) => {
         setActiveView('create');
     };
 
-    const handleDelete = (id: number) => {
+    const handleDelete = async (id: number) => {
         if (confirm("Yakin ingin menghapus pengumuman ini?")) {
-            setAnnouncements(announcements.filter(a => a.id !== id));
+            const updated = announcements.filter(a => a.id !== id);
+            await saveAnnouncements(updated);
             toast.success("Pengumuman dihapus");
         }
     };
 
-    const handleTogglePin = (id: number) => {
-        setAnnouncements(announcements.map(a =>
+    const handleTogglePin = async (id: number) => {
+        const updated = announcements.map(a =>
             a.id === id ? { ...a, isPinned: !a.isPinned } : a
-        ));
+        );
+        await saveAnnouncements(updated);
         toast.success("Status Pin diperbarui");
     };
 

@@ -8,6 +8,8 @@ interface AddSaverModalProps {
     onClose: () => void;
     savingsData: any[];
     setSavingsData: (data: any[]) => void;
+    saveSavings: (newData?: any[], newTrx?: any[]) => Promise<void>;
+    savingsTransactions: any[];
     newSaverId: string;
     setNewSaverId: (id: string) => void;
     saverClassFilter: string;
@@ -19,6 +21,8 @@ const AddSaverModal: React.FC<AddSaverModalProps> = ({
     onClose,
     savingsData,
     setSavingsData,
+    saveSavings,
+    savingsTransactions,
     newSaverId,
     setNewSaverId,
     saverClassFilter,
@@ -189,7 +193,8 @@ const AddSaverModal: React.FC<AddSaverModalProps> = ({
                                     const studentToAdd = studentsDataGlobal.find(s => s.id === Number(newSaverId));
                                     if (studentToAdd) {
                                         const newSaver = { ...studentToAdd, status: 'Aktif', joinDate: new Date().toISOString().split('T')[0], saldo: 0, tabungan: 0 };
-                                        setSavingsData([...savingsData, newSaver]);
+                                        const updatedData = [...savingsData, newSaver];
+                                        saveSavings(updatedData, savingsTransactions);
                                         setNewSaverId('');
                                         toast.success(`Berhasil menambahkan ${studentToAdd.nama}.`);
                                     }

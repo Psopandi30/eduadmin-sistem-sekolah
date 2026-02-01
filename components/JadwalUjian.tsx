@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { examsDataGlobal, classesDataGlobal } from '../data/sharedData';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 
 interface JadwalUjianProps {
     onBack: () => void;
@@ -13,14 +14,42 @@ const JadwalUjian: React.FC<JadwalUjianProps> = ({ onBack, user }) => {
 
     const studentClass = user?.studentClass || user?.kelas || '1A';
 
-    // 1. Get Master Exam Schedule (Filter for published status)
-    const masterExam = examsDataGlobal.find(e => e.status === 'published') || examsDataGlobal[0];
+    const [masterExam, setMasterExam] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchMaster = async () => {
+            if (!isSupabaseConfigured()) {
+                setLoading(false);
+                return;
+            }
+            try {
+                const { data } = await supabase
+                    .from('app_settings')
+                    .select('value')
+                    .eq('key', 'exam_schedules_v2')
+                    .single();
+
+                if (data?.value) {
+                    const allExams = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+                    const published = allExams.find((e: any) => e.status === 'published') || allExams[0];
+                    setMasterExam(published);
+                }
+            } catch (err) {
+                console.error("Failed to fetch exams from cloud", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchMaster();
+    }, []);
 
     // 2. Filter Items for Class and Day
-    const items = masterExam ? masterExam.items
-        .filter(item => {
+    const items = masterExam ? (masterExam.items || [])
+        .filter((item: any) => {
             // If user is a student/parent, filter by class
-            if (user?.role === 'Orang Tua' || user?.role === 'Siswa' || user?.studentClass) {
+            if (user?.role === 'Orang Tua' || user?.role === 'Siswa' || user?.studentClass || user?.kelas) {
                 return item.classId === studentClass && item.day === selectedDay;
             }
             // If user is a teacher, show their subjects across all classes (for the teacher view)
@@ -29,7 +58,7 @@ const JadwalUjian: React.FC<JadwalUjianProps> = ({ onBack, user }) => {
             }
             return item.classId === studentClass && item.day === selectedDay;
         })
-        .sort((a, b) => a.timeSlotId - b.timeSlotId) : [];
+        .sort((a: any, b: any) => a.timeSlotId - b.timeSlotId) : [];
 
     // 3. Get Daily Info (Uniform & Notes from standard or specific exam notes)
     // Exam schedule has 'dailyNotes'. Uniform might be standard or specific. 

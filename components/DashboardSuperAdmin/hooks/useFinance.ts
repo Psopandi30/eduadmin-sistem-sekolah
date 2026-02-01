@@ -86,7 +86,7 @@ export const useFinance = () => {
         }
         setLoading(true);
         try {
-            // 1. Cash Accounts
+            // 1. Cash Accounts (Real Table)
             const { data: accountsData } = await supabase.from('finance_accounts').select('*');
             if (accountsData && accountsData.length > 0) {
                 setCashAccounts(accountsData.map(a => ({
@@ -99,7 +99,7 @@ export const useFinance = () => {
                 })));
             }
 
-            // 2. Payment Types
+            // 2. Payment Types (Real Table)
             const { data: typesData } = await supabase.from('payment_types').select('*');
             if (typesData && typesData.length > 0) {
                 setPaymentTypes(typesData.map(t => ({
@@ -111,24 +111,23 @@ export const useFinance = () => {
                 })));
             }
 
-            // 3. Bills (Limit to recent for checking)
-            const { data: billsData } = await supabase.from('student_bills').select('*').limit(500);
-            if (billsData && billsData.length > 0) {
-                setStudentBills(billsData.map(b => ({
-                    id: b.id,
-                    studentId: b.student_id,
-                    studentName: b.student_name,
-                    class: b.class_name,
-                    paymentName: b.payment_name,
-                    amount: b.amount,
-                    period: b.period,
-                    status: b.status,
-                    dueDate: b.due_date,
-                    type: b.billing_type
-                })));
+            // 3. Bills (Using app_settings for JSON Blob Sync)
+            const { data: billsRes } = await supabase.from('app_settings').select('value').eq('key', 'finance_student_bills_v10').single();
+            if (billsRes?.value) {
+                const parsed = typeof billsRes.value === 'string' ? JSON.parse(billsRes.value) : billsRes.value;
+                setStudentBills(parsed);
+                localStorage.setItem('finance_student_bills_v10', JSON.stringify(parsed));
             }
 
-            // 4. Expenses
+            // 4. History (Using app_settings for JSON Blob Sync)
+            const { data: historyRes } = await supabase.from('app_settings').select('value').eq('key', 'payments_data_v10').single();
+            if (historyRes?.value) {
+                const parsed = typeof historyRes.value === 'string' ? JSON.parse(historyRes.value) : historyRes.value;
+                setPaymentHistory(parsed);
+                localStorage.setItem('payments_data_v10', JSON.stringify(parsed));
+            }
+
+            // 5. Expenses (Real Table)
             const { data: expensesData } = await supabase.from('expenses').select('*').order('date', { ascending: false }).limit(100);
             if (expensesData && expensesData.length > 0) {
                 setExpenses(expensesData.map(e => ({
@@ -149,6 +148,24 @@ export const useFinance = () => {
             setIsInitialFetched(true);
         }
     }, [isInitialFetched]);
+
+    const saveFinance = async (newData?: any) => {
+        const bills = newData?.studentBills || studentBills;
+        const history = newData?.paymentHistory || paymentHistory;
+
+        if (!isSupabaseConfigured()) return;
+
+        try {
+            await Promise.all([
+                supabase.from('app_settings').upsert({ key: 'finance_student_bills_v10', value: bills, updated_at: new Date().toISOString() }),
+                supabase.from('app_settings').upsert({ key: 'payments_data_v10', value: history, updated_at: new Date().toISOString() })
+            ]);
+            toast.success("Data keuangan berhasil disinkronkan ke cloud!");
+        } catch (err) {
+            console.error("Error syncing finance", err);
+            toast.error("Gagal sinkron keuangan ke cloud.");
+        }
+    };
 
     useEffect(() => {
         fetchFinanceData();
@@ -252,6 +269,7 @@ export const useFinance = () => {
         paymentHistory,
         setPaymentHistory,
         loading,
-        refreshFinance: fetchFinanceData
+        refreshFinance: fetchFinanceData,
+        saveFinance
     };
 };

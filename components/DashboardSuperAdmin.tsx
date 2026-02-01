@@ -51,11 +51,18 @@ import AbsensiView from './DashboardSuperAdmin/components/views/AbsensiView';
 
 import SettingsView from './DashboardSuperAdmin/components/views/SettingsView';
 import AIManagementView from './DashboardSuperAdmin/components/views/AIManagementView';
-import { useStudents } from './DashboardSuperAdmin/hooks/useStudents';
-import { useTeachers } from './DashboardSuperAdmin/hooks/useTeachers';
-import { useClasses } from './DashboardSuperAdmin/hooks/useClasses';
 import { useSubjects } from './DashboardSuperAdmin/hooks/useSubjects';
+import { useSchedules } from './DashboardSuperAdmin/hooks/useSchedules';
+import { useStudents } from './DashboardSuperAdmin/hooks/useStudents';
+import { useClasses } from './DashboardSuperAdmin/hooks/useClasses';
 import { useSavings } from './DashboardSuperAdmin/hooks/useSavings';
+import { useAttendance } from './DashboardSuperAdmin/hooks/useAttendance';
+import { useExams } from './DashboardSuperAdmin/hooks/useExams';
+import { useFinance } from './DashboardSuperAdmin/hooks/useFinance';
+import { useFinance } from './DashboardSuperAdmin/hooks/useFinance';
+import { useAnnouncements } from './DashboardSuperAdmin/hooks/useAnnouncements';
+import { useMultimedia } from './DashboardSuperAdmin/hooks/useMultimedia';
+import { useTutoring } from './DashboardSuperAdmin/hooks/useTutoring';
 
 interface SuperAdminProps {
     user: any;
@@ -143,20 +150,14 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         localStorage.setItem('positions_data_v10', JSON.stringify(positions));
     }, [positions]);
 
-    // --- JADWAL STATE ---
-    const [schedules, setSchedules] = useState<MasterSchedule[]>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('schedules_data_v2');
-            if (saved) return JSON.parse(saved);
-        }
-        return schedulesDataGlobal;
-    });
+    // --- JADWAL STATE (Refactored to Hook) ---
+    const {
+        schedules,
+        setSchedules,
+        saveSchedulesToSupabase,
+        refreshSchedules
+    } = useSchedules();
 
-    // Sync Schedule to Global & LocalStorage
-    useEffect(() => {
-        localStorage.setItem('schedules_data_v2', JSON.stringify(schedules));
-        updateSchedulesDataGlobal(schedules);
-    }, [schedules]);
     const [activeScheduleId, setActiveScheduleId] = useState<number>(1);
     const [selectedJadwalClass, setSelectedJadwalClass] = useState<string>('1A');
     const [draggedItem, setDraggedItem] = useState<{ type: string, id: number | string, name: string } | null>(null);
@@ -219,40 +220,26 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
     const { classes, setClasses, showAddClassModal, setShowAddClassModal, handleAddClass, handleDeleteClass, handleSaveClasses } = useClasses();
 
-    // --- ABSENSI STATE ---
+    // --- ABSENSI STATE (Refactored to Hook) ---
+    const {
+        attendanceData,
+        setAttendanceData,
+        saveAttendance
+    } = useAttendance();
     const [absenDate, setAbsenDate] = useState<Date>(new Date());
     const [absenClass, setAbsenClass] = useState<string>('1A');
     const [absenSubjects, setAbsenSubjects] = useState<number[]>([]);
     const [absenMode, setAbsenMode] = useState<'today' | 'history'>('today');
-    const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('attendance_data_v2');
-            try {
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    if (Array.isArray(parsed)) return parsed;
-                }
-            } catch (e) {
-                console.error("Failed to parse attendance data", e);
-            }
-        }
-        return Array.isArray(attendanceDataGlobal) ? attendanceDataGlobal : [];
-    });
-
-    useEffect(() => {
-        localStorage.setItem('attendance_data_v2', JSON.stringify(attendanceData));
-        updateAttendanceDataGlobal(attendanceData);
-    }, [attendanceData]);
 
     const [absenSearchQuery, setAbsenSearchQuery] = useState('');
     const [absenSemester, setAbsenSemester] = useState('Ganjil');
 
-    // --- UJIAN STATE ---
-    const [examSchedules, setExamSchedules] = useState<MasterExamSchedule[]>(examsDataGlobal);
-
-    useEffect(() => {
-        updateExamsDataGlobal(examSchedules);
-    }, [examSchedules]);
+    // --- UJIAN STATE (Refactored to Hook) ---
+    const {
+        examSchedules,
+        setExamSchedules,
+        saveExams
+    } = useExams();
 
     const [activeExamId, setActiveExamId] = useState<number | null>(examsDataGlobal.length > 0 ? examsDataGlobal[0].id : null);
     const [showExamModal, setShowExamModal] = useState(false);
@@ -427,7 +414,6 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         const updatedData = savingsData.map(s =>
             s.id === selectedSavingsStudent.id ? { ...s, saldo: s.saldo + savingsAmount } : s
         );
-        setSavingsData(updatedData);
 
         const newTrx = {
             id: `TRX-${Date.now()}`,
@@ -438,7 +424,9 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
             amount: savingsAmount,
             officer: 'Admin'
         };
-        setSavingsTransactions([newTrx, ...savingsTransactions]);
+        const updatedTrx = [newTrx, ...savingsTransactions];
+
+        saveSavings(updatedData, updatedTrx);
 
         toast.success(`Setoran Rp ${savingsAmount.toLocaleString('id-ID')} berhasil disimpan!`);
         setSelectedSavingsStudent(null);
@@ -457,7 +445,6 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         const updatedData = savingsData.map(s =>
             s.id === selectedSavingsStudent.id ? { ...s, saldo: s.saldo - savingsAmount } : s
         );
-        setSavingsData(updatedData);
 
         const newTrx = {
             id: `TRX-${Date.now()}`,
@@ -468,7 +455,9 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
             amount: savingsAmount,
             officer: 'Admin'
         };
-        setSavingsTransactions([newTrx, ...savingsTransactions]);
+        const updatedTrx = [newTrx, ...savingsTransactions];
+
+        saveSavings(updatedData, updatedTrx);
 
         toast.success(`Penarikan Rp ${savingsAmount.toLocaleString('id-ID')} berhasil diproses!`);
         setSelectedSavingsStudent(null);
@@ -608,6 +597,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                 // Call bulk update
                 updateStudents(updatedStudents);
+                handleSaveData();
 
                 // Log History
                 const newHistory = toPromote.map((s, idx) => ({
@@ -646,6 +636,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                 }));
 
                 updateStudents(updatedStudents);
+                handleSaveData();
 
                 // Log History
                 const newHistory = toGraduate.map((s, idx) => ({
@@ -1264,9 +1255,9 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         });
     };
 
-    const handlePublishSchedule = () => {
-        // Validation logic could go here
-        setSchedules(schedules.map(s => s.id === activeScheduleId ? { ...s, status: 'published' } : s));
+    const handlePublishSchedule = async () => {
+        const newSchedules = schedules.map(s => s.id === activeScheduleId ? { ...s, status: 'published' as const } : s);
+        await saveSchedulesToSupabase(newSchedules);
         toast.success("Jadwal Berhasil Dipublikasikan!");
     };
 
@@ -1603,6 +1594,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                             handleDeleteScheduleItem={handleDeleteScheduleItem}
                             handleDailyInfoChange={handleDailyInfoChange}
                             getConflictingItem={getConflictingItem}
+                            handleSaveSchedules={() => saveSchedulesToSupabase(schedules)}
                         />
                     )}
 
@@ -1623,6 +1615,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                             setAbsenSearchQuery={setAbsenSearchQuery}
                             attendanceData={attendanceData}
                             setAttendanceData={setAttendanceData}
+                            saveAttendance={saveAttendance}
                             students={students}
                             classes={classes}
                             subjects={subjects}
@@ -1723,14 +1716,14 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                     <div className="flex gap-2">
                                         <button onClick={() => {
                                             if (!activeExamId) return;
-                                            toast.success("Konfigurasi Jadwal Ujian berhasil disimpan ke database!");
+                                            saveExams(examSchedules);
                                         }} className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
                                             <Save size={16} /> Simpan
                                         </button>
                                         <button onClick={() => {
                                             if (!activeExamId) return;
-                                            setExamSchedules(prev => prev.map(ex => ex.id === activeExamId ? { ...ex, status: 'published' } : ex));
-                                            toast.success("Jadwal Ujian berhasil dipublikasikan! Siswa dan Orang Tua kini dapat melihat jadwal ini.", { icon: '🚀' });
+                                            const updated = examSchedules.map(ex => ex.id === activeExamId ? { ...ex, status: 'published' } : ex);
+                                            saveExams(updated);
                                         }} className="flex items-center gap-2 px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200">
                                             <Zap size={16} /> Publikasi
                                         </button>
@@ -3972,6 +3965,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                         onClose={() => setShowAddSaverModal(false)}
                         savingsData={savingsData}
                         setSavingsData={setSavingsData}
+                        saveSavings={saveSavings}
+                        savingsTransactions={savingsTransactions}
                         newSaverId={newSaverId}
                         setNewSaverId={setNewSaverId}
                         saverClassFilter={saverClassFilter}

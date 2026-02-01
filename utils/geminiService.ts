@@ -19,7 +19,7 @@ async function getActiveApiKey(providerType: string = 'gemini'): Promise<string>
     const { data, error } = await supabase
       .from('ai_api_keys')
       .select(`
-        encrypted_key,
+        api_key,
         ai_providers!inner(provider_type)
       `)
       .eq('is_active', true)
@@ -38,14 +38,24 @@ async function getActiveApiKey(providerType: string = 'gemini'): Promise<string>
       throw new Error('Tidak ada API key aktif untuk provider Gemini');
     }
 
-    // Decrypt API key (dalam implementasi nyata, gunakan proper encryption)
-    // Untuk sekarang, asumsikan key tersimpan dalam plain text
-    cachedApiKey = data.encrypted_key;
-    return cachedApiKey;
+    cachedApiKey = data.api_key;
+    return cachedApiKey || '';
 
   } catch (error) {
     console.error('Error getting API key:', error);
     throw new Error('Gagal mendapatkan API key dari database');
+  }
+}
+
+/**
+ * Update statistik penggunaan API key
+ */
+async function updateApiKeyUsage() {
+  if (!cachedApiKey) return;
+  try {
+    await supabase.rpc('increment_api_key_usage', { key_val: cachedApiKey });
+  } catch (err) {
+    console.warn('Failed to update usage count');
   }
 }
 
@@ -129,7 +139,8 @@ export async function sendToGemini(message: string, history: GeminiMessage[] = [
       // System instruction sebagai first message
       {
         role: 'user',
-        parts: [{ text: `Kamu adalah asisten AI pembelajaran yang ramah dan membantu untuk siswa sekolah dasar di Indonesia.
+        parts: [{
+          text: `Kamu adalah asisten AI pembelajaran yang ramah dan membantu untuk siswa sekolah dasar di Indonesia.
         Tugasmu adalah membantu siswa belajar berbagai mata pelajaran dengan cara yang menyenangkan dan mudah dipahami.
 
         Pedoman komunikasi:

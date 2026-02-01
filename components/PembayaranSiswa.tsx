@@ -1,47 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronRight, CreditCard, History, Receipt, Calendar, CheckCircle, Clock } from 'lucide-react';
 import { paymentHistoryGlobal } from '../data/sharedData';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 
 interface PembayaranSiswaProps {
     onBack: () => void;
-    user?: any; // Add user prop
+    user?: any;
 }
 
 const PembayaranSiswa: React.FC<PembayaranSiswaProps> = ({ onBack, user }) => {
     // --- SYNC DATA ---
     const [historyData, setHistoryData] = useState<any[]>([]);
     const [unpaidBills, setUnpaidBills] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    React.useEffect(() => {
-        const loadFinanceData = () => {
-            const studentName = user?.studentName || user?.nama;
+    useEffect(() => {
+        const loadFinanceData = async () => {
+            if (!isSupabaseConfigured()) {
+                setLoading(false);
+                return;
+            }
 
-            // 1. Load History (Sync with Admin v10)
-            const rawHistory = localStorage.getItem('payments_data_v10');
-            const allHistory = rawHistory ? JSON.parse(rawHistory) : paymentHistoryGlobal;
-            const myHistory = allHistory.filter((p: any) =>
-                p.studentName === studentName || String(p.studentId) === String(user?.id)
-            );
-            myHistory.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            setHistoryData(myHistory);
+            try {
+                const studentName = user?.studentName || user?.nama;
+                const studentId = user?.studentId || user?.id;
 
-            // 2. Load Bills from Admin useFinance (Sync with Admin v10)
-            const rawBills = localStorage.getItem('finance_student_bills_v10');
-            if (rawBills) {
-                const allBills = JSON.parse(rawBills);
-                const myUnpaid = allBills.filter((b: any) =>
-                    (b.studentName === studentName || String(b.studentId) === String(user?.id)) &&
-                    b.status !== 'Lunas'
-                ).map((b: any) => ({
-                    id: b.id,
-                    title: b.paymentName,
-                    amount: b.amount,
-                    deadline: b.dueDate || '10 ' + b.period.split(' ')[0] + ' ' + b.period.split(' ')[1],
-                    status: 'Belum Lunas'
-                }));
-                setUnpaidBills(myUnpaid);
-            } else {
-                setUnpaidBills([]);
+                // 1. Load Billing Data from Cloud
+                const { data: billsRes } = await supabase.from('app_settings').select('value').eq('key', 'finance_student_bills_v10').single();
+                if (billsRes?.value) {
+                    const allBills = typeof billsRes.value === 'string' ? JSON.parse(billsRes.value) : billsRes.value;
+                    const myUnpaid = allBills.filter((b: any) =>
+                        (String(b.studentId) === String(studentId) || b.studentName === studentName) &&
+                        b.status !== 'Lunas'
+                    ).map((b: any) => ({
+                        id: b.id,
+                        title: b.paymentName,
+                        amount: b.amount,
+                        deadline: b.dueDate || (b.period ? '10 ' + b.period : '-'),
+                        status: 'Belum Lunas'
+                    }));
+                    setUnpaidBills(myUnpaid);
+                }
+
+                // 2. Load History (Payments) from Cloud
+                const { data: historyRes } = await supabase.from('app_settings').select('value').eq('key', 'payments_data_v10').single();
+                if (historyRes?.value) {
+                    const allHistory = typeof historyRes.value === 'string' ? JSON.parse(historyRes.value) : historyRes.value;
+                    const myHistory = allHistory.filter((h: any) =>
+                        String(h.studentId) === String(studentId) || h.studentName === studentName
+                    );
+                    myHistory.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                    setHistoryData(myHistory);
+                }
+            } catch (err) {
+                console.error("Failed to load finance data from cloud", err);
+            } finally {
+                setLoading(false);
             }
         };
 
@@ -67,7 +81,8 @@ const PembayaranSiswa: React.FC<PembayaranSiswaProps> = ({ onBack, user }) => {
                     <ChevronRight className="rotate-180" size={24} />
                 </button>
                 <div className="flex-1">
-                    <h3 className="font-bold text-slate-800 text-lg">Informasi Pembayaran (Live Sync)</h3>
+                    <h3 className="font-bold text-slate-800 text-lg">Informasi Pembayaran</h3>
+                    {loading && <p className="text-[10px] text-blue-500 animate-pulse font-bold uppercase tracking-widest">Sinkronisasi Cloud...</p>}
                 </div>
             </div>
 
@@ -101,21 +116,28 @@ const PembayaranSiswa: React.FC<PembayaranSiswaProps> = ({ onBack, user }) => {
                         Rincian Tagihan Belum Lunas
                     </h4>
                     <div className="space-y-3">
-                        {unpaidBills.map((bill) => (
-                            <div key={bill.id} className="border border-orange-100 bg-orange-50/30 rounded-2xl p-4 flex justify-between items-center">
-                                <div>
-                                    <h5 className="font-bold text-slate-800 text-sm">{bill.title}</h5>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <Clock size={12} className="text-orange-500" />
-                                        <span className="text-[10px] text-orange-600 font-medium">Jatuh Tempo: {bill.deadline}</span>
+                        {unpaidBills.length === 0 ? (
+                            <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                <CheckCircle size={32} className="text-emerald-500 mx-auto mb-2 opacity-20" />
+                                <p className="text-xs text-slate-500 italic">Semua tagihan sudah lunas atau belum ada tagihan.</p>
+                            </div>
+                        ) : (
+                            unpaidBills.map((bill) => (
+                                <div key={bill.id} className="border border-orange-100 bg-orange-50/30 rounded-2xl p-4 flex justify-between items-center animate-in slide-in-from-top-2">
+                                    <div>
+                                        <h5 className="font-bold text-slate-800 text-sm">{bill.title}</h5>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <Clock size={12} className="text-orange-500" />
+                                            <span className="text-[10px] text-orange-600 font-medium">Jatuh Tempo: {bill.deadline}</span>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-bold text-[#004AAD]">{formatCurrency(bill.amount)}</p>
+                                        <span className="text-[10px] text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full font-bold">Unpaid</span>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <p className="font-bold text-[#004AAD]">{formatCurrency(bill.amount)}</p>
-                                    <span className="text-[10px] text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full font-bold">Unpaid</span>
-                                </div>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
 
@@ -130,18 +152,17 @@ const PembayaranSiswa: React.FC<PembayaranSiswaProps> = ({ onBack, user }) => {
                             <p className="text-center text-slate-400 text-xs py-4">Belum ada riwayat pembayaran.</p>
                         ) : (
                             historyData.map((record, idx) => (
-                                <div key={idx} className="relative pl-6 pb-4 border-l border-slate-200 last:border-0 last:pb-0">
+                                <div key={idx} className="relative pl-6 pb-4 border-l border-slate-200 last:border-0 last:pb-0 animate-in slide-in-from-left-2">
                                     <div className="absolute left-[-5px] top-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-4 ring-emerald-50"></div>
                                     <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:border-emerald-200 transition-colors">
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
                                                 <h5 className="font-bold text-slate-800 text-sm">{record.type || 'Pembayaran'} {record.month && record.year ? `- ${record.month} ${record.year}` : ''}</h5>
-                                                <p className="text-[10px] text-slate-500 mt-0.5">{record.method}</p>
-                                                <p className="text-[10px] text-blue-500 font-bold">{record.studentName}</p>
+                                                <p className="text-[10px] text-slate-500 mt-0.5">{record.method} • {record.paymentName}</p>
                                             </div>
                                             <div className="text-right">
                                                 <p className="font-bold text-emerald-600">{formatCurrency(record.amount)}</p>
-                                                <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-bold">{record.status}</span>
+                                                <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-bold">{record.status || 'Success'}</span>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3 text-[10px] text-slate-400 border-t border-slate-50 pt-2 mt-2">
@@ -149,6 +170,7 @@ const PembayaranSiswa: React.FC<PembayaranSiswaProps> = ({ onBack, user }) => {
                                                 <Calendar size={12} />
                                                 {record.date}
                                             </span>
+                                            <span>Petugas: {record.officer || 'Sistem'}</span>
                                         </div>
                                     </div>
                                 </div>

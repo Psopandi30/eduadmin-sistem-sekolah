@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { tutoringSubjectsGlobal, tutoringTeachersGlobal, updateTutoringSubjectsGlobal, updateTutoringTeachersGlobal } from '../../../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
+import { toast } from 'react-hot-toast';
 
 export interface TutoringSession {
     id: number;
@@ -110,19 +111,37 @@ export const useTutoring = () => {
         }
     }, [tutoringClasses]);
 
-    // 3. Actions for Guru Bimbel
-    const addSession = (classId: number, session: TutoringSession) => {
-        setTutoringClasses(prev => prev.map(cls =>
-            cls.id === classId
-                ? { ...cls, sessions: [session, ...cls.sessions] }
-                : cls
-        ));
+    // 3. Actions for Guru Bimbel (Cloud Sync)
+    const saveMaterial = async (teacherId: number, material: any) => {
+        if (!isSupabaseConfigured()) return;
+
+        try {
+            const { error } = await supabase.from('tutoring_materials').insert([{
+                teacher_id: teacherId,
+                title: material.title,
+                video_url: material.youtubeId,
+                file_url: material.driveLink,
+                meeting_number: material.meeting_number || 1
+            }]);
+
+            if (error) throw error;
+            toast.success("Materi berhasil diunggah ke cloud!");
+            await fetchTutoringData();
+        } catch (err) {
+            console.error("Error saving material", err);
+            toast.error("Gagal mengunggah materi.");
+        }
     };
 
-    const updateClassInfo = (classId: number, info: Partial<TutoringClass>) => {
-        setTutoringClasses(prev => prev.map(cls =>
-            cls.id === classId ? { ...cls, ...info } : cls
-        ));
+    const deleteMaterial = async (id: number) => {
+        if (!isSupabaseConfigured()) return;
+        try {
+            await supabase.from('tutoring_materials').delete().eq('id', id);
+            toast.success("Materi berhasil dihapus!");
+            await fetchTutoringData();
+        } catch (err) {
+            console.error("Error deleting material", err);
+        }
     };
 
     return {
@@ -130,6 +149,8 @@ export const useTutoring = () => {
         setTutoringClasses,
         addSession,
         updateClassInfo,
+        saveMaterial,
+        deleteMaterial,
         isLoading,
         refresh: fetchTutoringData
     };

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
 import { ChevronRight, Calendar, CheckCircle, XCircle, AlertCircle, Clock } from 'lucide-react';
 import { attendanceDataGlobal } from '../data/sharedData';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 
 interface KehadiranSiswaProps {
     onBack: () => void;
@@ -18,56 +18,43 @@ const KehadiranSiswa: React.FC<KehadiranSiswaProps> = ({ onBack, user }) => {
     const [myAttendance, setMyAttendance] = useState<any[]>([]);
 
     useEffect(() => {
-        const loadAttendance = () => {
-            const rawData = localStorage.getItem('attendance_data_v2');
-            let records: any[] = [];
+        const loadAttendance = async () => {
+            if (!isSupabaseConfigured()) return;
+            try {
+                const { data } = await supabase
+                    .from('app_settings')
+                    .select('value')
+                    .eq('key', 'attendance_data_v2')
+                    .single();
 
-            if (rawData) {
-                try {
-                    const parsed = JSON.parse(rawData);
-                    if (Array.isArray(parsed)) {
-                        records = parsed;
-                    }
-                } catch (e) {
-                    console.error("Failed to parse attendance", e);
+                if (data?.value) {
+                    const allRecords = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+
+                    // Filter for this student
+                    const myId = user?.studentId || (user?.nis ? user.nis.toString() : '');
+                    const myName = user?.studentName || user?.nama || '';
+
+                    const myRecords = allRecords.filter((rec: any) =>
+                        rec.studentId?.toString() === myId ||
+                        rec.studentName?.toLowerCase() === myName?.toLowerCase()
+                    ).map((rec: any) => ({
+                        ...rec,
+                        // Map shorthand to full status for UI
+                        statusDisplay: rec.status === 'H' ? 'Hadir' : (rec.status === 'S' ? 'Sakit' : (rec.status === 'I' ? 'Izin' : (rec.status === 'A' ? 'Alpha' : rec.status)))
+                    }));
+
+                    setMyAttendance(myRecords.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()));
                 }
-            }
-
-            // FILTER: Show only records for this student
-            // We match by studentId (number) or studentName (string) if ID is missing in user context
-            // Ideally match by ID.
-            const myId = user?.studentId || (user?.nis ? parseInt(user.nis) : 0);
-
-            // Allow matching by Name if ID fails (fallback for demo)
-            const myName = user?.studentName || user?.nama;
-
-            const myRecords = records.filter(rec => {
-                // Check ID match
-                if (rec.studentId && myId && rec.studentId === myId) return true;
-                // Check Name match (fallback)
-                if (rec.studentName && myName && rec.studentName.toLowerCase() === myName.toLowerCase()) return true;
-                return false;
-            });
-
-            // If empty, try fallback to static Global data (only if strictly needed, but let's trust localStorage first)
-            if (myRecords.length === 0 && attendanceDataGlobal.length > 0) {
-                const staticRecs = attendanceDataGlobal.filter(rec =>
-                    (rec.studentId === myId) ||
-                    (rec.studentName && myName && rec.studentName.toLowerCase() === myName.toLowerCase())
-                );
-                setMyAttendance(staticRecs);
-            } else {
-                // Sort by date desc
-                myRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                setMyAttendance(myRecords);
+            } catch (err) {
+                console.error("Failed to fetch attendance from cloud", err);
             }
         };
 
         loadAttendance();
-    }, [user, studentName]);
+    }, [user]);
 
     // 3. Count Stats
-    const countStatus = (status: string) => myAttendance.filter(r => r.status === status).length;
+    const countStatus = (status: string) => myAttendance.filter(r => r.statusDisplay === status || r.status === status).length;
 
     // Summary Stats
     const stats = [
@@ -167,8 +154,8 @@ const KehadiranSiswa: React.FC<KehadiranSiswaProps> = ({ onBack, user }) => {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className={`px-4 py-1.5 rounded-full text-xs font-bold ${getBadgeColor(record.status)}`}>
-                                        {record.status}
+                                    <div className={`px-4 py-1.5 rounded-full text-xs font-bold ${getBadgeColor(record.statusDisplay)}`}>
+                                        {record.statusDisplay}
                                     </div>
                                 </div>
                             ))

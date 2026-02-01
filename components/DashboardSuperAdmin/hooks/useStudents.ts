@@ -81,6 +81,13 @@ export const useStudents = () => {
                 return [...mappedData, ...localUnsaved];
             });
             localStorage.setItem('students_data_v10', JSON.stringify(mappedData));
+
+            // Cloud backup for Initial Login support
+            await supabase.from('app_settings').upsert({
+                key: 'students_data_v10_sync',
+                value: mappedData,
+                updated_at: new Date().toISOString()
+            });
         } catch (err) {
             console.error('Error fetching students:', err);
             toast.error('Gagal memuat data siswa', { id: 'error-fetch-students' });
@@ -453,7 +460,14 @@ export const useStudents = () => {
                 const savedNisSet = new Set(studentsToSave.map(s => s.nis));
                 setStudents(prev => prev.filter(s => !savedNisSet.has(s.nis) || !String(s.id).startsWith('temp-')));
 
-                // 4. Final Refresh
+                // 4. Cloud backup for Initial Login support
+                await supabase.from('app_settings').upsert({
+                    key: 'students_data_v10_sync',
+                    value: students,
+                    updated_at: new Date().toISOString()
+                });
+
+                // 5. Final Refresh
                 await fetchStudents();
                 return true;
             })(),

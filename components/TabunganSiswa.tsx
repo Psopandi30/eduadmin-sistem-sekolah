@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, Wallet, ArrowUpCircle, ArrowDownCircle, History, Filter } from 'lucide-react';
 import { savingsDataGlobal, savingsTransactionsGlobal } from '../data/sharedData';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 
 interface TabunganSiswaProps {
     onBack: () => void;
@@ -11,26 +12,42 @@ const TabunganSiswa: React.FC<TabunganSiswaProps> = ({ onBack, user }) => {
     // State for Data
     const [mySavings, setMySavings] = useState<any>(null);
     const [myTransactions, setMyTransactions] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const loadData = () => {
-            // 1. Load Savings Data (Balance)
-            const rawSavings = localStorage.getItem('savings_data_v10');
-            const dataSavings = rawSavings ? JSON.parse(rawSavings) : savingsDataGlobal;
+        const loadData = async () => {
+            if (!isSupabaseConfigured()) {
+                setLoading(false);
+                return;
+            }
 
-            const sName = user?.studentName || user?.nama;
-            const foundSaver = dataSavings.find((s: any) => s.nama === sName);
-            setMySavings(foundSaver);
+            try {
+                const sName = user?.studentName || user?.nama;
+                const studentId = user?.studentId || user?.id;
 
-            // 2. Load Transactions
-            const rawTrx = localStorage.getItem('savings_transactions_v10');
-            const dataTrx = rawTrx ? JSON.parse(rawTrx) : savingsTransactionsGlobal;
+                // 1. Load Savings Data (Balance) from Cloud
+                const { data: dataRes } = await supabase.from('app_settings').select('value').eq('key', 'savings_data_v10').single();
+                if (dataRes?.value) {
+                    const allSavings = typeof dataRes.value === 'string' ? JSON.parse(dataRes.value) : dataRes.value;
+                    const foundSaver = allSavings.find((s: any) => s.nama === sName || String(s.id) === String(studentId));
+                    setMySavings(foundSaver);
+                }
 
-            const foundTrx = dataTrx.filter((t: any) => t.studentName === (foundSaver?.nama || sName));
-            // Sort desc
-            foundTrx.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-            setMyTransactions(foundTrx);
+                // 2. Load Transactions from Cloud
+                const { data: trxRes } = await supabase.from('app_settings').select('value').eq('key', 'savings_transactions_v10').single();
+                if (trxRes?.value) {
+                    const allTrx = typeof trxRes.value === 'string' ? JSON.parse(trxRes.value) : trxRes.value;
+                    const foundTrx = allTrx.filter((t: any) =>
+                        t.studentName === sName || String(t.studentId) === String(studentId)
+                    );
+                    foundTrx.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                    setMyTransactions(foundTrx);
+                }
+            } catch (err) {
+                console.error("Failed to fetch savings from cloud", err);
+            } finally {
+                setLoading(false);
+            }
         };
 
         loadData();

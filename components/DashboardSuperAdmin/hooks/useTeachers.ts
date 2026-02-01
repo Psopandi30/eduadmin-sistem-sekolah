@@ -66,6 +66,13 @@ export const useTeachers = () => {
 
                 setTeachers(mappedData);
                 localStorage.setItem('teachers_data_v10', JSON.stringify(mappedData));
+
+                // Cloud backup for Initial Login support
+                await supabase.from('app_settings').upsert({
+                    key: 'teachers_data_v10_sync',
+                    value: mappedData,
+                    updated_at: new Date().toISOString()
+                });
             }
             setIsInitialFetched(true);
         } catch (err) {
@@ -366,6 +373,13 @@ export const useTeachers = () => {
                         }
                     }
                 }
+
+                // 5. Cloud backup for Initial Login support (Legacy)
+                await supabase.from('app_settings').upsert({
+                    key: 'teachers_data_v10_sync',
+                    value: teachers,
+                    updated_at: new Date().toISOString()
+                });
 
                 await fetchTeachers(true); // Forced refresh
                 return true;

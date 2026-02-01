@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { schedulesDataGlobal, subjectsDataGlobal, schedulePeriodsGlobal } from '../data/sharedData';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 
 interface JadwalPelajaranProps {
     onBack: () => void;
@@ -18,12 +19,48 @@ const JadwalPelajaran: React.FC<JadwalPelajaranProps> = ({ onBack, user }) => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('schedules_data_v2');
             if (saved) {
-                const parsed = JSON.parse(saved);
-                return parsed.find((s: any) => s.status === 'published') || parsed[0] || schedulesDataGlobal[0] || { items: [], dailyInfos: [], name: 'Jadwal' };
+                try {
+                    const parsed = JSON.parse(saved);
+                    return parsed.find((s: any) => s.status === 'published') || parsed[0] || schedulesDataGlobal[0] || { items: [], dailyInfos: [], name: 'Jadwal' };
+                } catch (e) { }
             }
         }
         return schedulesDataGlobal.find(s => s.status === 'published') || schedulesDataGlobal[0] || { items: [], dailyInfos: [], name: 'Jadwal' };
     });
+
+    const [loading, setLoading] = useState(false);
+
+    // 1.2 Fetch from Supabase for Sync
+    useEffect(() => {
+        const fetchSchedules = async () => {
+            if (!isSupabaseConfigured()) return;
+            setLoading(true);
+            try {
+                const { data, error } = await supabase
+                    .from('app_settings')
+                    .select('value')
+                    .eq('key', 'master_schedules_v2')
+                    .single();
+
+                if (data && data.value) {
+                    const parsedSchedules = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+                    if (Array.isArray(parsedSchedules)) {
+                        const published = parsedSchedules.find((s: any) => s.status === 'published');
+                        if (published) {
+                            setMasterSchedule(published);
+                            localStorage.setItem('schedules_data_v2', JSON.stringify(parsedSchedules));
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn("Could not fetch schedules from cloud, using local fallback");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchSchedules();
+    }, []);
 
     // 2. Filter Items for Class and Day
     const items = (masterSchedule?.items || [])

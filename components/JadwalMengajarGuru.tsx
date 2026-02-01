@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Calendar, Clock, MapPin } from 'lucide-react';
 import { schedulesDataGlobal, subjectsDataGlobal, schedulePeriodsGlobal } from '../data/sharedData';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 
 interface JadwalMengajarGuruProps {
     onBack: () => void;
@@ -10,38 +11,73 @@ interface JadwalMengajarGuruProps {
 const JadwalMengajarGuru: React.FC<JadwalMengajarGuruProps> = ({ onBack, user }) => {
     const [selectedSemester, setSelectedSemester] = useState('1 (Ganjil)');
 
-    // Logic to Get Real Schedule from Global Data
+    const [masterSchedule, setMasterSchedule] = useState<any>(null);
+    const [teacherAssignments, setTeacherAssignments] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!isSupabaseConfigured()) {
+                setLoading(false);
+                return;
+            }
+            try {
+                // 1. Fetch Master Schedule from app_settings
+                const { data: scheduleData } = await supabase
+                    .from('app_settings')
+                    .select('value')
+                    .eq('key', 'master_schedules_v2')
+                    .single();
+
+                if (scheduleData?.value) {
+                    const parsed = typeof scheduleData.value === 'string' ? JSON.parse(scheduleData.value) : scheduleData.value;
+                    const published = parsed.find((s: any) => s.status === 'published') || parsed[0];
+                    setMasterSchedule(published);
+                }
+
+                // 2. Fetch Teacher Assignments (Plotting)
+                // Assuming we store plotting in app_settings too for simplicity of global sync, 
+                // or we could use a dedicated table.
+                const { data: plottingData } = await supabase
+                    .from('app_settings')
+                    .select('value')
+                    .eq('key', 'teacher_assignments_v2')
+                    .single();
+
+                if (plottingData?.value) {
+                    setTeacherAssignments(typeof plottingData.value === 'string' ? JSON.parse(plottingData.value) : plottingData.value);
+                }
+            } catch (err) {
+                console.error("Error fetching teaching schedule:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    // Logic to Get Real Schedule from Fetched Data
     const getTeacherSchedule = () => {
         const teacherName = user?.nama || '';
-        if (!teacherName) return [];
+        const teacherId = user?.id?.toString() || '';
 
-        // 1. Get Teacher Assignments from localStorage (Plotting data)
-        const savedAssignments = localStorage.getItem('teacher_assignments_v2');
-        const teacherAssignments = savedAssignments ? JSON.parse(savedAssignments) : [];
-
-        // 2. Identify which classes and subjects are assigned to this teacher
+        // Identify which classes and subjects are assigned to this teacher
         const myAssignments = teacherAssignments.filter((ta: any) => {
-            // Find teacher in global teachers data to get their ID if needed, 
-            // but usually plotting uses IDs. Let's assume we can match by name for simplicity if ID is not available.
-            return ta.teacherName === teacherName || ta.teacherId === user?.id;
+            return ta.teacherId?.toString() === teacherId || ta.teacherName === teacherName;
         });
 
-        // 3. Get Published Schedule
-        const publishedSchedule = schedulesDataGlobal.find(s => s.status === 'published') || schedulesDataGlobal[0];
-        if (!publishedSchedule) return [];
+        if (!masterSchedule) return [];
 
-        // 4. Map the schedule items
         const results: any[] = [];
-
-        publishedSchedule.items.forEach(item => {
-            // Check if this item matches teacher's assignment
+        masterSchedule.items.forEach((item: any) => {
             const isMyMapel = myAssignments.some((ta: any) =>
-                ta.classNama === item.classId && ta.subjectIds.includes(Number(item.subjectId))
+                ta.classNama === item.classId && ta.subjectIds.some((sid: any) => sid.toString() === item.subjectId.toString())
             );
 
             if (isMyMapel) {
                 const periodInfo = schedulePeriodsGlobal.find(p => p.id === item.period);
-                const subjectInfo = subjectsDataGlobal.find(s => s.id === Number(item.subjectId));
+                const subjectInfo = subjectsDataGlobal.find(s => s.id.toString() === item.subjectId.toString());
 
                 results.push({
                     id: item.id,
@@ -54,7 +90,6 @@ const JadwalMengajarGuru: React.FC<JadwalMengajarGuruProps> = ({ onBack, user })
             }
         });
 
-        // Sort by Day then Time
         const dayOrder = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
         return results.sort((a, b) => {
             const dayDiff = dayOrder.indexOf(a.hari) - dayOrder.indexOf(b.hari);
