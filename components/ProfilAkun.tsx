@@ -14,11 +14,11 @@ const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
         let foundStudent = null;
         // 1. Try Local Storage (most up-to-date)
         if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('students_data_v2');
+            const saved = localStorage.getItem('students_data_v10');
             if (saved) {
                 try {
                     const students = JSON.parse(saved);
-                    foundStudent = students.find((s: any) => s.nama === user?.studentName);
+                    foundStudent = students.find((s: any) => s.nama === user?.studentName || s.nis === user?.studentNis);
                 } catch (e) { console.error("Error parsing students data", e); }
             }
         }
@@ -48,8 +48,13 @@ const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
             const parts = studentData.ttl.split(',');
             if (parts.length > 1) {
                 const datePart = parts[1].trim();
+                // Match DD-MM-YYYY or DD/MM/YYYY
                 const dmy = datePart.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+                // Match YYYY-MM-DD
+                const ymd = datePart.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/);
+
                 if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+                if (ymd) return datePart;
             }
         }
         return '2015-05-20';
@@ -91,11 +96,17 @@ const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
                 console.log('Parsing date:', datePart);
                 // Try to parse DD/MM/YYYY or DD-MM-YYYY format
                 const dmy = datePart.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+                // Try to parse YYYY-MM-DD
+                const ymd = datePart.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/);
+
                 if (dmy) {
                     // Convert to YYYY-MM-DD for input[type="date"]
                     const formattedDate = `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
-                    console.log('✅ Formatted date:', formattedDate);
+                    console.log('✅ Formatted date (DMY):', formattedDate);
                     setTanggalLahir(formattedDate);
+                } else if (ymd) {
+                    console.log('✅ Date (YMD):', datePart);
+                    setTanggalLahir(datePart);
                 } else {
                     console.warn('⚠️ Date format not matched:', datePart);
                 }
@@ -123,8 +134,8 @@ const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
     // Listen for localStorage changes (when data is updated in other tabs or by admin)
     useEffect(() => {
         const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === 'students_data_v2') {
-                console.log('📦 localStorage students_data_v2 changed, refreshing...');
+            if (e.key === 'students_data_v10') {
+                console.log('📦 localStorage students_data_v10 changed, refreshing...');
                 setRefreshTrigger(prev => prev + 1);
             }
         };
@@ -238,30 +249,17 @@ const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">Tempat Lahir</label>
-                                    <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                                        <MapPin size={16} className="text-slate-400" />
-                                        <input
-                                            type="text"
-                                            value={tempatLahir}
-                                            onChange={(e) => setTempatLahir(e.target.value)}
-                                            className="bg-transparent w-full outline-none font-medium text-slate-700 text-sm"
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">Tanggal Lahir</label>
-                                    <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                                        <Calendar size={16} className="text-slate-400" />
-                                        <input
-                                            type="date"
-                                            value={tanggalLahir}
-                                            onChange={(e) => setTanggalLahir(e.target.value)}
-                                            className="bg-transparent w-full outline-none font-medium text-slate-700 text-sm"
-                                        />
-                                    </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">Tempat & Tanggal Lahir</label>
+                                <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                    <MapPin size={16} className="text-slate-400" />
+                                    <input
+                                        type="text"
+                                        value={studentData?.ttl || `${tempatLahir}, ${tanggalLahir}`}
+                                        readOnly
+                                        className="bg-transparent w-full outline-none font-medium text-slate-700 text-sm"
+                                        placeholder="Tempat, Tanggal Lahir"
+                                    />
                                 </div>
                             </div>
                         </div>

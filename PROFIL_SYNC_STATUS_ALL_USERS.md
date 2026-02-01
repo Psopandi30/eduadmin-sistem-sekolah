@@ -139,40 +139,52 @@ const [mapel, setMapel] = useState(teacherData?.mapel || user?.mapel || 'Pendidi
 
 ---
 
-## 🔍 Analisis Masalah yang Dilaporkan User
+## 🔍 Analisis Masalah yang Dilaporkan User (UPDATE TERBARU)
 
-### Screenshot User:
+### Screenshot User (Terbaru):
 ```
-Dashboard: Orang Tua
-Nama Siswa: Nurul Hidayah
-Kelas: 1A
-
+Image 1 - Dashboard Orang Tua:
 Data Orang Tua:
-- Nama Ayah: Bapak Nurul ✅
-- Nama Ibu: Siti Aminah ❌ (tidak sinkron)
+- Nama Ayah: Bapak Muhammad ✅
+- Nama Ibu: Siti Aminah ❌ (tidak sinkron dengan data di tabel admin)
 
 Data Siswa:
-- Nama Siswa: Nurul Hidayah ✅
-- Tempat Lahir: Samarinda ❌ (tidak sinkron)
-- Tanggal Lahir: 20/05/2015 ❌ (tidak sinkron)
+- Nama Siswa: Muhammad Rizki ✅
+- Tempat Lahir: Samarinda ❌ (terpisah, seharusnya gabung)
+- Tanggal Lahir: 20/05/2015 ❌ (terpisah, seharusnya gabung)
+
+Image 2 - Admin Upload Data Siswa:
+Tabel menampilkan:
+- Tempat & Tanggal Lahir: "Bandung, 2012-01-12" ✅ (format gabung)
+- Nama Ibu: "Ibu Muhammad", "Ibu Nurul", "Ibu Andi" ✅ (dari kolom tabel)
 ```
 
-### Root Cause:
-**Komponen `ProfilAkun.tsx` menggunakan `useState` dengan initial value dari `studentData`, tetapi tidak ter-update ketika data siswa berubah.**
+### Root Cause (UPDATE):
+1. **Nama Ibu tidak sinkron**: 
+   - ProfilAkun menampilkan hardcoded "Siti Aminah"
+   - Seharusnya mengambil dari `studentData.ibu` yang ada di tabel admin
+   - Data di tabel admin: "Ibu Muhammad", "Ibu Nurul", dll
 
-### Solution:
-**Menambahkan `useEffect` untuk real-time sync data dari `studentData` ke state component.**
+2. **Format Tempat & Tanggal Lahir tidak konsisten**:
+   - Admin menampilkan: "Bandung, 2012-01-12" (1 kolom gabung)
+   - Parent menampilkan: 2 field terpisah (Tempat Lahir & Tanggal Lahir)
+   - Seharusnya sama: 1 field gabung untuk konsistensi
+
+### Solution (UPDATE):
+1. ✅ **Sudah diperbaiki**: Nama Ibu sekarang sync dari `studentData.ibu`
+2. ✅ **Sudah diperbaiki**: Tempat & Tanggal Lahir sekarang ditampilkan sebagai 1 field gabung
+3. ✅ **Format konsisten**: Menggunakan format yang sama dengan admin view
 
 ---
 
-## ✅ Status Perbaikan
+## ✅ Status Perbaikan (UPDATE)
 
 ### Yang Sudah Diperbaiki:
 1. ✅ **ProfilAkun.tsx** (Dashboard Orang Tua)
-   - Tambah `useEffect` untuk sync Nama Ibu
-   - Tambah `useEffect` untuk sync Tempat Lahir
-   - Tambah `useEffect` untuk sync Tanggal Lahir
-   - Parse format DD/MM/YYYY ke YYYY-MM-DD
+   - ✅ Nama Ibu sekarang sync dari `studentData.ibu` (bukan hardcoded)
+   - ✅ Tempat & Tanggal Lahir ditampilkan sebagai 1 field gabung (konsisten dengan admin)
+   - ✅ Format tampilan sama dengan tabel admin: "Kota, YYYY-MM-DD"
+   - ✅ Field read-only untuk mencegah edit manual yang tidak konsisten
 
 ### Yang Tidak Perlu Diperbaiki:
 1. ✅ **ProfilGuru.tsx** (Dashboard Guru)

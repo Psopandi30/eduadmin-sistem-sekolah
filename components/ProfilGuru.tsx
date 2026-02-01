@@ -14,7 +14,7 @@ const ProfilGuru: React.FC<ProfilGuruProps> = ({ user, onBack, onLogout }) => {
         let foundTeacher = null;
         // 1. Try Local Storage (most up-to-date)
         if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('teachers_data_v1');
+            const saved = localStorage.getItem('teachers_data_v10');
             if (saved) {
                 try {
                     const teachers = JSON.parse(saved);
@@ -22,6 +22,7 @@ const ProfilGuru: React.FC<ProfilGuruProps> = ({ user, onBack, onLogout }) => {
                 } catch (e) { console.error("Error parsing teachers data", e); }
             }
         }
+        // ... (rest of the file)
         // 2. Fallback to Global Data
         if (!foundTeacher) {
             foundTeacher = teachersDataGlobal.find(t => t.nama === user?.nama);
