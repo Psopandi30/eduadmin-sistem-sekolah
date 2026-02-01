@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import { studentsDataGlobal, teachersDataGlobal, classesDataGlobal, schedulesDataGlobal, updateSchedulesDataGlobal, examsDataGlobal, updateExamsDataGlobal, MasterExamSchedule, ExamScheduleItem, attendanceDataGlobal, updateAttendanceDataGlobal, AttendanceRecord, gradesDataGlobal, updateGradesDataGlobal, GradeRecord, tutoringSubjectsGlobal, updateTutoringSubjectsGlobal, tutoringTeachersGlobal, updateTutoringTeachersGlobal, schedulePeriodsGlobal } from '../data/sharedData';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 import { toast, Toaster } from 'react-hot-toast';
 import Sidebar from './DashboardSuperAdmin/components/Sidebar';
 import { ScheduleItem, Period, MasterSchedule, DailyScheduleInfo, DAYS } from './DashboardSuperAdmin/types';
@@ -711,6 +712,192 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     useEffect(() => {
         localStorage.setItem('tutoring_enrollments_v10', JSON.stringify(tutoringEnrollments));
     }, [tutoringEnrollments]);
+
+    // NEW: FETCH TUTORING DATA FROM SUPABASE
+    const fetchTutoringDataMain = async () => {
+        if (!isSupabaseConfigured()) return;
+        try {
+            // Fetch Subjects
+            const { data: subData } = await supabase.from('tutoring_subjects').select('*');
+            if (subData && subData.length > 0) {
+                setTutoringSubjects(subData.map(s => ({
+                    id: s.id,
+                    name: s.name,
+                    classes: s.classes,
+                    meetings: s.meetings_count,
+                    status: s.status
+                })));
+            }
+
+            // Fetch Teachers/Groups
+            const { data: teachData } = await supabase.from('tutoring_teachers').select('*');
+            if (teachData && teachData.length > 0) {
+                setTutoringTeachers(teachData.map(t => ({
+                    id: t.id,
+                    name: t.name,
+                    source: t.source,
+                    subjectId: t.subject_id?.toString(),
+                    subjectName: t.subject_name,
+                    classId: t.class_id,
+                    scheduleDay: t.schedule_day,
+                    scheduleStart: t.schedule_start,
+                    scheduleEnd: t.schedule_end,
+                    username: t.username,
+                    password: t.password,
+                    studentsCount: t.students_count,
+                    status: t.status
+                })));
+            }
+
+            // Fetch Materials
+            const { data: matData } = await supabase.from('tutoring_materials').select('*');
+            if (matData && matData.length > 0) {
+                setTutoringMaterials(matData.map(m => ({
+                    id: m.id,
+                    teacherId: m.teacher_id,
+                    subjectName: m.subject_name,
+                    meeting: m.meeting_number,
+                    title: m.title,
+                    videoUrl: m.video_url,
+                    fileUrl: m.file_url
+                })));
+            }
+
+            // Fetch Enrollments
+            const { data: enrollData } = await supabase.from('tutoring_enrollments').select('*');
+            if (enrollData && enrollData.length > 0) {
+                setTutoringEnrollments(enrollData.map(e => ({
+                    groupId: e.teacher_id,
+                    studentId: e.student_id
+                })));
+            }
+        } catch (err) {
+            console.error('Error fetching tutoring data:', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchTutoringDataMain();
+    }, []);
+
+    // NEW: SAVE TUTORING DATA TO SUPABASE
+    const handleSaveTutoringData = async () => {
+        if (!isSupabaseConfigured()) {
+            toast.error("Supabase tidak terkonfigurasi!");
+            return;
+        }
+
+        const loadingToast = toast.loading("Sinkronisasi data Bimbel ke database...");
+
+        try {
+            // 1. Sync Subjects and get real IDs
+            let subjectsMap: Record<number, number> = {}; // temporary ID -> real DB ID
+            if (tutoringSubjects.length > 0) {
+                const subjectsToSave = tutoringSubjects.map(s => ({
+                    id: s.id > 1000000000 ? undefined : s.id,
+                    name: s.name,
+                    classes: s.classes,
+                    meetings_count: s.meetings,
+                    status: s.status
+                }));
+
+                const { data: savedSubjects, error: subError } = await supabase
+                    .from('tutoring_subjects')
+                    .upsert(subjectsToSave)
+                    .select();
+
+                if (subError) throw subError;
+
+                // Map temporary IDs to real IDs
+                tutoringSubjects.forEach((s) => {
+                    if (s.id > 1000000000 && savedSubjects) {
+                        const saved = savedSubjects.find(ss => ss.name === s.name);
+                        if (saved) subjectsMap[s.id] = saved.id;
+                    } else {
+                        subjectsMap[s.id] = s.id;
+                    }
+                });
+            }
+
+            // 2. Sync Teachers and get real IDs
+            let teachersMap: Record<number, number> = {};
+            if (tutoringTeachers.length > 0) {
+                const teachersToSave = tutoringTeachers.map(t => {
+                    const tempSubId = parseInt(t.subjectId);
+                    const realSubId = subjectsMap[tempSubId] || tempSubId;
+
+                    return {
+                        id: t.id > 1000000000 ? undefined : t.id,
+                        name: t.name,
+                        source: t.source,
+                        subject_id: isNaN(realSubId) ? null : realSubId,
+                        subject_name: t.subjectName,
+                        class_id: t.classId,
+                        schedule_day: t.scheduleDay,
+                        schedule_start: t.scheduleStart,
+                        schedule_end: t.scheduleEnd,
+                        username: t.username,
+                        password: t.password,
+                        students_count: t.studentsCount,
+                        status: t.status
+                    };
+                });
+
+                const { data: savedTeachers, error: teachError } = await supabase
+                    .from('tutoring_teachers')
+                    .upsert(teachersToSave)
+                    .select();
+
+                if (teachError) throw teachError;
+
+                // Map temporary IDs to real IDs
+                tutoringTeachers.forEach((t) => {
+                    if (t.id > 1000000000 && savedTeachers) {
+                        const saved = savedTeachers.find(st => st.username === t.username);
+                        if (saved) teachersMap[t.id] = saved.id;
+                    } else {
+                        teachersMap[t.id] = t.id;
+                    }
+                });
+            }
+
+            // 3. Sync Materials
+            if (tutoringMaterials.length > 0) {
+                const materialsToSave = tutoringMaterials.map(m => {
+                    const realTeachId = teachersMap[m.teacherId] || m.teacherId;
+                    return {
+                        id: m.id > 1000000000 ? undefined : m.id,
+                        teacher_id: realTeachId,
+                        subject_name: m.subjectName,
+                        meeting_number: m.meeting,
+                        title: m.title,
+                        video_url: m.videoUrl,
+                        file_url: m.fileUrl
+                    };
+                });
+                const { error: matError } = await supabase.from('tutoring_materials').upsert(materialsToSave);
+                if (matError) throw matError;
+            }
+
+            // 4. Sync Enrollments
+            if (tutoringEnrollments.length > 0) {
+                const enrollmentsToSave = tutoringEnrollments.map(e => ({
+                    teacher_id: teachersMap[e.groupId] || e.groupId,
+                    student_id: e.studentId
+                }));
+                const { error: enrollError } = await supabase
+                    .from('tutoring_enrollments')
+                    .upsert(enrollmentsToSave, { onConflict: 'teacher_id,student_id' });
+                if (enrollError) console.warn("Enrollment sync warned:", enrollError);
+            }
+
+            toast.success("Data Bimbel Berhasil Disinkronkan!", { id: loadingToast });
+            fetchTutoringDataMain();
+        } catch (err: any) {
+            console.error('Save error:', err);
+            toast.error("Gagal sinkron: " + err.message, { id: loadingToast });
+        }
+    };
 
     // --- TUTORING HELPERS ---
     const [showAddTutoringSubject, setShowAddTutoringSubject] = useState(false);
@@ -2739,7 +2926,15 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                 </div>
                                                 <div>
                                                     <h2 className="text-2xl font-bold text-slate-800">Bimbingan Belajar</h2>
-                                                    <p className="text-slate-500 text-sm font-medium">Manajemen kelas tambahan dan materi bimbel.</p>
+                                                    <div className="flex items-center gap-4 mt-1">
+                                                        <p className="text-slate-500 text-sm font-medium">Manajemen kelas tambahan dan materi bimbel.</p>
+                                                        <button
+                                                            onClick={handleSaveTutoringData}
+                                                            className="flex items-center gap-1.5 px-3 py-1 bg-red-600 text-white text-[10px] font-bold rounded-lg hover:bg-red-700 transition-all shadow-lg shadow-red-200 animate-pulse hover:animate-none"
+                                                        >
+                                                            <Save size={12} /> SIMPAN KE DATABASE
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -2899,7 +3094,9 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                             {tutoringMaterials.map(m => (
                                                                 <tr key={m.id} className="hover:bg-slate-50 transition-colors">
                                                                     <td className="p-4">
-                                                                        <div className="font-bold text-slate-700">Ahmad Fauzi</div>
+                                                                        <div className="font-bold text-slate-700">
+                                                                            {tutoringTeachers.find(t => t.id === m.teacherId)?.name || 'Guru Bimbel'}
+                                                                        </div>
                                                                         <div className="text-xs text-slate-500">{m.subjectName}</div>
                                                                     </td>
                                                                     <td className="p-4">
@@ -3747,6 +3944,17 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                         setNewSaverId={setNewSaverId}
                         saverClassFilter={saverClassFilter}
                         setSaverClassFilter={setSaverClassFilter}
+                    />
+
+                    {/* MODAL KELOLA SISWA BIMBEL */}
+                    <ManageTutoringStudentsModal
+                        isOpen={showManageTutoringStudentsModal}
+                        onClose={() => setShowManageTutoringStudentsModal(false)}
+                        tutoringGroup={selectedTutoringGroup}
+                        allStudents={students}
+                        enrolledStudents={tutoringEnrollments.filter(e => e.groupId === selectedTutoringGroup?.id).map(e => e.studentId)}
+                        onAddStudent={handleAddStudentToTutoring}
+                        onRemoveStudent={handleRemoveStudentFromTutoring}
                     />
 
                     {/* CONFIRMATION MODAL */}
