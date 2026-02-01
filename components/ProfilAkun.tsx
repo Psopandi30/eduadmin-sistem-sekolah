@@ -58,6 +58,45 @@ const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
     // Photo State
     const [previewUrl, setPreviewUrl] = useState<string | null>(user?.avatar || null);
 
+    // Real-time Sync: Update state when studentData or user changes
+    useEffect(() => {
+        const currentStudent = getStudentData();
+
+        // Sync Mother's Name
+        if (currentStudent?.ibu) {
+            setNamaIbu(currentStudent.ibu);
+        }
+
+        // Sync Birth Place
+        if (currentStudent?.ttl) {
+            const birthPlace = currentStudent.ttl.split(',')[0].trim();
+            setTempatLahir(birthPlace);
+
+            // Sync Birth Date
+            const parts = currentStudent.ttl.split(',');
+            if (parts.length > 1) {
+                const datePart = parts[1].trim();
+                // Try to parse DD/MM/YYYY or DD-MM-YYYY format
+                const dmy = datePart.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+                if (dmy) {
+                    // Convert to YYYY-MM-DD for input[type="date"]
+                    const formattedDate = `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+                    setTanggalLahir(formattedDate);
+                }
+            }
+        }
+
+        // Sync Student Name
+        if (user?.studentName) {
+            setNamaAnak(user.studentName);
+        }
+
+        // Sync Father's Name
+        if (user?.nama || user?.namaAyah) {
+            setNamaAyah(user.nama || user.namaAyah);
+        }
+    }, [user, user?.studentName]); // Re-run when user or studentName changes
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
