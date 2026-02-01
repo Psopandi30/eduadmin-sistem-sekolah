@@ -82,10 +82,19 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                 let studentsSource = studentsDataGlobal;
                 let studentSourceLabel = 'global';
 
-                if (localStudents && JSON.parse(localStudents).length > 0) {
-                    studentsSource = JSON.parse(localStudents);
-                    studentSourceLabel = 'localStorage';
-                } else if (isSupabaseConfigured()) {
+                if (localStudents) {
+                    try {
+                        const parsed = JSON.parse(localStudents);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            studentsSource = parsed;
+                            studentSourceLabel = 'localStorage';
+                        }
+                    } catch (e) {
+                        console.error("Error parsing local students:", e);
+                    }
+                }
+
+                if (studentSourceLabel === 'global' && isSupabaseConfigured()) {
                     // FALLBACK: Try Fetch from Cloud app_settings if Local is empty
                     console.log('☁️ Local students empty or [], trying cloud sync...');
                     try {
@@ -161,10 +170,19 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                 let teachersSource = teachersDataGlobal;
                 let teacherSourceLabel = 'global';
 
-                if (localTeachers && JSON.parse(localTeachers).length > 0) {
-                    teachersSource = JSON.parse(localTeachers);
-                    teacherSourceLabel = 'localStorage';
-                } else if (isSupabaseConfigured()) {
+                if (localTeachers) {
+                    try {
+                        const parsed = JSON.parse(localTeachers);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            teachersSource = parsed;
+                            teacherSourceLabel = 'localStorage';
+                        }
+                    } catch (e) {
+                        console.error("Error parsing local teachers:", e);
+                    }
+                }
+
+                if (teacherSourceLabel === 'global' && isSupabaseConfigured()) {
                     // FALLBACK: Try Fetch from Cloud app_settings if Local is empty
                     console.log('☁️ Local teachers empty or [], trying cloud sync...');
                     try {

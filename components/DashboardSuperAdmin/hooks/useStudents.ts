@@ -16,6 +16,7 @@ export interface Student {
     jobAyah: string;
     jobIbu: string;
     username: string;
+    password?: string;
     // Optional fields for compatibility
     gender?: string;
     sppStatus?: string;
