@@ -58,17 +58,29 @@ const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
     // Photo State
     const [previewUrl, setPreviewUrl] = useState<string | null>(user?.avatar || null);
 
+    // Force refresh trigger
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
     // Real-time Sync: Update state when studentData or user changes
     useEffect(() => {
+        console.log('🔄 ProfilAkun useEffect triggered');
+        console.log('User:', user);
+        console.log('Student Name:', user?.studentName);
+
         const currentStudent = getStudentData();
+        console.log('Current Student Data:', currentStudent);
 
         // Sync Mother's Name
         if (currentStudent?.ibu) {
+            console.log('✅ Syncing Nama Ibu:', currentStudent.ibu);
             setNamaIbu(currentStudent.ibu);
+        } else {
+            console.warn('⚠️ No ibu data found in student data');
         }
 
         // Sync Birth Place
         if (currentStudent?.ttl) {
+            console.log('✅ Syncing TTL:', currentStudent.ttl);
             const birthPlace = currentStudent.ttl.split(',')[0].trim();
             setTempatLahir(birthPlace);
 
@@ -76,26 +88,50 @@ const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
             const parts = currentStudent.ttl.split(',');
             if (parts.length > 1) {
                 const datePart = parts[1].trim();
+                console.log('Parsing date:', datePart);
                 // Try to parse DD/MM/YYYY or DD-MM-YYYY format
                 const dmy = datePart.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
                 if (dmy) {
                     // Convert to YYYY-MM-DD for input[type="date"]
                     const formattedDate = `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+                    console.log('✅ Formatted date:', formattedDate);
                     setTanggalLahir(formattedDate);
+                } else {
+                    console.warn('⚠️ Date format not matched:', datePart);
                 }
             }
+        } else {
+            console.warn('⚠️ No ttl data found in student data');
         }
 
         // Sync Student Name
         if (user?.studentName) {
+            console.log('✅ Syncing Student Name:', user.studentName);
             setNamaAnak(user.studentName);
         }
 
         // Sync Father's Name
         if (user?.nama || user?.namaAyah) {
-            setNamaAyah(user.nama || user.namaAyah);
+            const fatherName = user.nama || user.namaAyah;
+            console.log('✅ Syncing Father Name:', fatherName);
+            setNamaAyah(fatherName);
         }
-    }, [user, user?.studentName]); // Re-run when user or studentName changes
+
+        console.log('✅ ProfilAkun sync completed');
+    }, [user, user?.studentName, refreshTrigger]); // Added refreshTrigger
+
+    // Listen for localStorage changes (when data is updated in other tabs or by admin)
+    useEffect(() => {
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'students_data_v2') {
+                console.log('📦 localStorage students_data_v2 changed, refreshing...');
+                setRefreshTrigger(prev => prev + 1);
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
