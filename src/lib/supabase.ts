@@ -100,6 +100,7 @@ export type Database = {
           mother_name: string | null
           father_job: string | null
           mother_job: string | null
+          password: string | null
           status: string
           class_id: string | null
           profile_id: string | null
@@ -125,6 +126,7 @@ export type Database = {
           mother_name?: string | null
           father_job?: string | null
           mother_job?: string | null
+          password?: string | null
           status?: string
           class_id?: string | null
           profile_id?: string | null
@@ -150,10 +152,54 @@ export type Database = {
           mother_name?: string | null
           father_job?: string | null
           mother_job?: string | null
+          password?: string | null
           status?: string
           class_id?: string | null
           profile_id?: string | null
           created_at?: string
+          updated_at?: string
+        }
+      }
+      staff: {
+        Row: {
+          id: string
+          employee_number: string
+          position: string
+          profile_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          employee_number: string
+          position: string
+          profile_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          employee_number?: string
+          position?: string
+          profile_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      app_settings: {
+        Row: {
+          key: string
+          value: any
+          updated_at: string
+        }
+        Insert: {
+          key: string
+          value: any
+          updated_at?: string
+        }
+        Update: {
+          key?: string
+          value?: any
           updated_at?: string
         }
       }
