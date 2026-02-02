@@ -178,7 +178,7 @@ export const useClasses = () => {
     }, [classes, fetchClasses]);
 
     return {
-        classes,
+        classes: [...classes].sort((a, b) => a.nama.localeCompare(b.nama, undefined, { numeric: true, sensitivity: 'base' })),
         setClasses,
         loading,
         showAddClassModal,
