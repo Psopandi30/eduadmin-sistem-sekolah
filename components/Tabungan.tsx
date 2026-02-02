@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as XLSX from 'xlsx';
 import {
     Wallet,
     ArrowUpCircle,
@@ -35,6 +36,8 @@ const Tabungan: React.FC = () => {
 
     const [showAddModal, setShowAddModal] = useState(false);
     const [newSaverId, setNewSaverId] = useState('');
+    const [savingImportFile, setSavingImportFile] = useState<File | null>(null);
+    const [savingPreviewData, setSavingPreviewData] = useState<any[]>([]);
 
     // --- TRANSACTION FORM STATE ---
     const [trxForm, setTrxForm] = useState({
@@ -71,6 +74,41 @@ const Tabungan: React.FC = () => {
             setShowAddModal(false);
             setNewSaverId('');
         }
+    };
+
+    const handleDownloadSavingTemplate = () => {
+        // Find students who are NOT members yet
+        const nonMembers = studentsDataGlobal.filter(s => !savingsData.find(saver => saver.id === s.id));
+
+        if (nonMembers.length === 0) {
+            toast.error("Semua siswa sudah terdaftar sebagai nasabah!");
+            return;
+        }
+
+        const dataToExport = nonMembers.map((s, index) => ({
+            'NO': index + 1,
+            'NIS': s.nis,
+            'NAMA SISWA': s.nama,
+            'KELAS': s.kelas,
+            'SALDO AWAL': 0,
+            'STATUS': 'Aktif'
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wscols = [
+            { wch: 6 },   // NO
+            { wch: 15 },  // NIS
+            { wch: 35 },  // NAMA SISWA
+            { wch: 10 },  // KELAS
+            { wch: 15 },  // SALDO AWAL
+            { wch: 15 },  // STATUS
+        ];
+        ws['!cols'] = wscols;
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Daftar Calon Nasabah");
+        XLSX.writeFile(wb, `TEMPLATE_NASABAH_TABUNGAN_${new Date().getFullYear()}.xlsx`);
+        toast.success("Template Excel berhasil diunduh.");
     };
 
     const handleTransaction = (type: 'Setor' | 'Tarik') => {
@@ -403,6 +441,108 @@ const Tabungan: React.FC = () => {
                                     </div>
 
                                     <div className="space-y-4">
+                                        {/* Row: Add via Excel */}
+                                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                                            <p className="text-[11px] font-bold text-slate-400 uppercase mb-3 px-1">Alternatif: Upload Excel</p>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={handleDownloadSavingTemplate}
+                                                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all shadow-sm"
+                                                >
+                                                    <Download size={14} /> Template
+                                                </button>
+                                                <label className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 cursor-pointer">
+                                                    <Plus size={14} /> Upload
+                                                    <input
+                                                        type="file"
+                                                        className="hidden"
+                                                        accept=".xlsx, .xls"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) {
+                                                                setSavingImportFile(file);
+                                                                const reader = new FileReader();
+                                                                reader.onload = (evt) => {
+                                                                    try {
+                                                                        const data = evt.target?.result;
+                                                                        const workbook = XLSX.read(data, { type: 'array' });
+                                                                        const ws = workbook.Sheets[workbook.SheetNames[0]];
+                                                                        const json = XLSX.utils.sheet_to_json(ws);
+
+                                                                        if (json.length === 0) {
+                                                                            toast.error("File kosong!");
+                                                                            return;
+                                                                        }
+
+                                                                        const preview = json.map((row: any, i) => ({
+                                                                            id: row['NIS'] || Date.now() + i,
+                                                                            nis: row['NIS'],
+                                                                            nama: row['NAMA SISWA'],
+                                                                            kelas: row['KELAS'],
+                                                                            saldo: parseInt(row['SALDO AWAL']) || 0,
+                                                                            status: row['STATUS'] || 'Aktif'
+                                                                        }));
+                                                                        setSavingPreviewData(preview);
+                                                                        toast.success(`${preview.length} data dimuat.`);
+                                                                    } catch (err) {
+                                                                        toast.error("Format file tidak didukung!");
+                                                                    }
+                                                                };
+                                                                reader.readAsArrayBuffer(file);
+                                                            }
+                                                        }}
+                                                    />
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {/* Preview Table for Excel Import */}
+                                        {savingPreviewData.length > 0 && (
+                                            <div className="p-3 bg-white border border-blue-200 rounded-2xl animate-in zoom-in-95">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <h4 className="text-[11px] font-bold text-blue-600 uppercase">Pratinjau Data</h4>
+                                                    <button onClick={() => setSavingPreviewData([])} className="text-[10px] text-red-500 font-bold hover:underline">Hapus</button>
+                                                </div>
+                                                <div className="max-h-[150px] overflow-y-auto border rounded-xl custom-scrollbar text-[10px]">
+                                                    <table className="w-full text-left border-collapse">
+                                                        <thead className="bg-slate-50 sticky top-0">
+                                                            <tr>
+                                                                <th className="p-2 border-b">Nama</th>
+                                                                <th className="p-2 border-b">Kelas</th>
+                                                                <th className="p-2 border-b text-right">Saldo</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y">
+                                                            {savingPreviewData.map((p, i) => (
+                                                                <tr key={i}>
+                                                                    <td className="p-2 truncate max-w-[120px]">{p.nama}</td>
+                                                                    <td className="p-2">{p.kelas}</td>
+                                                                    <td className="p-2 text-right">Rp {p.saldo.toLocaleString()}</td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        setSavingsData([...savingsData, ...savingPreviewData]);
+                                                        toast.success(`Berhasil menambahkan ${savingPreviewData.length} nasabah!`);
+                                                        setSavingPreviewData([]);
+                                                        setSavingImportFile(null);
+                                                        setShowAddModal(false);
+                                                    }}
+                                                    className="w-full mt-3 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all"
+                                                >
+                                                    Simpan Ke Database Nasabah
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        <div className="relative py-2">
+                                            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
+                                            <div className="relative flex justify-center text-[10px] uppercase font-bold text-slate-300 bg-white px-2">Atau Pilih Manual</div>
+                                        </div>
+
                                         <div>
                                             <label className="block text-sm font-bold text-slate-700 mb-2">Pilih Siswa</label>
                                             <select

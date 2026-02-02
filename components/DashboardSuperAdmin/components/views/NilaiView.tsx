@@ -261,6 +261,11 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes,
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleExportExcel = () => {
+        if (!selectedClass || !selectedSubject) {
+            toast.error("Pilih Kelas dan Mata Pelajaran terlebih dahulu!");
+            return;
+        }
+
         const dataToExport = grades.map((g, index) => {
             const row: any = {
                 'No': index + 1,
@@ -272,26 +277,40 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes,
             for (let i = 1; i <= tpCount; i++) {
                 row[`UH ${i}`] = g[`tp${i}` as keyof GradeRow] || 0;
             }
-            row['Rata UH'] = g.avgSumatif;
 
             // Ujian
-            row['PTS'] = g.pts;
-            row['PAS'] = g.pas;
-            row['PAT'] = g.pat;
-
-            // Akhir
-            row['Nilai Akhir'] = g.finalScore;
-            row['Predikat'] = g.predicate;
-            row['Deskripsi'] = g.description;
+            row['PTS'] = g.pts || 0;
+            row['PAS'] = g.pas || 0;
+            row['PAT'] = g.pat || 0;
 
             return row;
         });
 
         const ws = XLSX.utils.json_to_sheet(dataToExport);
+
+        // Set column widths for a tidy look
+        const wscols = [
+            { wch: 6 },   // No
+            { wch: 40 },  // Nama Siswa
+            { wch: 18 },  // NIS
+        ];
+
+        // Dynamic widths for UH columns
+        for (let i = 1; i <= tpCount; i++) {
+            wscols.push({ wch: 8 });
+        }
+
+        // Widths for Exam columns
+        wscols.push({ wch: 10 }, { wch: 10 }, { wch: 10 });
+
+        ws['!cols'] = wscols;
+
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Nilai Siswa");
-        XLSX.writeFile(wb, `Nilai_${selectedClass}_${selectedSubject}_${selectedSemester}.xlsx`);
-        toast.success("File Excel berhasil diunduh!");
+        XLSX.utils.book_append_sheet(wb, ws, "Input Nilai Siswa");
+
+        const fileName = `Template_Nilai_${selectedClass}_${selectedSubject.replace(/\s+/g, '_')}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        toast.success("Template Excel berhasil diunduh! Silakan isi nilai pada kolom yang tersedia.");
     };
 
     const handleImportExcel = () => {
@@ -505,13 +524,17 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes,
 
                         <button
                             onClick={handleExportExcel}
-                            className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors" title="Export Excel">
-                            <Download size={20} />
+                            className="flex items-center gap-2 px-4 py-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all font-bold text-xs"
+                            title="Unduh Template Excel">
+                            <Download size={16} />
+                            <span className="hidden sm:inline">Template</span>
                         </button>
                         <button
                             onClick={handleImportExcel}
-                            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors" title="Import Excel">
-                            <Upload size={20} />
+                            className="flex items-center gap-2 px-4 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all font-bold text-xs"
+                            title="Import Nilai Excel">
+                            <Upload size={16} />
+                            <span className="hidden sm:inline">Impor Nilai</span>
                         </button>
 
                         {/* Hidden Input */}

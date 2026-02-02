@@ -114,6 +114,10 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
                                 const d = new Date(absenDate);
                                 d.setDate(d.getDate() - 1);
                                 setAbsenDate(d);
+                                // Update mode
+                                const today = new Date();
+                                if (d.toDateString() === today.toDateString()) setAbsenMode('today');
+                                else setAbsenMode('history');
                             }} className="h-10 w-10 flex items-center justify-center bg-white border border-slate-200 rounded-lg hover:bg-slate-100 text-slate-600"><ChevronLeft size={18} /></button>
 
                             <input
@@ -122,9 +126,16 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
                                 onChange={(e) => {
                                     if (e.target.value) {
                                         const parts = e.target.value.split('-');
-                                        // Construct date in local time to avoid timezone offsets
                                         const newDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
                                         setAbsenDate(newDate);
+
+                                        // Update mode based on date
+                                        const today = new Date();
+                                        if (newDate.toDateString() === today.toDateString()) {
+                                            setAbsenMode('today');
+                                        } else {
+                                            setAbsenMode('history');
+                                        }
                                     }
                                 }}
                                 className="h-10 px-4 bg-white border border-slate-200 rounded-lg font-mono font-bold text-slate-700 text-center outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all min-w-[160px] cursor-pointer"
@@ -134,14 +145,31 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
                                 const d = new Date(absenDate);
                                 d.setDate(d.getDate() + 1);
                                 setAbsenDate(d);
+                                // Update mode
+                                const today = new Date();
+                                if (d.toDateString() === today.toDateString()) setAbsenMode('today');
+                                else setAbsenMode('history');
                             }} className="h-10 w-10 flex items-center justify-center bg-white border border-slate-200 rounded-lg hover:bg-slate-100 text-slate-600"><ChevronRight size={18} /></button>
                         </div>
                     </div>
 
                     {/* Mode Switch */}
                     <div className="flex bg-slate-200 p-1 rounded-lg self-end ml-auto">
-                        <button onClick={() => setAbsenMode('today')} className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${absenMode === 'today' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Hari Ini</button>
-                        <button onClick={() => setAbsenMode('history')} className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${absenMode === 'history' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Histori</button>
+                        <button
+                            onClick={() => {
+                                setAbsenMode('today');
+                                setAbsenDate(new Date());
+                            }}
+                            className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${absenMode === 'today' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            Hari Ini
+                        </button>
+                        <button
+                            onClick={() => setAbsenMode('history')}
+                            className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${absenMode === 'history' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            Histori
+                        </button>
                     </div>
                 </div>
 
@@ -245,12 +273,12 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
                 <table className="w-full text-left text-sm whitespace-nowrap">
                     <thead className="bg-[#F8FAFC] text-slate-700 font-bold sticky top-0 z-10 shadow-sm border-b border-slate-200 text-[12px]">
                         <tr>
-                            <th className="p-3 border-r border-slate-200 text-center w-16">No</th>
-                            <th className="p-3 border-r border-slate-200 min-w-[300px]">Nama Siswa</th>
-                            <th className="p-3 border-r border-slate-200 text-center w-40">Kehadiran</th>
+                            <th className="p-1.5 border-r border-slate-200 text-center w-12 text-[14px]">No</th>
+                            <th className="p-1.5 border-r border-slate-200 min-w-[200px] text-[14px]">Nama Siswa</th>
+                            <th className="p-1.5 border-r border-slate-200 text-center w-48 text-[14px]">Kehadiran</th>
 
-                            <th className="p-3 border-r border-slate-200 min-w-[200px]">Catatan</th>
-                            <th className="p-3 text-center w-16"><CheckSquare size={14} className="mx-auto text-slate-400" /></th>
+                            <th className="p-1.5 border-r border-slate-200 min-w-[200px] text-[14px]">Catatan</th>
+                            <th className="p-1.5 text-center w-12"><CheckSquare size={16} className="mx-auto text-slate-400" /></th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
@@ -281,15 +309,15 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
 
                             return (
                                 <tr key={student.id} className="hover:bg-blue-50/20 transition-colors group">
-                                    <td className="p-3 text-center text-slate-500 font-medium group-hover:text-blue-600 text-[12px]">{i + 1}</td>
-                                    <td className="p-3 font-bold text-slate-700 text-[12px]">{student.nama}</td>
-                                    <td className="p-3 text-center">
-                                        <div className="inline-flex bg-slate-100 rounded-lg p-1.5 gap-2 border border-slate-200">
+                                    <td className="p-1.5 text-center text-slate-500 font-medium group-hover:text-blue-600 text-[14px]">{i + 1}</td>
+                                    <td className="p-1.5 font-bold text-slate-700 text-[14px]">{student.nama}</td>
+                                    <td className="p-1.5 text-center">
+                                        <div className="inline-flex bg-slate-100 rounded-lg p-1 gap-1.5 border border-slate-200">
                                             {['H', 'S', 'I', 'A'].map((status) => (
                                                 <button
                                                     key={status}
                                                     onClick={() => updateStudentData('status', status)}
-                                                    className={`w-8 h-8 rounded-md font-bold text-[12px] transition-all ${data.status === status
+                                                    className={`w-8 h-8 rounded-md font-bold text-[14px] transition-all ${data.status === status
                                                         ? (status === 'H' ? 'bg-white text-green-600 shadow-sm ring-1 ring-green-100' :
                                                             status === 'S' ? 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-100' :
                                                                 status === 'I' ? 'bg-white text-orange-600 shadow-sm ring-1 ring-orange-100' :
@@ -302,21 +330,21 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
                                         </div>
                                     </td>
 
-                                    <td className="p-3">
+                                    <td className="p-1.5">
                                         <input
                                             type="text"
                                             value={data.note}
                                             onChange={(e) => updateStudentData('note', e.target.value)}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-2 text-[12px] outline-none focus:bg-white focus:border-blue-400 transition-colors"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-2 text-[14px] outline-none focus:bg-white focus:border-blue-400 transition-colors"
                                             placeholder="Catatan..."
                                         />
                                     </td>
-                                    <td className="p-3 text-center">
+                                    <td className="p-1.5 text-center">
                                         <input
                                             type="checkbox"
                                             checked={data.checked}
                                             onChange={(e) => updateStudentData('checked', e.target.checked)}
-                                            className="w-[12px] h-[12px] rounded text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                                            className="w-[14px] h-[14px] rounded text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
                                         />
                                     </td>
                                 </tr>

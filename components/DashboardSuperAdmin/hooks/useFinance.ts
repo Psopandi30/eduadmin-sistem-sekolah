@@ -18,6 +18,7 @@ export interface PaymentType {
     type: 'BULANAN' | 'SEKALI' | 'TAHUNAN';
     amount: number;
     category: string;
+    targetClass?: string;
 }
 
 export interface StudentBill {
@@ -107,7 +108,8 @@ export const useFinance = () => {
                     name: t.name,
                     type: t.type,
                     amount: t.amount,
-                    category: t.category
+                    category: t.category,
+                    targetClass: t.target_class
                 })));
             }
 
@@ -200,7 +202,8 @@ export const useFinance = () => {
                 name: type.name,
                 type: type.type,
                 amount: type.amount,
-                category: type.category
+                category: type.category,
+                target_class: type.targetClass
             }]).select();
 
             if (!error && data) {

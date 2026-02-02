@@ -17,9 +17,10 @@ import EditYearModal from '../modals/EditYearModal';
 
 interface KeuanganViewProps {
     students: any[];
+    classes: any[];
 }
 
-const KeuanganView: React.FC<KeuanganViewProps> = ({ students: rawStudents }) => {
+const KeuanganView: React.FC<KeuanganViewProps> = ({ students: rawStudents, classes = [] }) => {
     const students = Array.isArray(rawStudents) ? rawStudents : [];
 
     // --- KEUANGAN STATE ---
@@ -62,28 +63,80 @@ const KeuanganView: React.FC<KeuanganViewProps> = ({ students: rawStudents }) =>
         waTemplate: 'Assalamualaikum Bapak/Ibu Wali Murid, kami informasikan tagihan SPP bulan ini sebesar *{nominal}*. Terima kasih.'
     });
 
-    // State for uploaded Bill Excel file
+    // New state for adding payment type in Settings
+    const [settingNewPaymentName, setSettingNewPaymentName] = useState('');
+    const [settingNewPaymentClass, setSettingNewPaymentClass] = useState('Semua Kelas');
+    const [settingNewPaymentAmount, setSettingNewPaymentAmount] = useState(0);
+
+    // State for uploaded Bill Excel file and preview
     const [uploadedBillFile, setUploadedBillFile] = useState<File | null>(null);
+    const [importPreviewData, setImportPreviewData] = useState<any[]>([]);
 
     const handleDownloadBillTemplate = () => {
-        // Simple CSV generation for Bill Template
-        const headers = ['NO', 'NIS', 'NAMA SISWA', 'KELAS', 'JENIS TAGIHAN', 'NOMINAL', 'BULAN/TAHUN'];
-        const rows = [
-            ['1', '12345', 'Contoh Siswa 1', '1A', 'SPP', '150000', 'Maret 2026'],
-            ['2', '67890', 'Contoh Siswa 2', '1B', 'Uang Gedung', '500000', '-']
-        ];
-        const csvContent = "data:text/csv;charset=utf-8,"
-            + headers.join(",") + "\n"
-            + rows.map(e => e.join(",")).join("\n");
+        if (students.length === 0) {
+            toast.error("Data siswa kosong! Tambahkan data siswa terlebih dahulu.");
+            return;
+        }
 
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "TEMPLATE_IMPORT_TAGIHAN.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        toast.success("Template Excel (CSV) berhasil didownload!");
+        // Generate data based on defined payment types and student classes
+        const dataToExport: any[] = [];
+        let rowNum = 1;
+
+        students.forEach(student => {
+            // Find applicable payment types for this student's class
+            const applicableTypes = paymentTypes.filter(pt =>
+                !pt.targetClass ||
+                pt.targetClass === 'Semua Kelas' ||
+                pt.targetClass === student.kelas
+            );
+
+            if (applicableTypes.length > 0) {
+                applicableTypes.forEach(pt => {
+                    dataToExport.push({
+                        'NO': rowNum++,
+                        'NIS': student.nis || '-',
+                        'NAMA SISWA': student.nama,
+                        'KELAS': student.kelas,
+                        'JENIS TAGIHAN': pt.name,
+                        'NOMINAL': pt.amount,
+                        'BULAN/TAHUN': 'Maret 2026' // Current default suggestion
+                    });
+                });
+            } else {
+                // If no specific payment types, add a generic row
+                dataToExport.push({
+                    'NO': rowNum++,
+                    'NIS': student.nis || '-',
+                    'NAMA SISWA': student.nama,
+                    'KELAS': student.kelas,
+                    'JENIS TAGIHAN': 'SPP',
+                    'NOMINAL': 0,
+                    'BULAN/TAHUN': 'Maret 2026'
+                });
+            }
+        });
+
+        // Create workbook and worksheet
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+
+        // Define column widths
+        const wscols = [
+            { wch: 6 },   // NO
+            { wch: 15 },  // NIS
+            { wch: 35 },  // NAMA SISWA
+            { wch: 10 },  // KELAS
+            { wch: 25 },  // JENIS TAGIHAN
+            { wch: 15 },  // NOMINAL
+            { wch: 20 },  // BULAN/TAHUN
+        ];
+        ws['!cols'] = wscols;
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Template Tagihan");
+
+        // Download file
+        XLSX.writeFile(wb, `TEMPLATE_IMPORT_TAGIHAN_${new Date().getFullYear()}.xlsx`);
+        toast.success("Template Excel (.xlsx) berhasil dibuat secara dinamis!");
     };
     const [expenseCategories, setExpenseCategories] = useState(['Operasional Sekolah', 'Honor Guru/Staff', 'ATK & Fotokopi', 'Konsumsi', 'Pembangunan & Sarpras', 'Listrik & Internet']);
     const [newExpenseCategory, setNewExpenseCategory] = useState('');
@@ -341,47 +394,74 @@ const KeuanganView: React.FC<KeuanganViewProps> = ({ students: rawStudents }) =>
             {/* 3. TAGIHAN */}
             {financeActiveTab === 'tagihan' && (
                 <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-3">
                         <div>
-                            <h3 className="font-bold text-lg text-slate-800">Generate Tagihan SPP</h3>
-                            <p className="text-sm text-slate-500">Buat tagihan otomatis untuk seluruh siswa aktif.</p>
+                            <h3 className="font-bold text-[14px] text-slate-800">Generate Tagihan SPP</h3>
+                            <p className="text-[12px] text-slate-500">Buat tagihan otomatis untuk seluruh siswa aktif.</p>
                         </div>
-                        <div className="flex gap-3">
-                            <select className="px-4 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold text-slate-700 text-sm outline-none">
+                        <div className="flex gap-2">
+                            <select className="px-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50 font-bold text-slate-700 text-[14px] outline-none">
                                 <option>Februari 2026</option>
                                 <option>Maret 2026</option>
                                 <option>April 2026</option>
                             </select>
-                            <button onClick={handleGenerateBills} className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all">
+                            <button onClick={handleGenerateBills} className="px-5 py-1.5 bg-indigo-600 text-white rounded-xl font-bold text-[14px] shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all">
                                 Generate Sekarang
                             </button>
                         </div>
                     </div>
 
                     {/* Import Section */}
-                    <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100">
-                        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="bg-blue-50 p-4 rounded-3xl border border-blue-100">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
                             <div>
-                                <h4 className="font-bold text-blue-800 text-sm">Import Data Tagihan (Excel)</h4>
-                                <p className="text-xs text-blue-600">Gunakan fitur ini untuk upload tagihan massal dari file Excel.</p>
+                                <h4 className="font-bold text-blue-800 text-[14px]">Import Data Tagihan (Excel)</h4>
+                                <p className="text-[12px] text-blue-600">Gunakan fitur ini untuk upload tagihan massal dari file Excel.</p>
                             </div>
-                            <div className="flex gap-3">
+                            <div className="flex gap-2">
                                 <button
                                     onClick={handleDownloadBillTemplate}
-                                    className="flex items-center gap-2 px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors"
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-white text-slate-600 border border-slate-200 rounded-xl text-[14px] font-bold hover:bg-slate-50 transition-colors"
                                 >
-                                    <Download size={16} /> Template
+                                    <Download size={14} /> Template
                                 </button>
-                                <label className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 cursor-pointer">
-                                    <UploadIcon size={16} /> Pilih File
+                                <label className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-[14px] font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 cursor-pointer">
+                                    <UploadIcon size={14} /> Pilih File
                                     <input
                                         type="file"
                                         accept=".xlsx, .xls, .csv"
                                         className="hidden"
                                         onChange={(e) => {
                                             if (e.target.files && e.target.files[0]) {
-                                                setUploadedBillFile(e.target.files[0]);
-                                                toast.success(`File ${e.target.files[0].name} terpilih!`);
+                                                const file = e.target.files[0];
+                                                setUploadedBillFile(file);
+
+                                                const reader = new FileReader();
+                                                reader.onload = (event) => {
+                                                    try {
+                                                        const data = event.target?.result;
+                                                        const workbook = XLSX.read(data, { type: 'array' });
+                                                        const sheetName = workbook.SheetNames[0];
+                                                        const worksheet = workbook.Sheets[sheetName];
+                                                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                                                        // Map to preview format
+                                                        const preview = jsonData.map((row: any, index: number) => ({
+                                                            id: Date.now() + index,
+                                                            studentName: row['NAMA SISWA'] || 'Unknown',
+                                                            class: row['KELAS'] || '-',
+                                                            paymentName: row['JENIS TAGIHAN'] || 'Tagihan Lainnya',
+                                                            amount: parseInt(row['NOMINAL']) || 0,
+                                                            period: row['BULAN/TAHUN'] || '-',
+                                                            status: 'Belum Lunas'
+                                                        }));
+                                                        setImportPreviewData(preview);
+                                                        toast.success(`Berhasil memuat ${preview.length} baris data.`);
+                                                    } catch (err) {
+                                                        toast.error("Gagal membaca file!");
+                                                    }
+                                                };
+                                                reader.readAsArrayBuffer(file);
                                             }
                                         }}
                                     />
@@ -389,79 +469,70 @@ const KeuanganView: React.FC<KeuanganViewProps> = ({ students: rawStudents }) =>
                             </div>
                         </div>
 
-                        {/* Show selected file and save button */}
-                        {uploadedBillFile && (
+                        {/* Preview Section */}
+                        {importPreviewData.length > 0 && (
                             <div className="mt-4 p-4 bg-white rounded-2xl border border-blue-200 animate-in fade-in slide-in-from-top-2">
-                                <div className="flex items-center justify-between gap-3 mb-3">
-                                    <div className="flex items-center gap-3 truncate">
-                                        <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                                            <FileText size={20} className="text-blue-600" />
-                                        </div>
-                                        <div className="truncate">
-                                            <p className="text-sm font-bold text-slate-700 truncate">{uploadedBillFile.name}</p>
-                                            <p className="text-[10px] text-slate-400">{(uploadedBillFile.size / 1024).toFixed(1)} KB</p>
-                                        </div>
-                                    </div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h5 className="font-bold text-slate-700 text-sm">Pratinjau Data Tagihan ({importPreviewData.length})</h5>
                                     <button
-                                        onClick={() => setUploadedBillFile(null)}
-                                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                        onClick={() => {
+                                            setImportPreviewData([]);
+                                            setUploadedBillFile(null);
+                                        }}
+                                        className="text-[11px] font-bold text-red-500 hover:underline"
                                     >
-                                        <X size={18} />
+                                        Batal/Hapus Preview
                                     </button>
                                 </div>
+
+                                <div className="overflow-x-auto max-h-[200px] custom-scrollbar border rounded-xl mb-4">
+                                    <table className="w-full text-[12px] text-left">
+                                        <thead className="bg-slate-50 sticky top-0">
+                                            <tr>
+                                                <th className="p-2 border-b">Nama Siswa</th>
+                                                <th className="p-2 border-b text-center">Kelas</th>
+                                                <th className="p-2 border-b">Tagihan</th>
+                                                <th className="p-2 border-b text-right">Nominal</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y">
+                                            {importPreviewData.map((row, idx) => (
+                                                <tr key={idx} className="hover:bg-slate-50">
+                                                    <td className="p-2 font-medium">{row.studentName}</td>
+                                                    <td className="p-2 text-center">{row.class}</td>
+                                                    <td className="p-2">{row.paymentName}</td>
+                                                    <td className="p-2 text-right">Rp {row.amount.toLocaleString('id-ID')}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
                                 <button
                                     onClick={() => {
-                                        if (!uploadedBillFile) return;
+                                        const loadingToast = toast.loading('Memproses penyimpanan data...');
+                                        try {
+                                            const newBills = importPreviewData.map(row => ({
+                                                ...row,
+                                                id: Date.now() + Math.random(),
+                                                dueDate: new Date().toISOString().split('T')[0],
+                                                type: 'SPP',
+                                                studentId: 0 // Mock student ID mapping
+                                            }));
 
-                                        const loadingToast = toast.loading('Membaca file Excel...');
-                                        const reader = new FileReader();
-
-                                        reader.onload = (e) => {
-                                            try {
-                                                const data = e.target?.result;
-                                                const workbook = XLSX.read(data, { type: 'array' });
-                                                const sheetName = workbook.SheetNames[0]; // Read first sheet
-                                                const worksheet = workbook.Sheets[sheetName];
-                                                const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-                                                if (jsonData.length === 0) {
-                                                    toast.dismiss(loadingToast);
-                                                    toast.error("File Excel kosong atau format salah!");
-                                                    return;
-                                                }
-
-                                                // Map Excel Columns to App Data
-                                                // Expected Columns: NO, NIS, NAMA SISWA, KELAS, JENIS TAGIHAN, NOMINAL, BULAN/TAHUN
-                                                const newBills = jsonData.map((row: any, index: number) => ({
-                                                    id: Date.now() + index,
-                                                    studentId: 0, // In real app, perform lookup by NIS here
-                                                    studentName: row['NAMA SISWA'] || 'Unknown',
-                                                    class: row['KELAS'] || '-',
-                                                    paymentName: row['JENIS TAGIHAN'] || 'Tagihan Lainnya',
-                                                    amount: parseInt(row['NOMINAL']) || 0,
-                                                    period: row['BULAN/TAHUN'] || '-',
-                                                    status: 'Belum Lunas',
-                                                    dueDate: new Date().toISOString().split('T')[0],
-                                                    type: 'SPP'
-                                                }));
-
-                                                setStudentBills([...studentBills, ...newBills]);
-
-                                                toast.dismiss(loadingToast);
-                                                toast.success(`Berhasil mengimport ${newBills.length} data tagihan!`);
-                                                setUploadedBillFile(null);
-                                            } catch (err) {
-                                                console.error(err);
-                                                toast.dismiss(loadingToast);
-                                                toast.error("Gagal memproses file. Pastikan menggunakan Template.");
-                                            }
-                                        };
-
-                                        reader.readAsArrayBuffer(uploadedBillFile);
+                                            setStudentBills([...studentBills, ...newBills]);
+                                            toast.dismiss(loadingToast);
+                                            toast.success(`Berhasil menyimpan ${newBills.length} data tagihan!`);
+                                            setImportPreviewData([]);
+                                            setUploadedBillFile(null);
+                                        } catch (err) {
+                                            toast.dismiss(loadingToast);
+                                            toast.error("Gagal menyimpan data!");
+                                        }
                                     }}
                                     className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all"
                                 >
-                                    <CheckCircle size={18} /> Simpan Data Tagihan
+                                    <CheckCircle size={18} /> Simpan Permanen ke Daftar Tagihan
                                 </button>
                             </div>
                         )}
@@ -469,51 +540,53 @@ const KeuanganView: React.FC<KeuanganViewProps> = ({ students: rawStudents }) =>
 
                     {/* Table Tagihan */}
                     <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                        <div className="p-5 border-b border-slate-100 flex justify-between items-center">
-                            <h3 className="font-bold text-slate-800">Daftar Tagihan Siswa</h3>
+                        <div className="px-5 py-3 border-b border-slate-100 flex justify-between items-center">
+                            <h3 className="font-bold text-slate-800 text-[14px]">Daftar Tagihan Siswa</h3>
                             <div className="relative">
-                                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <input placeholder="Cari Siswa..." className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500" />
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input placeholder="Cari Siswa..." className="pl-10 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-[14px] outline-none focus:border-blue-500" />
                             </div>
                         </div>
-                        <table className="w-full text-left border-collapse">
-                            <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
-                                <tr>
-                                    <th className="p-4 border-b">Siswa</th>
-                                    <th className="p-4 border-b text-center">Kelas</th>
-                                    <th className="p-4 border-b">Jenis Tagihan</th>
-                                    <th className="p-4 border-b">Bulan/Tahun</th>
-                                    <th className="p-4 border-b text-right">Nominal</th>
-                                    <th className="p-4 border-b text-center">Status</th>
-                                    <th className="p-4 border-b text-center">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 text-sm">
-                                {studentBills.map((bill) => (
-                                    <tr key={bill.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="p-4 font-bold text-slate-700">{bill.studentName}</td>
-                                        <td className="p-4 text-center text-slate-500">{bill.class}</td>
-                                        <td className="p-4 text-slate-600">{bill.paymentName}</td>
-                                        <td className="p-4 text-slate-600">{bill.period}</td>
-                                        <td className="p-4 text-right font-mono text-slate-700">Rp {bill.amount.toLocaleString('id-ID')}</td>
-                                        <td className="p-4 text-center">
-                                            {bill.status === 'Lunas' ? (
-                                                <span className="px-2 py-1 bg-green-100 text-green-700 rounded-md text-xs font-bold">Lunas</span>
-                                            ) : (
-                                                <span className="px-2 py-1 bg-red-100 text-red-700 rounded-md text-xs font-bold">Belum Lunas</span>
-                                            )}
-                                        </td>
-                                        <td className="p-4 text-center">
-                                            {bill.status !== 'Lunas' ? (
-                                                <button onClick={() => handlePayBill(bill)} className="text-blue-600 hover:underline font-bold text-xs">Bayar</button>
-                                            ) : (
-                                                <button className="text-slate-400 hover:text-blue-500 font-bold text-xs">Cetak</button>
-                                            )}
-                                        </td>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-slate-50 text-slate-500 text-[12px] font-bold uppercase tracking-wider">
+                                    <tr>
+                                        <th className="p-2 border-b pl-6">Siswa</th>
+                                        <th className="p-2 border-b text-center">Kelas</th>
+                                        <th className="p-2 border-b">Jenis Tagihan</th>
+                                        <th className="p-2 border-b">Bulan/Tahun</th>
+                                        <th className="p-2 border-b text-right">Nominal</th>
+                                        <th className="p-2 border-b text-center">Status</th>
+                                        <th className="p-2 border-b text-right pr-6">Aksi</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 text-[14px]">
+                                    {studentBills.map((bill) => (
+                                        <tr key={bill.id} className="hover:bg-slate-50 transition-colors group">
+                                            <td className="p-2 pl-6 font-bold text-slate-700">{bill.studentName}</td>
+                                            <td className="p-2 text-center text-slate-500">{bill.class}</td>
+                                            <td className="p-2 text-slate-600">{bill.paymentName}</td>
+                                            <td className="p-2 text-slate-600">{bill.period}</td>
+                                            <td className="p-2 text-right font-mono text-slate-700">Rp {bill.amount.toLocaleString('id-ID')}</td>
+                                            <td className="p-2 text-center">
+                                                {bill.status === 'Lunas' ? (
+                                                    <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-md text-[11px] font-bold">Lunas</span>
+                                                ) : (
+                                                    <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-md text-[11px] font-bold">Belum Lunas</span>
+                                                )}
+                                            </td>
+                                            <td className="p-2 text-right pr-6">
+                                                {bill.status !== 'Lunas' ? (
+                                                    <button onClick={() => handlePayBill(bill)} className="px-3 py-1 bg-blue-600 text-white rounded-lg font-bold text-[12px] hover:bg-blue-700 transition-colors shadow-sm shadow-blue-100">Bayar</button>
+                                                ) : (
+                                                    <button className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg font-bold text-[12px] hover:bg-slate-200 transition-colors">Cetak</button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}
@@ -881,36 +954,105 @@ const KeuanganView: React.FC<KeuanganViewProps> = ({ students: rawStudents }) =>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in">
                     {/* KOLOM KIRI */}
                     <div className="space-y-8">
-                        {/* Kuitansi & Bendahara */}
+                        {/* Jenis Tagihan - New Replacement */}
                         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
                             <div className="flex items-center gap-3 mb-6">
-                                <div className="bg-blue-100 p-3 rounded-xl text-blue-600"><UserCheck size={24} /></div>
+                                <div className="bg-blue-100 p-3 rounded-xl text-blue-600"><FileText size={24} /></div>
                                 <div>
-                                    <h3 className="font-bold text-xl text-slate-800">Personalisasi Kuitansi</h3>
-                                    <p className="text-sm text-slate-500">Data yang tampil di bukti pembayaran.</p>
+                                    <h3 className="font-bold text-xl text-slate-800">Manajemen Jenis Tagihan</h3>
+                                    <p className="text-sm text-slate-500">Tambah dan kelola jenis tagihan per kelas.</p>
                                 </div>
                             </div>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-2">Nama Bendahara / Staff Keuangan</label>
-                                    <input
-                                        type="text"
-                                        value={financeSettings.treasurerName}
-                                        onChange={(e) => setFinanceSettings({ ...financeSettings, treasurerName: e.target.value })}
-                                        className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-medium"
-                                    />
+
+                            <div className="space-y-5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Nama Jenis Tagihan / Nama Pembayaran</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Contoh: SPP, Uang Gedung, Seragam..."
+                                            value={settingNewPaymentName}
+                                            onChange={(e) => setSettingNewPaymentName(e.target.value)}
+                                            className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-medium bg-slate-50 focus:bg-white transition-all"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Target Kelas</label>
+                                        <select
+                                            value={settingNewPaymentClass}
+                                            onChange={(e) => setSettingNewPaymentClass(e.target.value)}
+                                            className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700 bg-slate-50"
+                                        >
+                                            <option value="Semua Kelas">Semua Kelas</option>
+                                            {classes.map(c => (
+                                                <option key={c.id} value={c.nama}>{c.nama}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Nominal Default (Rp)</label>
+                                        <input
+                                            type="number"
+                                            placeholder="0"
+                                            value={settingNewPaymentAmount || ''}
+                                            onChange={(e) => setSettingNewPaymentAmount(parseInt(e.target.value) || 0)}
+                                            className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-mono font-bold bg-slate-50"
+                                        />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-2">Catatan Footer Kuitansi</label>
-                                    <textarea
-                                        value={financeSettings.receiptFooter}
-                                        onChange={(e) => setFinanceSettings({ ...financeSettings, receiptFooter: e.target.value })}
-                                        className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none h-24 font-medium"
-                                    ></textarea>
-                                </div>
-                                <button onClick={() => toast.success("Pengaturan kuitansi disimpan!")} className="px-6 py-2 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-colors">
-                                    Simpan Perubahan
+
+                                <button
+                                    onClick={() => {
+                                        if (!settingNewPaymentName || settingNewPaymentAmount <= 0) {
+                                            toast.error("Lengkapi nama dan nominal tagihan!");
+                                            return;
+                                        }
+
+                                        const { addPaymentType } = useFinance(); // Re-access add function if needed or use local hook
+                                        // But we already have useFinance states at the top, let's use the local state setters
+                                        const newType: any = {
+                                            id: Date.now(),
+                                            name: settingNewPaymentName,
+                                            type: 'BULANAN',
+                                            amount: settingNewPaymentAmount,
+                                            category: 'Sekolah',
+                                            targetClass: settingNewPaymentClass
+                                        };
+
+                                        setPaymentTypes([...paymentTypes, newType]);
+                                        setSettingNewPaymentName('');
+                                        setSettingNewPaymentAmount(0);
+                                        toast.success(`Jenis tagihan ${settingNewPaymentName} berhasil ditambahkan!`);
+                                    }}
+                                    className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2"
+                                >
+                                    <Plus size={18} /> Simpan Jenis Tagihan
                                 </button>
+
+                                <div className="pt-4 border-t border-slate-100">
+                                    <p className="text-xs font-bold text-slate-400 uppercase mb-3">Daftar Tagihan Aktif</p>
+                                    <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar">
+                                        {paymentTypes.map(pt => (
+                                            <div key={pt.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100 group">
+                                                <div>
+                                                    <p className="font-bold text-slate-700 text-sm">{pt.name}</p>
+                                                    <p className="text-[10px] text-blue-600 font-bold uppercase">{pt.targetClass || 'Semua Kelas'} • Rp {pt.amount.toLocaleString('id-ID')}</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        setPaymentTypes(paymentTypes.filter(p => p.id !== pt.id));
+                                                        toast.success("Jenis tagihan dihapus");
+                                                    }}
+                                                    className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
