@@ -147,8 +147,6 @@ export const useTutoring = () => {
     return {
         tutoringClasses,
         setTutoringClasses,
-        addSession,
-        updateClassInfo,
         saveMaterial,
         deleteMaterial,
         isLoading,

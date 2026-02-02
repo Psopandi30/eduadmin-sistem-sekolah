@@ -16,36 +16,70 @@ const PembayaranSiswa: React.FC<PembayaranSiswaProps> = ({ onBack, user }) => {
 
     useEffect(() => {
         const loadFinanceData = async () => {
-            if (!isSupabaseConfigured()) {
-                setLoading(false);
-                return;
+            setLoading(true);
+            const studentName = user?.studentName || user?.nama;
+            const studentId = user?.studentId || user?.id;
+
+            // 1. Attempt Cloud Sync if available
+            if (isSupabaseConfigured()) {
+                try {
+                    // Load Billing Data from Cloud
+                    const { data: billsRes } = await supabase.from('app_settings').select('value').eq('key', 'finance_student_bills_v10').single();
+                    if (billsRes?.value) {
+                        const allBills = typeof billsRes.value === 'string' ? JSON.parse(billsRes.value) : billsRes.value;
+                        const myUnpaid = allBills.filter((b: any) =>
+                            (String(b.studentId) === String(studentId) || b.studentName === studentName) &&
+                            b.status !== 'Lunas'
+                        ).map((b: any) => ({
+                            id: b.id,
+                            title: b.paymentName,
+                            amount: Number(b.amount) || 0,
+                            deadline: b.dueDate || (b.period ? '10 ' + b.period : '-'),
+                            status: 'Belum Lunas'
+                        }));
+                        setUnpaidBills(myUnpaid);
+                        localStorage.setItem('finance_student_bills_v10', JSON.stringify(allBills));
+                    }
+
+                    // Load History (Payments) from Cloud
+                    const { data: historyRes } = await supabase.from('app_settings').select('value').eq('key', 'payments_data_v10').single();
+                    if (historyRes?.value) {
+                        const allHistory = typeof historyRes.value === 'string' ? JSON.parse(historyRes.value) : historyRes.value;
+                        const myHistory = allHistory.filter((h: any) =>
+                            String(h.studentId) === String(studentId) || h.studentName === studentName
+                        );
+                        myHistory.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                        setHistoryData(myHistory);
+                        localStorage.setItem('payments_data_v10', JSON.stringify(allHistory));
+                    }
+                    setLoading(false);
+                    return;
+                } catch (err) {
+                    console.error("Cloud sync failed, falling back to local", err);
+                }
             }
 
+            // 2. Fallback to Local Storage or Global Data
             try {
-                const studentName = user?.studentName || user?.nama;
-                const studentId = user?.studentId || user?.id;
-
-                // 1. Load Billing Data from Cloud
-                const { data: billsRes } = await supabase.from('app_settings').select('value').eq('key', 'finance_student_bills_v10').single();
-                if (billsRes?.value) {
-                    const allBills = typeof billsRes.value === 'string' ? JSON.parse(billsRes.value) : billsRes.value;
+                const savedBills = localStorage.getItem('finance_student_bills_v10');
+                if (savedBills) {
+                    const allBills = JSON.parse(savedBills);
                     const myUnpaid = allBills.filter((b: any) =>
                         (String(b.studentId) === String(studentId) || b.studentName === studentName) &&
                         b.status !== 'Lunas'
                     ).map((b: any) => ({
                         id: b.id,
                         title: b.paymentName,
-                        amount: b.amount,
+                        amount: Number(b.amount) || 0,
                         deadline: b.dueDate || (b.period ? '10 ' + b.period : '-'),
                         status: 'Belum Lunas'
                     }));
                     setUnpaidBills(myUnpaid);
                 }
 
-                // 2. Load History (Payments) from Cloud
-                const { data: historyRes } = await supabase.from('app_settings').select('value').eq('key', 'payments_data_v10').single();
-                if (historyRes?.value) {
-                    const allHistory = typeof historyRes.value === 'string' ? JSON.parse(historyRes.value) : historyRes.value;
+                const savedHistory = localStorage.getItem('payments_data_v10');
+                if (savedHistory) {
+                    const allHistory = JSON.parse(savedHistory);
                     const myHistory = allHistory.filter((h: any) =>
                         String(h.studentId) === String(studentId) || h.studentName === studentName
                     );
@@ -53,7 +87,7 @@ const PembayaranSiswa: React.FC<PembayaranSiswaProps> = ({ onBack, user }) => {
                     setHistoryData(myHistory);
                 }
             } catch (err) {
-                console.error("Failed to load finance data from cloud", err);
+                console.error("Local data load failed", err);
             } finally {
                 setLoading(false);
             }
@@ -63,10 +97,13 @@ const PembayaranSiswa: React.FC<PembayaranSiswaProps> = ({ onBack, user }) => {
     }, [user]);
 
     // Summary calculation
+    const totalPaidVal = historyData.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+    const outstandingVal = unpaidBills.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+
     const summary = {
-        totalLimit: 5000000,
-        totalPaid: historyData.reduce((acc, curr) => acc + (curr.amount || 0), 0),
-        outstanding: unpaidBills.reduce((acc, curr) => acc + (curr.amount || 0), 0)
+        totalLimit: totalPaidVal + outstandingVal,
+        totalPaid: totalPaidVal,
+        outstanding: outstandingVal
     };
 
     const formatCurrency = (amount: number) => {

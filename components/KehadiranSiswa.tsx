@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { ChevronRight, Calendar, CheckCircle, XCircle, AlertCircle, Clock } from 'lucide-react';
 import { attendanceDataGlobal } from '../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';

@@ -31,10 +31,17 @@ const BelajarAISiswa: React.FC<BelajarAISiswaProps> = ({ onBack }) => {
     ]);
     const [isTyping, setIsTyping] = useState(false);
     const [chatHistory, setChatHistory] = useState<GeminiMessage[]>([]);
-    const [history, setHistory] = useState<ChatSession[]>([
-        { id: '1', title: 'Belajar Rumus Pythagoras', date: new Date(Date.now() - 86400000) },
-        { id: '2', title: 'Ide Cerita Pendek Hewan', date: new Date(Date.now() - 172800000) },
-    ]);
+    const [history, setHistory] = useState<ChatSession[]>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('ai_chat_history_v10');
+            if (saved) return JSON.parse(saved);
+        }
+        return [
+            { id: '1', title: 'Belajar Rumus Pythagoras', date: new Date(Date.now() - 86400000) },
+            { id: '2', title: 'Ide Cerita Pendek Hewan', date: new Date(Date.now() - 172800000) },
+        ];
+    });
+    const [showHistory, setShowHistory] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -44,6 +51,10 @@ const BelajarAISiswa: React.FC<BelajarAISiswaProps> = ({ onBack }) => {
     useEffect(() => {
         scrollToBottom();
     }, [messages, isTyping]);
+
+    useEffect(() => {
+        localStorage.setItem('ai_chat_history_v10', JSON.stringify(history));
+    }, [history]);
 
     const handleSend = async () => {
         if (!input.trim()) return;
@@ -113,6 +124,7 @@ const BelajarAISiswa: React.FC<BelajarAISiswaProps> = ({ onBack }) => {
             }
         ]);
         setChatHistory([]); // Reset chat history untuk Gemini
+        setShowHistory(false);
 
         // Tambahkan ke history jika ada firstMessage
         if (firstMessage) {
@@ -125,28 +137,87 @@ const BelajarAISiswa: React.FC<BelajarAISiswaProps> = ({ onBack }) => {
         }
     };
 
+    const handleDeleteSession = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        setHistory(prev => prev.filter(s => s.id !== id));
+    };
+
+    const handleClearHistory = () => {
+        if (confirm("Hapus semua riwayat percakapan?")) {
+            setHistory([]);
+            localStorage.removeItem('ai_chat_history_v10');
+        }
+    };
+
+    const loadSession = (session: ChatSession) => {
+        // Mock loading - in real app would fetch messages for this session
+        setMessages([
+            { id: '1', role: 'assistant', content: `Memuat sesi: ${session.title}...`, timestamp: new Date() },
+            { id: '2', role: 'user', content: 'Halo, saya ingin lanjut belajar.', timestamp: new Date() },
+            { id: '3', role: 'assistant', content: 'Tentu! Mari kita lanjutkan pembahasan kita sebelumnya.', timestamp: new Date() }
+        ]);
+        setShowHistory(false);
+    };
+
     return (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col md:flex-row h-[calc(100vh-140px)] md:h-[calc(100vh-120px)]">
-            {/* Sidebar History (Hidden on mobile, often implemented with drawer on smaller screens) */}
-            <div className="hidden md:flex w-64 bg-slate-50 border-r border-slate-200 flex-col shrink-0">
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                    <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2">
-                        <Clock size={16} /> Riwayat
+            {/* Sidebar History (Drawer on mobile, Sidebar on desktop) */}
+            <div className={`
+                fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 md:hidden
+                ${showHistory ? 'opacity-100' : 'opacity-0 pointer-events-none'}
+            `} onClick={() => setShowHistory(false)}></div>
+
+            <div className={`
+                fixed md:relative inset-y-0 left-0 z-50 w-72 bg-white md:bg-slate-50 border-r border-slate-200 flex flex-col shrink-0 transition-transform duration-300 transform
+                ${showHistory ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+            `}>
+                <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-[#004AAD] md:bg-transparent">
+                    <h3 className="font-black text-white md:text-slate-700 text-sm flex items-center gap-2 uppercase tracking-widest">
+                        <Clock size={16} /> Riwayat Chat
                     </h3>
+                    <button onClick={() => setShowHistory(false)} className="md:hidden text-white/80">
+                        <ArrowLeft size={20} />
+                    </button>
                 </div>
-                <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                    {history.map(session => (
-                        <button key={session.id} className="w-full text-left p-3 rounded-xl hover:bg-slate-200 transition-colors group">
-                            <p className="font-bold text-slate-700 text-xs truncate mb-1">{session.title}</p>
-                            <p className="text-[10px] text-slate-400 group-hover:text-slate-500">
-                                {session.date.toLocaleDateString()}
-                            </p>
-                        </button>
-                    ))}
+
+                <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                    {history.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+                            <MessageSquare size={32} className="opacity-20 mb-2" />
+                            <p className="text-[10px] font-bold">Belum ada riwayat</p>
+                        </div>
+                    ) : (
+                        history.map(session => (
+                            <div
+                                key={session.id}
+                                onClick={() => loadSession(session)}
+                                className="w-full text-left p-4 rounded-2xl hover:bg-slate-200/50 md:hover:bg-white md:hover:shadow-sm border border-transparent hover:border-slate-100 transition-all cursor-pointer group relative"
+                            >
+                                <div className="flex justify-between items-start gap-2">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-black text-slate-700 text-xs truncate mb-1 uppercase tracking-tight">{session.title}</p>
+                                        <p className="text-[9px] font-bold text-slate-400">
+                                            {new Date(session.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={(e) => handleDeleteSession(e, session.id)}
+                                        className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors md:opacity-0 md:group-hover:opacity-100"
+                                    >
+                                        <Trash2 size={12} />
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
+
                 <div className="p-4 border-t border-slate-200">
-                    <button className="w-full flex items-center justify-center gap-2 text-rose-500 text-xs font-bold p-2 hover:bg-rose-50 rounded-xl transition-colors">
-                        <Trash2 size={14} /> Hapus Riwayat
+                    <button
+                        onClick={handleClearHistory}
+                        className="w-full flex items-center justify-center gap-2 text-rose-500 text-[10px] font-black p-3 hover:bg-rose-50 rounded-2xl transition-all border border-dashed border-rose-200"
+                    >
+                        <Trash2 size={14} /> BERSIHKAN SEMUA
                     </button>
                 </div>
             </div>
@@ -154,35 +225,43 @@ const BelajarAISiswa: React.FC<BelajarAISiswaProps> = ({ onBack }) => {
             {/* Main Chat Area */}
             <div className="flex-1 flex flex-col bg-white">
                 {/* Header Chat */}
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
                     <div className="flex items-center gap-3">
                         <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors md:hidden">
-                            <ChevronRight className="rotate-180" size={24} />
+                            <ArrowLeft size={24} className="text-slate-600" />
                         </button>
                         <button onClick={onBack} className="hidden md:block p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
-                            <ArrowLeft size={20} /> {/* Only icon change for desktop aesthetics */}
+                            <ArrowLeft size={20} />
                         </button>
 
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-500 flex items-center justify-center shadow-md shadow-blue-200">
+                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 rotate-3">
                                 <Bot size={24} className="text-white" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-slate-800 text-sm">Teman Belajar AI</h3>
+                                <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest">Teman Belajar AI</h3>
                                 <div className="flex items-center gap-1.5">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    <span className="text-[10px] text-slate-500 font-medium">Online • Gemini Flash Thinking</span>
+                                    <span className="text-[9px] text-slate-400 font-black">ONLINE • GEMINI PRO</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <button
-                        onClick={handleNewChat}
-                        className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors tooltip"
-                        title="Chat Baru"
-                    >
-                        <Plus size={20} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => setShowHistory(true)}
+                            className="p-2.5 bg-slate-100 hover:bg-white hover:shadow-md text-slate-500 rounded-xl transition-all md:hidden border border-transparent hover:border-slate-100"
+                        >
+                            <Clock size={20} />
+                        </button>
+                        <button
+                            onClick={() => handleNewChat()}
+                            className="p-2.5 bg-blue-50 hover:bg-[#004AAD] text-blue-600 hover:text-white rounded-xl transition-all border border-blue-100 hover:border-transparent shadow-sm"
+                            title="Chat Baru"
+                        >
+                            <Plus size={20} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Messages Area */}

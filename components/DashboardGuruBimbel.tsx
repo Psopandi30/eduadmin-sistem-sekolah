@@ -40,7 +40,7 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
     const [currentTime, setCurrentTime] = useState(new Date());
     const [activeView, setActiveView] = useState<'home' | 'jadwal' | 'kehadiran' | 'nilai' | 'latihan' | 'quran' | 'channel' | 'ai' | 'informasi' | 'notepad' | 'notifikasi' | 'profile'>('home');
 
-    const { tutoringClasses, addSession } = useTutoring();
+    const { tutoringClasses } = useTutoring();
 
     // Prediksi kelas yang diajar oleh guru ini (Simulasi filter)
     const myTutoringClasses = tutoringClasses.filter(c =>
