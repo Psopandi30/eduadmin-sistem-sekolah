@@ -55,7 +55,7 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
     return (
         <div className="bg-white rounded-[2.5rem] p-6 h-full shadow-sm animate-in fade-in flex flex-col">
             {/* Header and Controls */}
-            <div className="flex flex-col gap-6 mb-6">
+            <div className="flex flex-col gap-2 mb-2">
                 {/* Title & Teacher Info */}
                 <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
@@ -64,10 +64,6 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
                             <h2 className="text-xl font-bold text-[#1E1B4B]">Absensi Siswa</h2>
                             <p className="text-slate-500 text-sm">Kelola data kehadiran siswa harian</p>
                         </div>
-                    </div>
-                    <div className="bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 flex items-center gap-2">
-                        <UserCog size={16} className="text-blue-600" />
-                        <span className="font-bold text-blue-800 text-sm">Admin Sekolah</span>
                     </div>
                 </div>
 
@@ -245,16 +241,16 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
             </div>
 
             {/* Table */}
-            <div className="flex-1 overflow-auto rounded-2xl border border-slate-200 shadow-inner bg-slate-50 relative">
+            <div className="flex-1 overflow-auto rounded-2xl border border-slate-200 shadow-inner bg-slate-50 relative min-h-[600px]">
                 <table className="w-full text-left text-sm whitespace-nowrap">
-                    <thead className="bg-[#F8FAFC] text-slate-700 font-bold sticky top-0 z-10 shadow-sm border-b border-slate-200">
+                    <thead className="bg-[#F8FAFC] text-slate-700 font-bold sticky top-0 z-10 shadow-sm border-b border-slate-200 text-[12px]">
                         <tr>
-                            <th className="p-4 border-r border-slate-200 text-center w-16">No</th>
-                            <th className="p-4 border-r border-slate-200">Nama Siswa</th>
-                            <th className="p-4 border-r border-slate-200 text-center w-40">Kehadiran</th>
+                            <th className="p-3 border-r border-slate-200 text-center w-16">No</th>
+                            <th className="p-3 border-r border-slate-200 min-w-[300px]">Nama Siswa</th>
+                            <th className="p-3 border-r border-slate-200 text-center w-40">Kehadiran</th>
 
-                            <th className="p-4 border-r border-slate-200 min-w-[200px]">Catatan</th>
-                            <th className="p-4 text-center w-16"><CheckSquare size={16} className="mx-auto text-slate-400" /></th>
+                            <th className="p-3 border-r border-slate-200 min-w-[200px]">Catatan</th>
+                            <th className="p-3 text-center w-16"><CheckSquare size={14} className="mx-auto text-slate-400" /></th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
@@ -285,15 +281,15 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
 
                             return (
                                 <tr key={student.id} className="hover:bg-blue-50/20 transition-colors group">
-                                    <td className="p-3 text-center text-slate-500 font-medium group-hover:text-blue-600">{i + 1}</td>
-                                    <td className="p-3 font-bold text-slate-700">{student.nama}</td>
+                                    <td className="p-3 text-center text-slate-500 font-medium group-hover:text-blue-600 text-[12px]">{i + 1}</td>
+                                    <td className="p-3 font-bold text-slate-700 text-[12px]">{student.nama}</td>
                                     <td className="p-3 text-center">
-                                        <div className="inline-flex bg-slate-100 rounded-lg p-1 gap-1 border border-slate-200">
+                                        <div className="inline-flex bg-slate-100 rounded-lg p-1.5 gap-2 border border-slate-200">
                                             {['H', 'S', 'I', 'A'].map((status) => (
                                                 <button
                                                     key={status}
                                                     onClick={() => updateStudentData('status', status)}
-                                                    className={`w-7 h-7 rounded-md font-bold text-xs transition-all ${data.status === status
+                                                    className={`w-8 h-8 rounded-md font-bold text-[12px] transition-all ${data.status === status
                                                         ? (status === 'H' ? 'bg-white text-green-600 shadow-sm ring-1 ring-green-100' :
                                                             status === 'S' ? 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-100' :
                                                                 status === 'I' ? 'bg-white text-orange-600 shadow-sm ring-1 ring-orange-100' :
@@ -311,7 +307,7 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
                                             type="text"
                                             value={data.note}
                                             onChange={(e) => updateStudentData('note', e.target.value)}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded px-3 py-1.5 text-xs outline-none focus:bg-white focus:border-blue-400 transition-colors"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-2 text-[12px] outline-none focus:bg-white focus:border-blue-400 transition-colors"
                                             placeholder="Catatan..."
                                         />
                                     </td>
@@ -320,7 +316,7 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
                                             type="checkbox"
                                             checked={data.checked}
                                             onChange={(e) => updateStudentData('checked', e.target.checked)}
-                                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                                            className="w-[12px] h-[12px] rounded text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
                                         />
                                     </td>
                                 </tr>

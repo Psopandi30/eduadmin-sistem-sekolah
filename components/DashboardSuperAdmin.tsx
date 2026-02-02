@@ -2223,7 +2223,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     {/* --- VIEW: TABUNGAN --- */}
                     {
                         activeView === 'tabungan' && (
-                            <div className="animate-in fade-in space-y-6">
+                            <div className="h-full overflow-y-auto custom-scrollbar animate-in fade-in space-y-6 pr-2 pb-6">
                                 {/* Header & Tabs */}
                                 <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 relative overflow-hidden">
                                     <div className="relative z-10">

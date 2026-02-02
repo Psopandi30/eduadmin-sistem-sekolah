@@ -6,6 +6,9 @@ import {
 } from 'lucide-react';
 import { studentsDataGlobal, classesDataGlobal } from '../../../../data/sharedData';
 import { toast } from 'react-hot-toast';
+import * as XLSX from 'xlsx';
+import { supabase, isSupabaseConfigured } from '../../../../src/lib/supabase';
+import { useRef } from 'react';
 
 
 import { GradeRow } from '../../types'; // Move interface if shared, or keep here for now but generic is okay
@@ -224,17 +227,131 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes,
         setIsDirty(true);
     };
 
-    const handleSave = () => {
-        // Simulasi Save
-        toast.promise(
-            new Promise((resolve) => setTimeout(resolve, 1000)),
-            {
-                loading: 'Menyimpan data nilai...',
-                success: 'Data nilai berhasil disimpan ke Database!',
-                error: 'Gagal menyimpan.',
+    const handleSave = async () => {
+        const key = getStorageKey();
+
+        // 1. Save to Local Storage (Backup)
+        localStorage.setItem(key, JSON.stringify(grades));
+
+        // 2. Save to Supabase (Cloud)
+        if (isSupabaseConfigured()) {
+            const toastId = toast.loading('Menyimpan ke database...');
+            try {
+                const { error } = await supabase
+                    .from('app_settings')
+                    .upsert({
+                        key: key,
+                        value: JSON.stringify(grades),
+                        updated_at: new Date().toISOString() // Optional if column exists
+                    }, { onConflict: 'key' });
+
+                if (error) throw error;
+                toast.success('Data berhasil disimpan ke Cloud!', { id: toastId });
+            } catch (err) {
+                console.error("Supabase Save Error:", err);
+                toast.error('Gagal simpan ke Cloud, tersimpan lokal.', { id: toastId });
             }
-        );
+        } else {
+            toast.success('Tersimpan di Lokal (Offline Mode)');
+        }
+
         setIsDirty(false);
+    };
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleExportExcel = () => {
+        const dataToExport = grades.map((g, index) => {
+            const row: any = {
+                'No': index + 1,
+                'Nama Siswa': g.studentName,
+                'NIS': g.studentNis,
+            };
+
+            // Ulangan
+            for (let i = 1; i <= tpCount; i++) {
+                row[`UH ${i}`] = g[`tp${i}` as keyof GradeRow] || 0;
+            }
+            row['Rata UH'] = g.avgSumatif;
+
+            // Ujian
+            row['PTS'] = g.pts;
+            row['PAS'] = g.pas;
+            row['PAT'] = g.pat;
+
+            // Akhir
+            row['Nilai Akhir'] = g.finalScore;
+            row['Predikat'] = g.predicate;
+            row['Deskripsi'] = g.description;
+
+            return row;
+        });
+
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Nilai Siswa");
+        XLSX.writeFile(wb, `Nilai_${selectedClass}_${selectedSubject}_${selectedSemester}.xlsx`);
+        toast.success("File Excel berhasil diunduh!");
+    };
+
+    const handleImportExcel = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const bstr = evt.target?.result;
+                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wsname = wb.SheetNames[0];
+                const ws = wb.Sheets[wsname];
+                const data: any[] = XLSX.utils.sheet_to_json(ws);
+
+                if (data.length === 0) {
+                    toast.error("File Excel kosong!");
+                    return;
+                }
+
+                // Map Data back to Grades
+                const updatedGrades = grades.map(curr => {
+                    // Try to find matching row in excel by NIS or Name
+                    const match = data.find(d =>
+                        String(d['NIS']) === String(curr.studentNis) ||
+                        d['Nama Siswa']?.toLowerCase() === curr.studentName.toLowerCase()
+                    );
+
+                    if (match) {
+                        const newGrade = { ...curr };
+                        // Update Fields if present in Excel
+                        for (let i = 1; i <= 10; i++) { // Check up to 10 TPs
+                            if (match[`UH ${i}`] !== undefined) newGrade[`tp${i}` as keyof GradeRow] = Number(match[`UH ${i}`]);
+                        }
+                        if (match['PTS'] !== undefined) newGrade.pts = Number(match['PTS']);
+                        if (match['PAS'] !== undefined) newGrade.pas = Number(match['PAS']);
+                        if (match['PAT'] !== undefined) newGrade.pat = Number(match['PAT']);
+
+                        // Recalulate
+                        return calculateRow(newGrade);
+                    }
+                    return curr;
+                });
+
+                setGrades(updatedGrades);
+                setIsDirty(true);
+                toast.success(`Berhasil mengimpor nilai untuk ${data.length} siswa!`);
+            } catch (err) {
+                console.error("Import Error:", err);
+                toast.error("Gagal membaca file Excel. Pastikan format benar.");
+            }
+        };
+        reader.readAsBinaryString(file);
+
+        // Reset input
+        e.target.value = '';
     };
 
     // --- RENDER HELPERS ---
@@ -386,17 +503,30 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes,
 
                         <div className="h-8 w-[1px] bg-slate-200 mx-2"></div>
 
-                        <button className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors" title="Export Excel">
+                        <button
+                            onClick={handleExportExcel}
+                            className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors" title="Export Excel">
                             <Download size={20} />
                         </button>
-                        <button className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors" title="Import Excel">
+                        <button
+                            onClick={handleImportExcel}
+                            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors" title="Import Excel">
                             <Upload size={20} />
                         </button>
 
+                        {/* Hidden Input */}
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            hidden
+                            accept=".xlsx, .xls, .csv"
+                        />
+
                         <button
                             onClick={handleSave}
-                            disabled={!isDirty}
-                            className={`ml-2 px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-lg ${isDirty ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200' : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'}`}
+                            // Disabled only if empty data (optional) or let it always active to force save
+                            className={`ml-2 px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-lg bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200`}
                         >
                             <Save size={18} /> Simpan Perubahan
                         </button>
