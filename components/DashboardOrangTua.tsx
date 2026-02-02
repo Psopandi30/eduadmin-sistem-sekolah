@@ -42,13 +42,14 @@ interface DashboardOrangTuaProps {
     schoolName?: string;
 }
 
-import { announcementDataGlobal } from '../data/sharedData';
+import { announcementDataGlobal, teachersDataGlobal } from '../data/sharedData';
 
 // ... (imports)
 
 const DashboardOrangTua: React.FC<DashboardOrangTuaProps> = ({ user, onLogout, schoolName = "SD IT EduAdmin" }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [activeView, setActiveView] = useState<'home' | 'jadwal' | 'ujian' | 'hasil' | 'absen' | 'bayar' | 'tabungan' | 'bimbingan' | 'latihan' | 'quran' | 'channel' | 'ai' | 'profile' | 'notifikasi'>('home');
+    const [waliKelasName, setWaliKelasName] = useState(user?.studentWali || '-');
 
     // Sync Announcements
     const [announcements, setAnnouncements] = useState(announcementDataGlobal);
@@ -66,6 +67,24 @@ const DashboardOrangTua: React.FC<DashboardOrangTuaProps> = ({ user, onLogout, s
             clearInterval(dataTimer);
         };
     }, []);
+
+    // Lookup Wali Kelas if missing
+    useEffect(() => {
+        if (!user?.studentWali || user?.studentWali === '-') {
+            try {
+                const savedTeachers = localStorage.getItem('teachers_data_v10');
+                const teachers = savedTeachers ? JSON.parse(savedTeachers) : teachersDataGlobal;
+                const found = teachers.find((t: any) => t.wali === user?.studentClass);
+                if (found) {
+                    setWaliKelasName(found.nama);
+                }
+            } catch (e) {
+                console.error("Error finding wali kelas", e);
+            }
+        } else {
+            setWaliKelasName(user.studentWali);
+        }
+    }, [user?.studentClass, user?.studentWali]);
 
     // Menu Items Data
     const menuItems = [
@@ -122,7 +141,7 @@ const DashboardOrangTua: React.FC<DashboardOrangTuaProps> = ({ user, onLogout, s
                 <div className="bg-blue-800/30 backdrop-blur-md px-5 py-2 flex justify-between items-center text-[10px] font-medium border-t border-white/5">
                     <div className="flex items-center gap-2">
                         <span className="text-blue-200">Wali Kelas:</span>
-                        <span className="text-white font-semibold">{user?.studentWali || '-'}</span>
+                        <span className="text-white font-semibold">{waliKelasName}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-white">{currentTime.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>

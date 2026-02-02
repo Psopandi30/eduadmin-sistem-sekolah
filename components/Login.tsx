@@ -147,8 +147,10 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                 if (studentAccount && isStudentPasswordCorrect) { // Simplified condition as password check is now in find
                     console.log('✅ Login successful for student:', studentAccount.nama);
                     // Cari info Wali
-                    const classInfo = classesSource.find((c: any) => c.nama === studentAccount.kelas);
-                    const waliName = classInfo ? classInfo.wali : "Guru Wali";
+                    const localTeachers = localStorage.getItem('teachers_data_v10');
+                    const teachersSource = localTeachers ? JSON.parse(localTeachers) : teachersDataGlobal;
+                    const waliTeacher = teachersSource.find((t: any) => t.wali === studentAccount.kelas);
+                    const waliName = waliTeacher ? waliTeacher.nama : "-";
 
                     onLogin('ot', {
                         id: studentAccount.id,
