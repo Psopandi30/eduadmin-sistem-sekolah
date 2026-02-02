@@ -398,7 +398,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
     // --- TABUNGAN STATE (Using Custom Hook) ---
     const [savingsActiveTab, setSavingsActiveTab] = useState('dashboard'); // dashboard, data, setoran, penarikan, riwayat, rekap, pengaturan
-    const { savingsData, setSavingsData, savingsTransactions, setSavingsTransactions } = useSavings();
+    const { savingsData, setSavingsData, savingsTransactions, setSavingsTransactions, saveSavings } = useSavings();
     const [searchSavingsStudent, setSearchSavingsStudent] = useState('');
     const [selectedSavingsStudent, setSelectedSavingsStudent] = useState<any>(null);
     const [savingsAmount, setSavingsAmount] = useState(0);

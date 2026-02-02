@@ -24,7 +24,7 @@ const ChannelSekolahSiswa: React.FC<ChannelSekolahSiswaProps> = ({ onBack }) => 
 
             try {
                 // 1. Load Broadcasts
-                const { data: bRes } = await supabase.from('app_settings').select('value').eq('key', 'broadcasts_data_v10').single();
+                const { data: bRes } = await supabase.from('app_settings').select('value').eq('key', 'broadcasts_data_v10').maybeSingle();
                 if (bRes?.value) {
                     const parsed = typeof bRes.value === 'string' ? JSON.parse(bRes.value) : bRes.value;
                     setBroadcasts(Array.isArray(parsed) ? parsed : broadcastsDataGlobal);
@@ -33,7 +33,7 @@ const ChannelSekolahSiswa: React.FC<ChannelSekolahSiswaProps> = ({ onBack }) => 
                 }
 
                 // 2. Load Settings
-                const { data: sRes } = await supabase.from('app_settings').select('value').eq('key', 'multimedia_settings_v10').single();
+                const { data: sRes } = await supabase.from('app_settings').select('value').eq('key', 'multimedia_settings_v10').maybeSingle();
                 if (sRes?.value) {
                     const parsed = typeof sRes.value === 'string' ? JSON.parse(sRes.value) : sRes.value;
                     setSettings(parsed);

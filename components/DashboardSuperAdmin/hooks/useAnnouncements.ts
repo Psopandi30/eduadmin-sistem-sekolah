@@ -24,7 +24,7 @@ export const useAnnouncements = () => {
         if (!isSupabaseConfigured()) return;
         setLoading(true);
         try {
-            const { data, error } = await supabase.from('app_settings').select('value').eq('key', 'announcements_data_v10').single();
+            const { data, error } = await supabase.from('app_settings').select('value').eq('key', 'announcements_data_v10').maybeSingle();
             if (data?.value) {
                 const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
                 setAnnouncements(parsed);

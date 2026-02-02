@@ -38,7 +38,7 @@ export const useSavings = () => {
         setLoading(true);
         try {
             // Fetch Savings Data
-            const { data: dataRes } = await supabase.from('app_settings').select('value').eq('key', 'savings_data_v10').single();
+            const { data: dataRes } = await supabase.from('app_settings').select('value').eq('key', 'savings_data_v10').maybeSingle();
             if (dataRes?.value) {
                 const parsed = typeof dataRes.value === 'string' ? JSON.parse(dataRes.value) : dataRes.value;
                 setSavingsData(parsed);
@@ -47,7 +47,7 @@ export const useSavings = () => {
             }
 
             // Fetch Transactions
-            const { data: trxRes } = await supabase.from('app_settings').select('value').eq('key', 'savings_transactions_v10').single();
+            const { data: trxRes } = await supabase.from('app_settings').select('value').eq('key', 'savings_transactions_v10').maybeSingle();
             if (trxRes?.value) {
                 const parsed = typeof trxRes.value === 'string' ? JSON.parse(trxRes.value) : trxRes.value;
                 setSavingsTransactions(parsed);

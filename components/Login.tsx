@@ -98,7 +98,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                     // FALLBACK: Try Fetch from Cloud app_settings if Local is empty
                     console.log('☁️ Local students empty or [], trying cloud sync...');
                     try {
-                        const { data: cloudData } = await supabase.from('app_settings').select('value').eq('key', 'students_data_v10_sync').single();
+                        const { data: cloudData } = await supabase.from('app_settings').select('value').eq('key', 'students_data_v10_sync').maybeSingle();
                         if (cloudData && cloudData.value) {
                             studentsSource = cloudData.value as any[];
                             localStorage.setItem('students_data_v10', JSON.stringify(studentsSource));
@@ -186,7 +186,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                     // FALLBACK: Try Fetch from Cloud app_settings if Local is empty
                     console.log('☁️ Local teachers empty or [], trying cloud sync...');
                     try {
-                        const { data: cloudData } = await supabase.from('app_settings').select('value').eq('key', 'teachers_data_v10_sync').single();
+                        const { data: cloudData } = await supabase.from('app_settings').select('value').eq('key', 'teachers_data_v10_sync').maybeSingle();
                         if (cloudData && cloudData.value) {
                             teachersSource = cloudData.value as any[];
                             localStorage.setItem('teachers_data_v10', JSON.stringify(teachersSource));

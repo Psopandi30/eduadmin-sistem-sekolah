@@ -26,7 +26,7 @@ export const useSchedules = () => {
                 .from('app_settings')
                 .select('value')
                 .eq('key', 'master_schedules_v2')
-                .single();
+                .maybeSingle();
 
             if (data && data.value) {
                 const parsedSchedules = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;

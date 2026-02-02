@@ -50,7 +50,7 @@ export const useTeachers = () => {
 
             if (data) {
                 // 1. Fetch Cloud Backup to PRESERVE PASSWORDS
-                const { data: cloudBackup } = await supabase.from('app_settings').select('value').eq('key', 'teachers_data_v10_sync').single();
+                const { data: cloudBackup } = await supabase.from('app_settings').select('value').eq('key', 'teachers_data_v10_sync').maybeSingle();
                 const preservedTeachers: Teacher[] = cloudBackup?.value as Teacher[] || [];
                 const passwordMap: Record<string, string> = {};
                 preservedTeachers.forEach(t => {
