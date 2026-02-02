@@ -59,10 +59,10 @@ import { useSavings } from './DashboardSuperAdmin/hooks/useSavings';
 import { useAttendance } from './DashboardSuperAdmin/hooks/useAttendance';
 import { useExams } from './DashboardSuperAdmin/hooks/useExams';
 import { useFinance } from './DashboardSuperAdmin/hooks/useFinance';
-import { useFinance } from './DashboardSuperAdmin/hooks/useFinance';
 import { useAnnouncements } from './DashboardSuperAdmin/hooks/useAnnouncements';
 import { useMultimedia } from './DashboardSuperAdmin/hooks/useMultimedia';
 import { useTutoring } from './DashboardSuperAdmin/hooks/useTutoring';
+import { useTeachers } from './DashboardSuperAdmin/hooks/useTeachers';
 
 interface SuperAdminProps {
     user: any;
