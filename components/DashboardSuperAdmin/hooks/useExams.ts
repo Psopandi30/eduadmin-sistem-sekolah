@@ -22,7 +22,7 @@ export const useExams = () => {
                 .from('app_settings')
                 .select('value')
                 .eq('key', 'exam_schedules_v2')
-                .single();
+                .maybeSingle();
 
             if (data?.value) {
                 const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
