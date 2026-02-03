@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Save, FileText, CheckCircle, Database, Edit, Trash2, Plus } from 'lucide-react';
+import { ArrowLeft, Save, FileText, CheckCircle, Database, Edit, Trash2, Plus, FilePlus } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { subjectsDataGlobal } from '../../../../data/sharedData';
 
@@ -133,14 +133,16 @@ const RaporSettingsView: React.FC<RaporSettingsViewProps> = ({ setActiveView, sh
             {/* ... (Existing Header Code) ... */}
             <div className="flex items-center gap-4 mb-6 shrink-0">
                 <button
-                    onClick={() => setActiveView('rapot')}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-600 p-3 rounded-xl transition-colors"
+                    onClick={() => setActiveView(showOnlyDeskripsi ? 'home' : 'rapot')}
+                    className="p-2 md:p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl md:rounded-2xl transition-all border border-slate-100 shrink-0"
                 >
-                    <ArrowLeft size={24} />
+                    <ArrowLeft size={20} className="md:w-[22px]" />
                 </button>
-                <div>
-                    <h2 className="text-2xl font-bold text-[#1E1B4B]">Pengaturan Rapor</h2>
-                    <p className="text-slate-500 text-sm">Kelola master deskripsi dan format rapor.</p>
+                <div className="min-w-0">
+                    <h2 className="text-base md:text-2xl font-black text-slate-800 tracking-tight leading-tight truncate">
+                        {showOnlyDeskripsi ? 'Master Deskripsi Rapor' : 'Pengaturan Rapor'}
+                    </h2>
+                    <p className="text-slate-400 text-[10px] md:text-sm font-medium">Kelola deskripsi capaian pembelajaran.</p>
                 </div>
             </div>
 
@@ -363,36 +365,38 @@ const RaporSettingsView: React.FC<RaporSettingsViewProps> = ({ setActiveView, sh
                 {/* 1. MASTER DESKRIPSI */}
                 {activeTab === 'deskripsi' && (
                     <div className="space-y-6">
-                        <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex items-start gap-3">
-                            <Database className="text-blue-600 mt-1" size={20} />
+                        <div className="bg-gradient-to-br from-blue-600 via-indigo-700 to-indigo-800 p-4 md:p-6 rounded-3xl text-white shadow-xl shadow-blue-100 flex items-center gap-4 border border-white/10">
+                            <div className="p-3 bg-white/15 backdrop-blur-xl rounded-2xl shrink-0 hidden sm:block">
+                                <Database size={24} className="text-blue-100" />
+                            </div>
                             <div>
-                                <h3 className="font-bold text-blue-800">Master Data Deskripsi</h3>
-                                <p className="text-sm text-blue-600/80">Input deskripsi capaian pembelajaran (CP) atau komptensi dasar (KD) untuk otomatisasi pengisian rapor.</p>
+                                <h3 className="font-black text-sm md:text-lg uppercase tracking-wide">Master Data Deskripsi</h3>
+                                <p className="text-[10px] md:text-xs text-blue-100/90 leading-relaxed mt-0.5">Input deskripsi CP/KD untuk otomatisasi pengisian rapor.</p>
                             </div>
                         </div>
 
-                        {/* Filter Group & Mapel */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Kelompok</label>
+                        {/* Filter Group & Mapel - Redesigned to be more compact */}
+                        <div className="flex flex-col sm:flex-row gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <div className="flex-1">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Kelompok Mapel</label>
                                 <select
                                     value={selectedGroup}
                                     onChange={(e) => setSelectedGroup(e.target.value)}
-                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-blue-500"
+                                    className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-blue-500 shadow-sm"
                                 >
                                     {groups.map(g => (
                                         <option key={g} value={g}>{g}</option>
                                     ))}
                                 </select>
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Mata Pelajaran</label>
+                            <div className="flex-[1.5]">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Mata Pelajaran</label>
                                 <select
                                     value={selectedSubject}
                                     onChange={(e) => setSelectedSubject(e.target.value)}
-                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-blue-500"
+                                    className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-blue-500 shadow-sm"
                                 >
-                                    <option value="">-- Pilih Mapel --</option>
+                                    <option value="">-- Pilih Mata Pelajaran --</option>
                                     {filteredSubjects.map(s => (
                                         <option key={s.id} value={s.nama}>{s.nama}</option>
                                     ))}
@@ -402,90 +406,140 @@ const RaporSettingsView: React.FC<RaporSettingsViewProps> = ({ setActiveView, sh
 
                         {/* Input Area */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Left Column: Table of Existing Descriptions */}
-                            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm h-fit">
-                                <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><Database size={18} /> Data Tersimpan</h4>
-                                <div className="overflow-auto max-h-[500px] border border-slate-200 rounded-xl custom-scrollbar">
+                            {/* Left Column: Table/List of Existing Descriptions */}
+                            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm h-fit">
+                                <h4 className="font-black text-slate-800 mb-4 flex items-center gap-2 text-sm uppercase tracking-tight">
+                                    <Database size={18} className="text-blue-600" />
+                                    Data Tersimpan
+                                </h4>
+
+                                {/* Desktop Table View */}
+                                <div className="hidden md:block overflow-auto max-h-[500px] border border-slate-100 rounded-2xl custom-scrollbar">
                                     <table className="w-full text-sm text-left border-collapse">
-                                        <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+                                        <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100 sticky top-0 z-10 shadow-sm text-[10px] uppercase tracking-widest">
                                             <tr>
-                                                <th className="p-3">Jenis Rapor</th>
-                                                <th className="p-3">Deskripsi</th>
-                                                <th className="p-3 text-center">Aksi</th>
+                                                <th className="p-4">Jenis Rapor & Mapel</th>
+                                                <th className="p-4">Deskripsi</th>
+                                                <th className="p-4 text-center">Aksi</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-100">
+                                        <tbody className="divide-y divide-slate-50">
                                             {descriptions.map((desc) => (
-                                                <tr key={desc.id} className="group hover:bg-slate-50">
-                                                    <td className="p-3 font-medium text-slate-700 align-top w-[120px]">
-                                                        <div className="flex flex-col gap-1">
-                                                            <span className={`px-2 py-1 rounded text-[10px] w-fit ${desc.type === 'Rapor Resmi' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                <tr key={desc.id} className="group hover:bg-slate-50/50 transition-colors">
+                                                    <td className="p-4 align-top w-[180px]">
+                                                        <div className="flex flex-col gap-1.5">
+                                                            <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase w-fit ${desc.type === 'Rapor Resmi' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
                                                                 {desc.type}
                                                             </span>
                                                             {desc.subject && (
-                                                                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded w-fit">
+                                                                <span className="text-[10px] font-black text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg w-fit">
                                                                     {desc.subject}
                                                                 </span>
                                                             )}
                                                             {desc.predicate && (
-                                                                <span className={`text-[10px] font-bold px-2 py-1 rounded w-fit ${desc.predicate === 'A' ? 'bg-emerald-100 text-emerald-700' :
+                                                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg w-fit ${desc.predicate === 'A' ? 'bg-emerald-100 text-emerald-700' :
                                                                     desc.predicate === 'B' ? 'bg-blue-100 text-blue-700' :
                                                                         desc.predicate === 'C' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'
                                                                     }`}>
-                                                                    Predikat: {desc.predicate}
+                                                                    PREDIKAT: {desc.predicate}
                                                                 </span>
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="p-3 align-top">
-                                                        <div className="mb-1"><span className="text-[10px] uppercase font-bold text-blue-500 bg-blue-50 px-1 rounded">Pengetahuan</span> <span className="text-slate-600 block mt-1 line-clamp-2">{desc.knowledge}</span></div>
-                                                        <div><span className="text-[10px] uppercase font-bold text-emerald-500 bg-emerald-50 px-1 rounded">Keterampilan</span> <span className="text-slate-600 block mt-1 line-clamp-2">{desc.skill}</span></div>
+                                                    <td className="p-4 align-top">
+                                                        <div className="mb-2">
+                                                            <span className="text-[9px] uppercase font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">Penge-tahuan</span>
+                                                            <p className="text-slate-600 text-xs mt-1 leading-relaxed line-clamp-2">{desc.knowledge}</p>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-[9px] uppercase font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Keteram-pilan</span>
+                                                            <p className="text-slate-600 text-xs mt-1 leading-relaxed line-clamp-2">{desc.skill}</p>
+                                                        </div>
                                                     </td>
-                                                    <td className="p-3 align-top text-center">
+                                                    <td className="p-4 align-top text-center">
                                                         <div className="flex items-center justify-center gap-1">
-                                                            <button onClick={() => handleEditDescription(desc)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg" title="Edit (Salin ke Form)">
-                                                                <Edit size={16} />
+                                                            <button onClick={() => handleEditDescription(desc)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-colors" title="Edit">
+                                                                <Edit size={18} />
                                                             </button>
-                                                            <button onClick={() => handleDeleteDescription(desc.id)} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg" title="Hapus">
-                                                                <Trash2 size={16} />
+                                                            <button onClick={() => handleDeleteDescription(desc.id)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors" title="Hapus">
+                                                                <Trash2 size={18} />
                                                             </button>
                                                         </div>
                                                     </td>
                                                 </tr>
                                             ))}
-                                            {descriptions.length === 0 && (
-                                                <tr>
-                                                    <td colSpan={3} className="p-6 text-center text-slate-400 italic">Belum ada data deskripsi</td>
-                                                </tr>
-                                            )}
                                         </tbody>
                                     </table>
+                                </div>
+
+                                {/* Mobile List View */}
+                                <div className="md:hidden space-y-4 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
+                                    {descriptions.map((desc) => (
+                                        <div key={desc.id} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 relative">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${desc.type === 'Rapor Resmi' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                        {desc.type}
+                                                    </span>
+                                                    <span className="text-[8px] font-black text-slate-500 bg-white border border-slate-100 px-2 py-0.5 rounded-lg uppercase">
+                                                        {desc.subject}
+                                                    </span>
+                                                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-lg ${desc.predicate === 'A' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                        P: {desc.predicate}
+                                                    </span>
+                                                </div>
+                                                <div className="flex gap-1">
+                                                    <button onClick={() => handleEditDescription(desc)} className="p-1.5 text-blue-500 bg-white rounded-lg border border-slate-100"><Edit size={14} /></button>
+                                                    <button onClick={() => handleDeleteDescription(desc.id)} className="p-1.5 text-rose-500 bg-white rounded-lg border border-slate-100"><Trash2 size={14} /></button>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <div>
+                                                    <span className="text-[8px] font-black text-blue-500 uppercase">Pengetahuan</span>
+                                                    <p className="text-[11px] text-slate-600 line-clamp-2 leading-tight mt-0.5">{desc.knowledge}</p>
+                                                </div>
+                                                <div>
+                                                    <span className="text-[8px] font-black text-emerald-500 uppercase">Keterampilan</span>
+                                                    <p className="text-[11px] text-slate-600 line-clamp-2 leading-tight mt-0.5">{desc.skill}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {descriptions.length === 0 && (
+                                        <div className="text-center py-10 opacity-30 flex flex-col items-center">
+                                            <Database size={40} className="mb-2" />
+                                            <p className="text-xs font-bold">Belum ada data</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
                             {/* Right Column: Input Form */}
-                            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm h-fit">
-                                <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><FileText size={18} /> Input Deskripsi Baru</h4>
+                            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm h-fit">
+                                <h4 className="font-black text-slate-800 mb-4 flex items-center gap-2 text-sm uppercase tracking-tight">
+                                    <FilePlus size={18} className="text-blue-600" />
+                                    Input Deskripsi Baru
+                                </h4>
 
                                 <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-3">
                                         <div>
-                                            <label className="block text-sm font-bold text-slate-600 mb-1">Jenis Rapor</label>
+                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Jenis Rapor</label>
                                             <select
                                                 value={newDesc.type}
                                                 onChange={(e) => setNewDesc({ ...newDesc, type: e.target.value })}
-                                                className="w-full p-2 border border-slate-200 rounded-lg outline-none focus:border-blue-500"
+                                                className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-blue-500"
                                             >
                                                 <option>Rapor Resmi</option>
                                                 <option>Rapor Yayasan</option>
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-bold text-slate-600 mb-1">Untuk Predikat</label>
+                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Untuk Predikat</label>
                                             <select
                                                 value={newDesc.predicate}
                                                 onChange={(e) => setNewDesc({ ...newDesc, predicate: e.target.value })}
-                                                className="w-full p-2 border border-slate-200 rounded-lg outline-none focus:border-blue-500"
+                                                className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-blue-500"
                                             >
                                                 <option value="A">A (Sangat Baik)</option>
                                                 <option value="B">B (Baik)</option>
@@ -494,34 +548,38 @@ const RaporSettingsView: React.FC<RaporSettingsViewProps> = ({ setActiveView, sh
                                             </select>
                                         </div>
                                     </div>
-                                    <div className="bg-blue-50 p-2 rounded-lg text-xs text-blue-700">
-                                        Menambahkan untuk Mapel: <strong>{selectedSubject || 'Belum dipilih (Pilih filter mapel diatas)'}</strong>
+
+                                    <div className="bg-blue-50 px-3 py-2 rounded-xl text-[10px] font-bold text-blue-700 flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                        Mapel: {selectedSubject || 'Mohon Pilih Mapel'}
                                     </div>
+
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-600 mb-1">Deskripsi Pengetahuan</label>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Deskripsi Pengetahuan</label>
                                         <textarea
-                                            rows={3}
+                                            rows={2}
                                             placeholder="Siswa mampu memahami..."
                                             value={newDesc.knowledge}
                                             onChange={(e) => setNewDesc({ ...newDesc, knowledge: e.target.value })}
-                                            className="w-full p-2 border border-slate-200 rounded-lg outline-none focus:border-blue-500"
+                                            className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs leading-relaxed outline-none focus:border-blue-500 placeholder:opacity-40"
                                         ></textarea>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-600 mb-1">Deskripsi Keterampilan</label>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Deskripsi Keterampilan</label>
                                         <textarea
-                                            rows={3}
+                                            rows={2}
                                             placeholder="Siswa terampil dalam..."
                                             value={newDesc.skill}
                                             onChange={(e) => setNewDesc({ ...newDesc, skill: e.target.value })}
-                                            className="w-full p-2 border border-slate-200 rounded-lg outline-none focus:border-blue-500"
+                                            className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs leading-relaxed outline-none focus:border-blue-500 placeholder:opacity-40"
                                         ></textarea>
                                     </div>
-                                    <div className="flex justify-end">
-                                        <button onClick={handleAddDescription} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 flex items-center gap-2">
-                                            <Save size={18} /> Simpan Deskripsi
-                                        </button>
-                                    </div>
+                                    <button
+                                        onClick={handleAddDescription}
+                                        className="w-full bg-[#004AAD] text-white py-3.5 rounded-2xl font-black text-xs hover:bg-blue-700 shadow-lg shadow-blue-100 flex items-center justify-center gap-2 transition-all active:scale-95"
+                                    >
+                                        <Save size={18} /> SIMPAN DESKRIPSI
+                                    </button>
                                 </div>
                             </div>
                         </div>

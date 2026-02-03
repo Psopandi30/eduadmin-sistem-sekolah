@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { ChevronLeft, UserCheck, Search, CheckCircle, XCircle, AlertCircle, CheckCircle2, Save, Users } from 'lucide-react';
+import { ArrowLeft, UserCheck, Search, CheckCircle, XCircle, AlertCircle, CheckCircle2, Save, Users, ChevronLeft } from 'lucide-react';
 
 import { attendanceDataGlobal, updateAttendanceDataGlobal } from '../data/sharedData';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
+import { toast } from 'react-hot-toast';
 
 interface KehadiranSiswaGuruProps {
     onBack: () => void;
@@ -53,11 +55,14 @@ const KehadiranSiswaGuru: React.FC<KehadiranSiswaGuruProps> = ({ onBack, user })
     const todayStr = new Date().toISOString().split('T')[0];
 
     const handleUpdateStatus = (studentId: number, newStatus: string) => {
+        // Map full names to codes for internal storage consistency
+        const statusCode = newStatus === 'Hadir' ? 'H' : (newStatus === 'Sakit' ? 'S' : (newStatus === 'Izin' ? 'I' : 'A'));
+
         const newData = [...attendanceData];
         const index = newData.findIndex(d => d.studentId === studentId && d.date === todayStr);
 
         if (index >= 0) {
-            newData[index] = { ...newData[index], status: newStatus };
+            newData[index] = { ...newData[index], status: statusCode };
         } else {
             const student = students.find(s => s.id === studentId);
             newData.push({
@@ -66,7 +71,7 @@ const KehadiranSiswaGuru: React.FC<KehadiranSiswaGuruProps> = ({ onBack, user })
                 studentName: student?.nama,
                 classId: selectedClass,
                 date: todayStr,
-                status: newStatus,
+                status: statusCode,
                 time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                 note: ''
             });
@@ -83,7 +88,7 @@ const KehadiranSiswaGuru: React.FC<KehadiranSiswaGuruProps> = ({ onBack, user })
         filteredStudents.forEach(siswa => {
             const index = newData.findIndex(d => d.studentId === siswa.id && d.date === todayStr);
             if (index >= 0) {
-                newData[index] = { ...newData[index], status: 'Hadir' };
+                newData[index] = { ...newData[index], status: 'H' };
             } else {
                 newData.push({
                     id: `att-${Date.now()}-${siswa.id}-${Math.floor(Math.random() * 1000)}`,
@@ -91,7 +96,7 @@ const KehadiranSiswaGuru: React.FC<KehadiranSiswaGuruProps> = ({ onBack, user })
                     studentName: siswa.nama,
                     classId: selectedClass,
                     date: todayStr,
-                    status: 'Hadir',
+                    status: 'H',
                     time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
                     note: ''
                 });
@@ -102,47 +107,91 @@ const KehadiranSiswaGuru: React.FC<KehadiranSiswaGuruProps> = ({ onBack, user })
         updateAttendanceDataGlobal(newData);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
+        setAttendanceData(attendanceData);
         localStorage.setItem('attendance_data_v2', JSON.stringify(attendanceData));
         updateAttendanceDataGlobal(attendanceData);
-        alert('Data absensi berhasil disimpan dan disinkronkan!');
+
+        if (isSupabaseConfigured()) {
+            try {
+                const { error } = await supabase
+                    .from('app_settings')
+                    .upsert({
+                        key: 'attendance_data_v2',
+                        value: attendanceData,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'key' });
+
+                if (error) throw error;
+                toast.success('Absensi berhasil disimpan & disinkronkan ke Cloud!');
+            } catch (err: any) {
+                console.error("Cloud sync failed:", err);
+                toast.error('Gagal sinkron ke Cloud, data tersimpan secara lokal.');
+            }
+        } else {
+            toast.success('Absensi berhasil disimpan secara lokal!');
+        }
+
         onBack();
     };
 
     return (
         <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col h-full">
             {/* Header */}
-            <div className="p-4 md:p-6 border-b border-slate-100 flex items-center gap-3 shrink-0 bg-white sticky top-0 z-20">
-                <button onClick={onBack} className="p-2 md:p-2.5 hover:bg-slate-100 rounded-xl md:rounded-2xl transition-all text-slate-500">
-                    <ChevronLeft size={22} />
+            <div className="px-4 py-3 md:px-6 md:py-4 border-b border-slate-100 flex items-center gap-3 md:gap-4 shrink-0 bg-white sticky top-0 z-30">
+                <button
+                    onClick={onBack}
+                    className="p-2 md:p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl md:rounded-2xl transition-all border border-slate-100 shrink-0"
+                >
+                    <ArrowLeft size={20} className="md:w-[22px]" />
                 </button>
-                <div className="flex-1">
-                    <h2 className="font-bold text-base md:text-xl text-slate-800 flex items-center gap-2">
-                        <div className="p-1.5 md:p-2 bg-teal-50 rounded-lg md:rounded-xl">
-                            <UserCheck className="text-teal-600 w-4 h-4 md:w-5 md:h-5" />
-                        </div>
+                <div className="min-w-0">
+                    <h2 className="text-base md:text-2xl font-black text-slate-800 tracking-tight leading-tight truncate">
                         Absensi Siswa
                     </h2>
+                    <p className="text-slate-400 text-[10px] md:text-sm font-medium">Rekapitulasi kehadiran harian siswa.</p>
                 </div>
-                <div className="flex gap-2 scale-90 md:scale-100 origin-right">
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl px-2.5 py-1.5 text-[11px] md:text-xs font-bold text-blue-700">
+            </div>
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50/20">
+
+                {/* Info Card - Consistent Style */}
+                <div className="bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 p-5 md:p-6 rounded-3xl text-white shadow-xl shadow-teal-100 flex items-center gap-4 border border-white/10 mb-6 font-sans">
+                    <div className="p-3 bg-white/15 backdrop-blur-xl rounded-2xl shrink-0 hidden sm:block">
+                        <UserCheck size={24} className="text-teal-100" />
+                    </div>
+                    <div>
+                        <h3 className="font-black text-sm md:text-lg uppercase tracking-wide">Panel Absensi Harian</h3>
+                        <p className="text-[10px] md:text-xs text-teal-100/90 leading-relaxed mt-0.5 italic">
+                            Silakan lakukan presensi kehadiran siswa hari ini. Data akan otomatis tercatat ke dalam sistem laporan.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Filter Bar - Modern & Responsive */}
+                <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm mb-6">
+                    <div className="flex-1">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Semester</label>
                         <select
                             value={selectedSemester}
                             onChange={(e) => setSelectedSemester(e.target.value)}
-                            className="bg-transparent border-none outline-none cursor-pointer pr-1"
+                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-blue-700 outline-none focus:border-blue-500 shadow-sm transition-all appearance-none cursor-pointer"
                         >
                             <option>1 (Ganjil)</option>
                             <option>2 (Genap)</option>
                         </select>
                     </div>
-                    <div className="bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-1.5 text-[11px] md:text-xs font-bold text-slate-700">
+                    <div className="flex-1">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Pilih Kelas</label>
                         {isWaliKelas ? (
-                            <span>Kelas {selectedClass}</span>
+                            <div className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700">
+                                {selectedClass}
+                            </div>
                         ) : (
                             <select
                                 value={selectedClass}
                                 onChange={(e) => setSelectedClass(e.target.value)}
-                                className="bg-transparent border-none outline-none text-slate-700 font-bold pr-1 cursor-pointer"
+                                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-teal-500 shadow-sm transition-all appearance-none cursor-pointer"
                             >
                                 {classesList.map((c) => (
                                     <option key={c.id} value={c.nama}>{c.nama}</option>
@@ -151,39 +200,35 @@ const KehadiranSiswaGuru: React.FC<KehadiranSiswaGuruProps> = ({ onBack, user })
                         )}
                     </div>
                 </div>
-            </div>
-
-            {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50/20">
 
                 {/* Statistics Box */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                    <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Siswa</p>
+                    <div className="bg-white p-4 rounded-3xl border border-slate-50 shadow-sm">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Siswa</p>
                         <div className="flex items-center gap-2">
-                            <span className="text-xl font-bold text-slate-800">{classStudents.length}</span>
-                            <Users size={14} className="text-slate-300" />
+                            <span className="text-xl font-black text-slate-800 leading-none">{classStudents.length}</span>
+                            <Users size={14} className="text-slate-200" />
                         </div>
                     </div>
-                    <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Hadir Today</p>
+                    <div className="bg-white p-4 rounded-3xl border border-slate-50 shadow-sm">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Hadir Today</p>
                         <div className="flex items-center gap-2">
-                            <span className="text-xl font-bold text-emerald-600">{attendanceData.filter(d => d.classId === selectedClass && d.date === todayStr && d.status === 'Hadir').length}</span>
-                            <CheckCircle size={14} className="text-emerald-300" />
+                            <span className="text-xl font-black text-teal-600 leading-none">{attendanceData.filter(d => d.classId === selectedClass && d.date === todayStr && d.status === 'Hadir').length}</span>
+                            <CheckCircle size={14} className="text-teal-200" />
                         </div>
                     </div>
-                    <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Izin/Sakit</p>
+                    <div className="bg-white p-4 rounded-3xl border border-slate-50 shadow-sm">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Izin/Sakit</p>
                         <div className="flex items-center gap-2">
-                            <span className="text-xl font-bold text-amber-600">{attendanceData.filter(d => d.classId === selectedClass && d.date === todayStr && (d.status === 'Izin' || d.status === 'Sakit')).length}</span>
-                            <AlertCircle size={14} className="text-amber-300" />
+                            <span className="text-xl font-black text-amber-500 leading-none">{attendanceData.filter(d => d.classId === selectedClass && d.date === todayStr && (d.status === 'Izin' || d.status === 'Sakit')).length}</span>
+                            <AlertCircle size={14} className="text-amber-200" />
                         </div>
                     </div>
-                    <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tanpa Ket</p>
+                    <div className="bg-white p-4 rounded-3xl border border-slate-50 shadow-sm">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Tanpa Ket</p>
                         <div className="flex items-center gap-2">
-                            <span className="text-xl font-bold text-rose-600">{classStudents.length - attendanceData.filter(d => d.classId === selectedClass && d.date === todayStr).length}</span>
-                            <XCircle size={14} className="text-rose-300" />
+                            <span className="text-xl font-black text-rose-500 leading-none">{classStudents.length - attendanceData.filter(d => d.classId === selectedClass && d.date === todayStr).length}</span>
+                            <XCircle size={14} className="text-rose-200" />
                         </div>
                     </div>
                 </div>
@@ -235,30 +280,30 @@ const KehadiranSiswaGuru: React.FC<KehadiranSiswaGuruProps> = ({ onBack, user })
                                     <div className="flex items-center justify-center gap-1 bg-slate-50/50 p-1 rounded-xl shrink-0">
                                         <button
                                             onClick={() => handleUpdateStatus(siswa.id, 'Hadir')}
-                                            className={`flex-1 sm:px-3 py-2 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 ${currentStatus === 'Hadir' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-100' : 'text-slate-400 hover:bg-white'}`}
+                                            className={`flex-1 sm:px-3 py-2 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 ${currentStatus === 'H' || currentStatus === 'Hadir' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-100' : 'text-slate-400 hover:bg-white'}`}
                                         >
-                                            <CheckCircle size={14} className={currentStatus === 'Hadir' ? 'text-white' : 'text-emerald-400'} />
+                                            <CheckCircle size={14} className={currentStatus === 'H' || currentStatus === 'Hadir' ? 'text-white' : 'text-emerald-400'} />
                                             Hadir
                                         </button>
                                         <button
                                             onClick={() => handleUpdateStatus(siswa.id, 'Sakit')}
-                                            className={`flex-1 sm:px-3 py-2 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 ${currentStatus === 'Sakit' ? 'bg-amber-500 text-white shadow-md shadow-amber-100' : 'text-slate-400 hover:bg-white'}`}
+                                            className={`flex-1 sm:px-3 py-2 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 ${currentStatus === 'S' || currentStatus === 'Sakit' ? 'bg-amber-500 text-white shadow-md shadow-amber-100' : 'text-slate-400 hover:bg-white'}`}
                                         >
-                                            <AlertCircle size={14} className={currentStatus === 'Sakit' ? 'text-white' : 'text-amber-400'} />
+                                            <AlertCircle size={14} className={currentStatus === 'S' || currentStatus === 'Sakit' ? 'text-white' : 'text-amber-400'} />
                                             Sakit
                                         </button>
                                         <button
                                             onClick={() => handleUpdateStatus(siswa.id, 'Izin')}
-                                            className={`flex-1 sm:px-3 py-2 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 ${currentStatus === 'Izin' ? 'bg-blue-500 text-white shadow-md shadow-blue-100' : 'text-slate-400 hover:bg-white'}`}
+                                            className={`flex-1 sm:px-3 py-2 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 ${currentStatus === 'I' || currentStatus === 'Izin' ? 'bg-blue-500 text-white shadow-md shadow-blue-100' : 'text-slate-400 hover:bg-white'}`}
                                         >
-                                            <AlertCircle size={14} className={currentStatus === 'Izin' ? 'text-white' : 'text-blue-400'} />
+                                            <AlertCircle size={14} className={currentStatus === 'I' || currentStatus === 'Izin' ? 'text-white' : 'text-blue-400'} />
                                             Izin
                                         </button>
                                         <button
                                             onClick={() => handleUpdateStatus(siswa.id, 'Alpa')}
-                                            className={`flex-1 sm:px-3 py-2 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 ${currentStatus === 'Alpa' ? 'bg-rose-500 text-white shadow-md shadow-rose-100' : 'text-slate-400 hover:bg-white'}`}
+                                            className={`flex-1 sm:px-3 py-2 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 ${currentStatus === 'A' || currentStatus === 'Alpa' ? 'bg-rose-500 text-white shadow-md shadow-rose-100' : 'text-slate-400 hover:bg-white'}`}
                                         >
-                                            <XCircle size={14} className={currentStatus === 'Alpa' ? 'text-white' : 'text-rose-400'} />
+                                            <XCircle size={14} className={currentStatus === 'A' || currentStatus === 'Alpa' ? 'text-white' : 'text-rose-400'} />
                                             Alpa
                                         </button>
                                     </div>
@@ -279,7 +324,7 @@ const KehadiranSiswaGuru: React.FC<KehadiranSiswaGuruProps> = ({ onBack, user })
                     Simpan & Update Absensi
                 </button>
             </div>
-        </div>
+        </div >
     );
 };
 

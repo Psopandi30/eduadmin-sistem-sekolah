@@ -22,17 +22,31 @@ const DetailNilai: React.FC<DetailNilaiProps> = ({ onBack, category, user }) => 
         }
     }, [category, ujianCategory]);
 
-    // Subject List (Matching IDs with Global Data)
-    const subjects = [
-        { id: 1, name: 'Pendidikan Agama Islam', teacher: 'Budi Santoso, S.Pd' },
-        { id: 2, name: 'Pendidikan Pancasila', teacher: 'Siti Aminah, S.Pd' },
-        { id: 3, name: 'Bahasa Indonesia', teacher: 'Dewi Sartika, S.Pd' },
-        { id: 4, name: 'Matematika', teacher: 'Ahmad Dahlan, S.Pd' },
-        { id: 5, name: 'IPAS', teacher: 'Ahmad Dahlan, S.Pd' },
-        { id: 6, name: 'Seni Budaya', teacher: 'Budi Santoso, S.Pd' },
-        { id: 7, name: 'Pendidikan Jasmani', teacher: 'Siti Aminah, S.Pd' },
-        { id: 8, name: 'Bahasa Inggris', teacher: 'Dewi Sartika, S.Pd' },
-    ];
+    // Dynamic Subject List (Synced from Admin)
+    const [subjects, setSubjects] = useState<any[]>(() => {
+        const saved = typeof window !== 'undefined' ? localStorage.getItem('subjects_data_v2') : null;
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                return parsed.map((s: any) => ({
+                    id: s.id,
+                    name: s.name,
+                    teacher: s.teacherName || 'Guru Mata Pelajaran'
+                }));
+            } catch (e) { }
+        }
+        // General Default if empty
+        return [
+            { id: 1, name: 'Pendidikan Agama Islam', teacher: '-' },
+            { id: 2, name: 'Pendidikan Pancasila', teacher: '-' },
+            { id: 3, name: 'Bahasa Indonesia', teacher: '-' },
+            { id: 4, name: 'Matematika', teacher: '-' },
+            { id: 5, name: 'IPAS', teacher: '-' },
+            { id: 6, name: 'Seni Budaya', teacher: '-' },
+            { id: 7, name: 'Pendidikan Jasmani', teacher: '-' },
+            { id: 8, name: 'Bahasa Inggris', teacher: '-' },
+        ];
+    });
 
     const [cloudGrades, setCloudGrades] = useState<{ [key: string]: any[] }>({});
     const [loading, setLoading] = useState(false);
@@ -84,22 +98,24 @@ const DetailNilai: React.FC<DetailNilaiProps> = ({ onBack, category, user }) => 
 
                 if (savedData && Array.isArray(savedData)) {
                     // Find record for this specific student
-                    const studentId = user?.studentId?.toString() || user?.id?.toString() || user?.nis?.toString();
-                    const studentRecord = savedData.find((g: any) =>
-                        g.studentId?.toString() === studentId ||
-                        (user?.nama && g.studentName?.toLowerCase() === user.nama.toLowerCase())
-                    );
+                    // Find record for this specific student
+                    const studentId = (user?.studentId || user?.id || user?.nis || '').toString();
+                    const studentRecord = savedData.find((g: any) => {
+                        const rowId = (g.studentId || g.id || g.nis || '').toString();
+                        return (rowId && rowId === studentId) ||
+                            (user?.nama && g.studentName?.toLowerCase() === user.nama.toLowerCase());
+                    });
 
                     if (studentRecord) {
                         // Map the local flat structure to the view's expectations
                         studentGrades = [
-                            { type: 'UH1', score: studentRecord.tp1 || 0 },
-                            { type: 'UH2', score: studentRecord.tp2 || 0 },
-                            { type: 'UH3', score: studentRecord.tp3 || 0 },
-                            { type: 'UH4', score: studentRecord.tp4 || 0 },
-                            { type: 'PTS', score: studentRecord.pts || 0 },
-                            { type: 'PAS', score: studentRecord.pas || 0 },
-                            { type: 'PAT', score: studentRecord.pat || 0 }
+                            { type: 'UH1', score: studentRecord.tp1 ?? 0 },
+                            { type: 'UH2', score: studentRecord.tp2 ?? 0 },
+                            { type: 'UH3', score: studentRecord.tp3 ?? 0 },
+                            { type: 'UH4', score: studentRecord.tp4 ?? 0 },
+                            { type: 'PTS', score: studentRecord.pts ?? 0 },
+                            { type: 'PAS', score: studentRecord.pas ?? 0 },
+                            { type: 'PAT', score: studentRecord.pat ?? 0 }
                         ];
                     }
                 }

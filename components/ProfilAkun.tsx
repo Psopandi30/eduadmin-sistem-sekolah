@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Camera, LogOut, Save, MapPin, Calendar, Edit2, UserCheck } from 'lucide-react';
+import { User, Camera, LogOut, Save, MapPin, Calendar, Edit2, UserCheck, ArrowLeft } from 'lucide-react';
 import { studentsDataGlobal } from '../data/sharedData';
 
 interface ProfilAkunProps {
@@ -153,20 +153,25 @@ const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
     };
 
     return (
-        <div className="bg-white/50 backdrop-blur-sm rounded-3xl p-6 border border-white/20 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="font-bold text-slate-800 text-xl flex items-center gap-2">
-                    <User className="text-[#004AAD]" />
-                    Profil Akun
-                </h2>
+        <div className="bg-white/50 backdrop-blur-sm rounded-[2rem] p-5 border border-white/20 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="flex justify-between items-center mb-5">
+                <div className="flex items-center gap-3">
+                    <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
+                        <ArrowLeft size={22} />
+                    </button>
+                    <h2 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                        <User className="text-[#004AAD]" size={20} />
+                        Profil Akun
+                    </h2>
+                </div>
                 {/* Save Button (Mock) */}
-                <button className="flex items-center gap-2 px-4 py-2 bg-[#004AAD] text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-900/20 hover:scale-105 transition-transform">
-                    <Save size={16} />
+                <button className="flex items-center gap-2 px-3 py-1.5 bg-[#004AAD] text-white rounded-lg text-xs font-bold shadow-lg shadow-blue-900/20 hover:scale-105 transition-transform">
+                    <Save size={14} />
                     Simpan
                 </button>
             </div>
 
-            <div className="space-y-8">
+            <div className="space-y-5">
                 {/* Bagian Atas: Data Orang Tua (Pemilik Akun) & Foto Profil */}
                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-blue-400 to-blue-600 opacity-10"></div>
@@ -269,13 +274,13 @@ const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
                 {/* Logout Button */}
                 <button
                     onClick={onLogout}
-                    className="w-full flex items-center justify-center gap-2 p-4 mt-8 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-100 hover:scale-[1.02] active:scale-95 transition-all border border-red-100 shadow-sm"
+                    className="w-full flex items-center justify-center gap-2 p-3.5 mt-6 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-100 hover:scale-[1.02] active:scale-95 transition-all border border-red-100 shadow-sm text-sm"
                 >
-                    <LogOut size={20} />
+                    <LogOut size={18} />
                     Keluar dari Aplikasi
                 </button>
 
-                <div className="text-center text-xs text-slate-400 font-medium pt-4">
+                <div className="text-center text-[10px] text-slate-400 font-medium pt-4 pb-2">
                     Versi Aplikasi 1.0.5 <br />
                     &copy; 2025 EduAdmin Sekolah
                 </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, Megaphone, Plus, Trash2, Edit, Calendar, Clock, X, Send } from 'lucide-react';
+import { ArrowLeft, Megaphone, Plus, Trash2, Edit, Calendar, Clock, X, Send, ChevronLeft } from 'lucide-react';
 
 interface InformasiWaliKelasProps {
     onBack: () => void;
@@ -40,28 +40,43 @@ const InformasiWaliKelas: React.FC<InformasiWaliKelasProps> = ({ onBack }) => {
     return (
         <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col h-full">
             {/* Header */}
-            <div className="p-4 md:p-6 border-b border-slate-100 flex items-center gap-3 shrink-0 bg-white sticky top-0 z-20">
-                <button onClick={onBack} className="p-2 md:p-2.5 hover:bg-slate-100 rounded-xl md:rounded-2xl transition-all text-slate-500">
-                    <ChevronLeft size={22} />
+            <div className="px-4 py-3 md:px-6 md:py-4 border-b border-slate-100 flex items-center gap-3 md:gap-4 shrink-0 bg-white sticky top-0 z-30">
+                <button
+                    onClick={onBack}
+                    className="p-2 md:p-2.5 bg-white border border-slate-100 text-slate-500 rounded-xl md:rounded-2xl transition-all hover:bg-slate-50 shrink-0 shadow-sm"
+                >
+                    <ArrowLeft size={20} className="md:w-[22px]" />
                 </button>
-                <div className="flex-1">
-                    <h2 className="font-bold text-base md:text-xl text-slate-800 flex items-center gap-2">
-                        <div className="p-1.5 md:p-2 bg-orange-50 rounded-lg md:rounded-xl">
-                            <Megaphone className="text-orange-600 w-4 h-4 md:w-5 md:h-5" />
-                        </div>
+                <div className="min-w-0 flex-1">
+                    <h2 className="text-base md:text-2xl font-black text-slate-800 tracking-tight leading-tight truncate">
                         Informasi Kelas
                     </h2>
+                    <p className="text-slate-400 text-[10px] md:text-sm font-medium">Media pengumuman Wali Kelas.</p>
                 </div>
                 <button
                     onClick={() => setIsCreating(true)}
-                    className="bg-orange-600 text-white px-4 py-2 rounded-xl font-bold text-xs md:text-sm flex items-center gap-2 hover:bg-orange-700 transition-all shadow-lg shadow-orange-100 active:scale-95"
+                    className="p-2.5 md:p-3 bg-orange-600 text-white rounded-xl md:rounded-2xl hover:bg-orange-700 transition-all shadow-lg shadow-orange-100 active:scale-95 flex items-center gap-2"
                 >
-                    <Plus size={18} /> <span className="hidden sm:inline">Buat Info</span>
+                    <Plus size={20} />
+                    <span className="hidden sm:inline font-bold text-sm">Buat Info</span>
                 </button>
             </div>
 
             {/* Content Area */}
             <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50/20">
+
+                {/* Info Card - Consistent Style */}
+                <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-amber-700 p-5 md:p-6 rounded-3xl text-white shadow-xl shadow-orange-100 flex items-center gap-4 border border-white/10 mb-6 font-sans">
+                    <div className="p-3 bg-white/15 backdrop-blur-xl rounded-2xl shrink-0 hidden sm:block">
+                        <Megaphone size={24} className="text-orange-100" />
+                    </div>
+                    <div>
+                        <h3 className="font-black text-sm md:text-lg uppercase tracking-wide">Pusat Informasi Kelas</h3>
+                        <p className="text-[10px] md:text-xs text-orange-100/90 leading-relaxed mt-0.5 italic">
+                            Publikasikan pengumuman penting kepada siswa dan orang tua di panel informasi ini.
+                        </p>
+                    </div>
+                </div>
                 {infos.length === 0 ? (
                     <div className="py-20 flex flex-col items-center justify-center text-slate-300">
                         <Megaphone size={64} className="opacity-10 mb-4" />

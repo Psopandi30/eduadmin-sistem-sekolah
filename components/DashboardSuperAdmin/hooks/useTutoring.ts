@@ -30,18 +30,7 @@ export const useTutoring = () => {
             const saved = localStorage.getItem('tutoring_classes_v10');
             if (saved) return JSON.parse(saved);
         }
-        return [
-            {
-                id: 1,
-                title: 'Matematika - Persiapan Olimpiade',
-                teacher: 'Bpk. Hendra Mathematics',
-                schedule: 'Senin & Kamis, 16:00 - 17:30',
-                room: 'Ruang 3B',
-                status: 'Aktif',
-                description: 'Berkokus pada pemecahan masalah logika dan analisis tingkat lanjut.',
-                sessions: []
-            }
-        ];
+        return [];
     });
 
     const [isLoading, setIsLoading] = useState(false);

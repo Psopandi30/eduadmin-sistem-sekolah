@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Edit3, ChevronDown, FileSpreadsheet, Star, ChevronRight } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 import { toast } from 'react-hot-toast';
 
@@ -13,11 +13,20 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
     const [selectedSemester, setSelectedSemester] = useState('Semester 1');
     const [rapotType, setRapotType] = useState<'diknas' | 'yayasan'>('diknas');
 
-    // Standard subjects list matching NilaiView
-    const subjectList = [
-        "Pendidikan Agama", "Pendidikan Pancasila", "Bahasa Indonesia",
-        "Matematika", "IPAS", "Seni Budaya", "PJOK", "Bahasa Inggris"
-    ];
+    // Standard subjects list (Synced from Admin)
+    const [subjectList, setSubjectList] = useState<string[]>(() => {
+        const saved = typeof window !== 'undefined' ? localStorage.getItem('subjects_data_v2') : null;
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                return parsed.map((s: any) => s.name);
+            } catch (e) { }
+        }
+        return [
+            "Pendidikan Agama", "Pendidikan Pancasila", "Bahasa Indonesia",
+            "Matematika", "IPAS", "Seni Budaya", "PJOK", "Bahasa Inggris"
+        ];
+    });
 
     const [subjects, setSubjects] = useState<any[]>([]);
     const [isEditing, setIsEditing] = useState(false);
@@ -59,7 +68,12 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
 
                     if (data?.value) {
                         const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
-                        const studentRow = parsed.find((s: any) => s.studentName === user?.studentName || s.studentName === user?.nama || s.studentId?.toString() === studentId);
+                        const studentRow = parsed.find((s: any) => {
+                            const rowId = (s.studentId || s.id || s.nis || '').toString();
+                            return (rowId && rowId === studentId) ||
+                                (s.studentName?.toLowerCase() === (user?.studentName || user?.nama || '').toLowerCase());
+                        });
+
                         if (studentRow) {
                             daily = studentRow.avgSumatif || 0;
                             exam = Math.max(studentRow.pas || 0, studentRow.pat || 0, studentRow.pts || 0);
@@ -132,34 +146,47 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
     const averageReport = subjects.length > 0 ? Math.round(subjects.reduce((acc, curr) => acc + curr.report, 0) / subjects.length) : 0;
 
     return (
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col h-full">
+        <div className="bg-white/90 backdrop-blur-xl rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl shadow-blue-900/10 border border-white overflow-hidden animate-in slide-in-from-right duration-500 flex flex-col h-full">
             {/* Header */}
-            <div className="p-6 border-b border-slate-100 flex items-center gap-3 shrink-0">
-                <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                    <ChevronRight className="rotate-180" size={24} />
+            <div className="px-5 py-5 sm:p-8 border-b border-slate-100 flex items-center gap-3 md:gap-4 shrink-0 bg-gradient-to-r from-emerald-50/50 to-teal-50/30 sticky top-0 z-30">
+                <button
+                    onClick={onBack}
+                    className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white shadow-md rounded-xl sm:rounded-2xl text-slate-400 hover:text-emerald-600 hover:scale-110 transition-all active:scale-95"
+                >
+                    <ChevronRight className="rotate-180" size={20} sm:size={24} strokeWidth={3} />
                 </button>
-                <div className="flex-1">
-                    <h3 className="font-bold text-slate-800 text-lg">Nilai Rapot Persemester</h3>
+                <div className="min-w-0 flex-1">
+                    <h2 className="text-base sm:text-xl font-black text-slate-800 tracking-tight leading-tight truncate">
+                        E-Rapor Siswa Digital
+                    </h2>
+                    <p className="text-emerald-600/60 text-[8px] sm:text-xs font-bold uppercase tracking-widest mt-0.5">Nilai & Capaian Belajar</p>
                 </div>
-                {!isEditing && (
-                    <button
-                        onClick={() => setIsEditing(true)}
-                        className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all"
-                    >
-                        Kelola Data
-                    </button>
-                )}
             </div>
 
-            <div className="p-6 flex-1 overflow-y-auto">
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50/20">
+
+                {/* Info Card - Consistent Style */}
+                <div className="bg-gradient-to-br from-teal-600 via-emerald-700 to-green-800 p-5 rounded-2xl sm:rounded-3xl text-white shadow-xl shadow-emerald-900/10 flex items-center gap-4 border border-white/10 mb-6 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                    <div className="p-2 sm:p-3 bg-white/15 backdrop-blur-xl rounded-xl sm:rounded-2xl shrink-0">
+                        <FileSpreadsheet size={20} sm:size={24} className="text-emerald-100" />
+                    </div>
+                    <div className="relative z-10">
+                        <h3 className="font-black text-xs sm:text-lg uppercase tracking-widest leading-none mb-1">E-Rapor Digital</h3>
+                        <p className="text-[10px] sm:text-xs text-emerald-100/90 leading-tight italic line-clamp-2">
+                            Informasi perolehan nilai dan capaian kompetensi siswa per semester secara real-time.
+                        </p>
+                    </div>
+                </div>
                 {/* RAPOT TABS (Diknas / Yayasan) */}
                 <div className="flex p-1 bg-slate-100 rounded-xl mb-6">
                     {['Rapot Diknas', 'Rapot Yayasan'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setRapotType(tab === 'Rapot Diknas' ? 'diknas' : 'yayasan')}
-                            className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all ${(rapotType === 'diknas' && tab === 'Rapot Diknas') || (rapotType === 'yayasan' && tab === 'Rapot Yayasan')
-                                ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
+                            className={`flex-1 py-2 text-[10px] sm:text-xs font-black rounded-lg transition-all ${(rapotType === 'diknas' && tab === 'Rapot Diknas') || (rapotType === 'yayasan' && tab === 'Rapot Yayasan')
+                                ? 'bg-[#004AAD] text-white shadow-md'
                                 : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
@@ -214,27 +241,31 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
                 {!isEditing && (
                     <div className="space-y-3 pb-20">
                         {subjects.map((subject) => (
-                            <div key={subject.id} className="border border-slate-300 rounded-2xl p-4 bg-white shadow-sm">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div>
-                                        <p className="text-[10px] text-slate-500 font-bold mb-0.5">Mata pelajaran</p>
-                                        <h4 className="font-bold text-slate-800 text-sm">{subject.id}. {subject.name}</h4>
-                                        <p className="text-[10px] text-slate-500">{subject.teacher}</p>
+                            <div key={subject.id} className="border-2 border-slate-50 rounded-2xl sm:rounded-[2.5rem] p-4 sm:p-6 bg-white shadow-md shadow-blue-900/5 hover:border-blue-100 transition-all group relative overflow-hidden mb-3">
+                                <div className="absolute -right-6 -top-6 w-20 h-20 bg-slate-50/50 rounded-full group-hover:scale-150 transition-transform duration-700"></div>
+                                <div className="flex justify-between items-center mb-1 relative z-10">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-100 rounded-lg flex items-center justify-center text-[#004AAD] font-black text-[10px] sm:text-base border border-slate-200 uppercase">
+                                            {subject.id}
+                                        </div>
+                                        <div>
+                                            <p className="text-[7px] sm:text-[9px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1">Mata Pelajaran</p>
+                                            <h4 className="font-black text-slate-800 text-[11px] sm:text-base leading-none uppercase tracking-tight">{subject.name}</h4>
+                                        </div>
                                     </div>
-                                </div>
-
-                                <div className="flex justify-end gap-6 mt-1 text-center">
-                                    <div>
-                                        <p className="text-[10px] text-slate-500 font-bold mb-0.5">Nilai Harian</p>
-                                        <p className="text-sm font-bold text-slate-800">{subject.daily}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] text-slate-500 font-bold mb-0.5">Ujian</p>
-                                        <p className="text-sm font-bold text-slate-800">{subject.exam}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] text-slate-500 font-bold mb-0.5">Rapot</p>
-                                        <p className="text-sm font-extrabold text-slate-900">{subject.report}</p>
+                                    <div className="flex gap-4 sm:gap-10 text-right">
+                                        <div className="flex flex-col items-center">
+                                            <p className="text-[7px] sm:text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1 leading-none">Harian</p>
+                                            <p className="text-xs sm:text-lg font-black text-slate-700 leading-none">{subject.daily}</p>
+                                        </div>
+                                        <div className="flex flex-col items-center">
+                                            <p className="text-[7px] sm:text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1 leading-none">Ujian</p>
+                                            <p className="text-xs sm:text-lg font-black text-slate-700 leading-none">{subject.exam}</p>
+                                        </div>
+                                        <div className="flex flex-col items-center px-2 py-1 bg-blue-50 rounded-lg border border-blue-100">
+                                            <p className="text-[7px] sm:text-[9px] text-blue-500 font-black uppercase tracking-widest mb-1 leading-none">Rapor</p>
+                                            <p className="text-xs sm:text-lg font-black text-[#004AAD] leading-none">{subject.report}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -375,21 +406,26 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
             </div>
 
             {/* Footer - Average */}
-            <div className="p-4 border-t border-slate-200 bg-slate-50 rounded-b-3xl">
-                <div className="border border-slate-300 rounded-2xl p-4 bg-white flex items-center justify-between shadow-sm">
-                    <span className="font-bold text-slate-800 text-sm">Nilai Rata-Rata</span>
-                    <div className="flex gap-6 text-center">
-                        <div className="w-12">
-                            <p className="text-[10px] text-slate-500 font-bold mb-0.5">Nilai Harian</p>
-                            <p className="text-sm font-bold text-slate-800">{averageDaily}</p>
+            <div className="p-4 sm:p-6 border-t border-slate-100 bg-white sticky bottom-0 z-30">
+                <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 flex items-center justify-between shadow-xl shadow-slate-900/10">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-lg flex items-center justify-center text-white">
+                            <Star size={16} sm:size={18} fill="currentColor" />
                         </div>
-                        <div className="w-10">
-                            <p className="text-[10px] text-slate-500 font-bold mb-0.5">Ujian</p>
-                            <p className="text-sm font-bold text-slate-800">{averageExam}</p>
+                        <span className="font-black text-white text-[10px] sm:text-base uppercase tracking-widest">Rata-Rata</span>
+                    </div>
+                    <div className="flex gap-4 sm:gap-10 text-right">
+                        <div className="flex flex-col items-center">
+                            <p className="text-[7px] sm:text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1 leading-none">Harian</p>
+                            <p className="text-xs sm:text-lg font-black text-white leading-none">{averageDaily}</p>
                         </div>
-                        <div className="w-10">
-                            <p className="text-[10px] text-slate-500 font-bold mb-0.5">Rapot</p>
-                            <p className="text-sm font-extrabold text-slate-900">{averageReport}</p>
+                        <div className="flex flex-col items-center">
+                            <p className="text-[7px] sm:text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1 leading-none">Ujian</p>
+                            <p className="text-xs sm:text-lg font-black text-white leading-none">{averageExam}</p>
+                        </div>
+                        <div className="flex flex-col items-center px-2 py-1 bg-white/10 rounded-lg">
+                            <p className="text-[7px] sm:text-[9px] text-yellow-400 font-black uppercase tracking-widest mb-1 leading-none">Rapor</p>
+                            <p className="text-xs sm:text-lg font-black text-white leading-none">{averageReport}</p>
                         </div>
                     </div>
                 </div>

@@ -53,8 +53,6 @@ import SettingsView from './DashboardSuperAdmin/components/views/SettingsView';
 import AIManagementView from './DashboardSuperAdmin/components/views/AIManagementView';
 import { useSubjects } from './DashboardSuperAdmin/hooks/useSubjects';
 import { useSchedules } from './DashboardSuperAdmin/hooks/useSchedules';
-import { useStudents } from './DashboardSuperAdmin/hooks/useStudents';
-import { useClasses } from './DashboardSuperAdmin/hooks/useClasses';
 import { useSavings } from './DashboardSuperAdmin/hooks/useSavings';
 import { useAttendance } from './DashboardSuperAdmin/hooks/useAttendance';
 import { useExams } from './DashboardSuperAdmin/hooks/useExams';
@@ -62,7 +60,8 @@ import { useFinance } from './DashboardSuperAdmin/hooks/useFinance';
 import { useAnnouncements } from './DashboardSuperAdmin/hooks/useAnnouncements';
 import { useMultimedia } from './DashboardSuperAdmin/hooks/useMultimedia';
 import { useTutoring } from './DashboardSuperAdmin/hooks/useTutoring';
-import { useTeachers } from './DashboardSuperAdmin/hooks/useTeachers';
+import { useDataContext } from './DashboardSuperAdmin/contexts/DataContext';
+import { useAdminUI } from './DashboardSuperAdmin/reducers/adminReducer';
 
 interface SuperAdminProps {
     user: any;
@@ -73,8 +72,8 @@ interface SuperAdminProps {
 
 
 const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, schoolSettings, setSchoolSettings }) => {
-    const [activeView, setActiveView] = useState('dashboard');
-    const [isSidebarOpen, setSidebarOpen] = useState(true);
+    // --- USE REDUCER FOR UI STATE (Grouped State Management) ---
+    const [uiState, dispatch] = useAdminUI();
 
     /* --- FORCE RESET CLEANUP (Temporarily Disabled for Stability) ---
     useEffect(() => {
@@ -97,12 +96,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     }, []);
     */
 
-    const [selectedClass, setSelectedClass] = useState('1A');
-
-    const [editItem, setEditItem] = useState<any>(null);
-    const [editType, setEditType] = useState<string>('');
-
-    // --- STATE DATA (Using Custom Hooks) ---
+    // --- STATE DATA (Using DataContext - Centralized) ---
     const {
         students,
         setStudents,
@@ -121,14 +115,53 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         handleDelete,
         handleDownloadTemplate,
         handleUploadClick,
-        handleSaveData
-    } = useStudents();
+        handleSaveData,
+        teachers,
+        setTeachers,
+        addTeacher,
+        deleteTeacher,
+        updateTeacher,
+        handleDownloadTemplateTeacher,
+        handleUploadClickTeacher,
+        handleSaveDataTeacher,
+        classes,
+        setClasses,
+        showAddClassModal,
+        setShowAddClassModal,
+        handleAddClass,
+        handleDeleteClass,
+        handleSaveClasses,
+        subjectGroups,
+        setSubjectGroups,
+        subjects,
+        setSubjects
+    } = useDataContext();
 
-    const { subjectGroups, setSubjectGroups, subjects, setSubjects } = useSubjects();
-    const [showGroupModal, setShowGroupModal] = useState(false);
-    const [showSubjectModal, setShowSubjectModal] = useState(false);
-    const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
-
+    // Helper functions untuk memudahkan akses state dari reducer
+    const setActiveView = (view: string) => dispatch({ type: 'SET_ACTIVE_VIEW', payload: view });
+    const setSidebarOpen = (open: boolean) => dispatch({ type: 'SET_SIDEBAR_OPEN', payload: open });
+    const setSelectedClass = (cls: string) => dispatch({ type: 'SET_SELECTED_CLASS', payload: cls });
+    const setEditItem = (item: any) => dispatch({ type: 'SET_EDIT_ITEM', payload: item });
+    const setEditType = (type: string) => dispatch({ type: 'SET_EDIT_TYPE', payload: type });
+    const setShowGroupModal = (show: boolean) => dispatch({ type: 'SET_SHOW_GROUP_MODAL', payload: show });
+    const setShowSubjectModal = (show: boolean) => dispatch({ type: 'SET_SHOW_SUBJECT_MODAL', payload: show });
+    const setSelectedLevels = (levels: string[]) => dispatch({ type: 'SET_SELECTED_LEVELS', payload: levels });
+    const setShowPositionModal = (show: boolean) => dispatch({ type: 'SET_SHOW_POSITION_MODAL', payload: show });
+    const setShowTeacherModal = (show: boolean) => dispatch({ type: 'SET_SHOW_TEACHER_MODAL', payload: show });
+    const setNewTeacher = (teacher: any) => dispatch({ type: 'SET_NEW_TEACHER', payload: teacher });
+    const setShowPlottingModal = (show: boolean) => dispatch({ type: 'SET_SHOW_PLOTTING_MODAL', payload: show });
+    const setPlottingTeacherId = (id: string) => dispatch({ type: 'SET_PLOTTING_TEACHER_ID', payload: id });
+    const setPlottingClassNama = (nama: string) => dispatch({ type: 'SET_PLOTTING_CLASS_NAMA', payload: nama });
+    const setPlottingSubjectIds = (ids: any[]) => dispatch({ type: 'SET_PLOTTING_SUBJECT_IDS', payload: ids });
+    const setPlottingNip = (nip: string) => dispatch({ type: 'SET_PLOTTING_NIP', payload: nip });
+    const setSelectedJadwalClass = (cls: string) => dispatch({ type: 'SET_SELECTED_JADWAL_CLASS', payload: cls });
+    const setSelectedJadwalLevel = (level: number) => dispatch({ type: 'SET_SELECTED_JADWAL_LEVEL', payload: level });
+    const setShowTimeModal = (show: boolean) => dispatch({ type: 'SET_SHOW_TIME_MODAL', payload: show });
+    const setNewPeriodData = (data: { start: string; end: string }) => dispatch({ type: 'SET_NEW_PERIOD_DATA', payload: data });
+    const setShowSemesterModal = (show: boolean) => dispatch({ type: 'SET_SHOW_SEMESTER_MODAL', payload: show });
+    const setNewSemesterName = (name: string) => dispatch({ type: 'SET_NEW_SEMESTER_NAME', payload: name });
+    const setMapelViewMode = (mode: 'master' | 'plotting') => dispatch({ type: 'SET_MAPEL_VIEW_MODE', payload: mode });
+    const setDraggedItem = (item: { type: string; id: number | string; name: string } | null) => dispatch({ type: 'SET_DRAGGED_ITEM', payload: item });
 
     // Persist Positions
     const [positions, setPositions] = useState<any[]>(() => {
@@ -159,8 +192,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     } = useSchedules();
 
     const [activeScheduleId, setActiveScheduleId] = useState<number>(1);
-    const [selectedJadwalClass, setSelectedJadwalClass] = useState<string>('1A');
-    const [draggedItem, setDraggedItem] = useState<{ type: string, id: number | string, name: string } | null>(null);
+    // selectedJadwalClass, draggedItem now from uiState via reducer
     const [schedulePeriods, setSchedulePeriods] = useState<Period[]>(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('schedule_periods_v2');
@@ -172,14 +204,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     useEffect(() => {
         localStorage.setItem('schedule_periods_v2', JSON.stringify(schedulePeriods));
     }, [schedulePeriods]);
-    const [selectedJadwalLevel, setSelectedJadwalLevel] = useState<number>(1);
-    const [showTimeModal, setShowTimeModal] = useState(false);
-    const [newPeriodData, setNewPeriodData] = useState({ start: '', end: '' });
-    const [showSemesterModal, setShowSemesterModal] = useState(false);
-    const [newSemesterName, setNewSemesterName] = useState('');
-
-    // --- PLOTTING STATE ---
-    const [mapelViewMode, setMapelViewMode] = useState<'master' | 'plotting'>('plotting'); // Default to plotting as requested
+    // uiState.selectedJadwalLevel, showTimeModal, uiState.newPeriodData, showSemesterModal, uiState.newSemesterName, mapelViewMode now from uiState via reducer
     const [teacherAssignments, setTeacherAssignments] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('teacher_assignments_v2');
@@ -191,34 +216,12 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     useEffect(() => {
         localStorage.setItem('teacher_assignments_v2', JSON.stringify(teacherAssignments));
     }, [teacherAssignments]);
-    const [showPlottingModal, setShowPlottingModal] = useState(false);
     useEffect(() => {
-        if (!showPlottingModal) {
-            setPlottingTeacherId('');
-            setPlottingClassNama('');
-            setPlottingSubjectIds([]);
-            setPlottingNip('');
+        if (!uiState.showPlottingModal) {
+            dispatch({ type: 'RESET_PLOTTING_FORM' });
         }
-    }, [showPlottingModal]);
-    const [showPositionModal, setShowPositionModal] = useState(false);
-    const {
-        teachers,
-        setTeachers,
-        addTeacher,
-        deleteTeacher,
-        updateTeacher,
-        handleDownloadTemplate: handleDownloadTemplateTeacher,
-        handleUploadClick: handleUploadClickTeacher,
-        handleSaveData: handleSaveDataTeacher
-    } = useTeachers();
-    const [newTeacher, setNewTeacher] = useState({ nama: '', nip: '', jabatan: 'Guru Mata Pelajaran', mapel: '', class: '' });
-    const [showTeacherModal, setShowTeacherModal] = useState(false);
-    const [plottingTeacherId, setPlottingTeacherId] = useState('');
-    const [plottingClassNama, setPlottingClassNama] = useState('');
-    const [plottingSubjectIds, setPlottingSubjectIds] = useState<any[]>([]);
-    const [plottingNip, setPlottingNip] = useState('');
-
-    const { classes, setClasses, showAddClassModal, setShowAddClassModal, handleAddClass, handleDeleteClass, handleSaveClasses } = useClasses();
+    }, [uiState.showPlottingModal, dispatch]);
+    // Teachers, Classes, Subjects already from useDataContext above
 
     // --- ABSENSI STATE (Refactored to Hook) ---
     const {
@@ -1055,8 +1058,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         const form = e.target as HTMLFormElement;
         const name = (form.elements.namedItem('subjectName') as HTMLInputElement).value;
         const code = (form.elements.namedItem('subjectCode') as HTMLInputElement).value;
-        const level = selectedLevels.length > 0
-            ? (selectedLevels.includes("Semua Tingkat") ? "Semua Tingkat" : `Tingkat ${selectedLevels.sort().join(', ')}`)
+        const level = uiState.selectedLevels.length > 0
+            ? (uiState.selectedLevels.includes("Semua Tingkat") ? "Semua Tingkat" : `Tingkat ${uiState.selectedLevels.sort().join(', ')}`)
             : "Semua Tingkat";
         const group = (form.elements.namedItem('subjectGroup') as HTMLSelectElement).value;
 
@@ -1090,8 +1093,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         const kategori = (form.elements.namedItem('positionCategory') as HTMLSelectElement).value;
 
         if (nama && kategori) {
-            if (editItem && editType === 'Jabatan') {
-                setPositions(positions.map(p => p.id === editItem.id ? { ...p, nama, kategori } : p));
+            if (uiState.editItem && uiState.editType === 'Jabatan') {
+                setPositions(positions.map(p => p.id === uiState.editItem.id ? { ...p, nama, kategori } : p));
                 toast.success("Jabatan berhasil diperbarui");
             } else {
                 setPositions([...positions, { id: Date.now(), nama, kategori }]);
@@ -1120,24 +1123,24 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     };
 
     const handleSaveTeacher = async () => {
-        if (!newTeacher.nama || !newTeacher.nip) {
+        if (!uiState.newTeacher.nama || !uiState.newTeacher.nip) {
             toast.error("Nama dan NIP wajib diisi!");
             return;
         }
 
         const teacherToSave = {
-            id: editItem ? editItem.id : Date.now(),
-            nama: newTeacher.nama,
-            nip: newTeacher.nip,
-            jabatan: newTeacher.jabatan,
-            mapel: newTeacher.jabatan === 'Guru Mata Pelajaran' ? newTeacher.mapel : '-',
-            wali: newTeacher.jabatan === 'Guru Kelas' || newTeacher.jabatan === 'Wali Kelas' ? newTeacher.class : '-',
-            username: newTeacher.nama.split(' ')[0].toLowerCase() + Math.floor(Math.random() * 100),
+            id: uiState.editItem ? uiState.editItem.id : Date.now(),
+            nama: uiState.newTeacher.nama,
+            nip: uiState.newTeacher.nip,
+            jabatan: uiState.newTeacher.jabatan,
+            mapel: uiState.newTeacher.jabatan === 'Guru Mata Pelajaran' ? uiState.newTeacher.mapel : '-',
+            wali: uiState.newTeacher.jabatan === 'Guru Kelas' || uiState.newTeacher.jabatan === 'Wali Kelas' ? uiState.newTeacher.class : '-',
+            username: uiState.newTeacher.nama.split(' ')[0].toLowerCase() + Math.floor(Math.random() * 100),
             password: 'password123'
         };
 
-        if (editItem && editType === 'Teacher') {
-            await updateTeacher(editItem.id, teacherToSave);
+        if (uiState.editItem && uiState.editType === 'Teacher') {
+            await updateTeacher(uiState.editItem.id, teacherToSave);
         } else {
             await addTeacher(teacherToSave);
         }
@@ -1203,7 +1206,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         // Add to schedule
         const newItem: ScheduleItem = {
             id: Date.now().toString(),
-            classId: selectedJadwalClass,
+            classId: uiState.selectedJadwalClass,
             day,
             period,
             subjectId: subjectId,
@@ -1213,7 +1216,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         const newSchedules = schedules.map(s => {
             if (s.id === activeScheduleId) {
                 // Remove existing item in this slot if any
-                const filteredItems = s.items.filter(i => !(i.classId === selectedJadwalClass && i.day === day && i.period === period));
+                const filteredItems = s.items.filter(i => !(i.classId === uiState.selectedJadwalClass && i.day === day && i.period === period));
                 return { ...s, items: [...filteredItems, newItem] };
             }
             return s;
@@ -1287,15 +1290,15 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     const handleResetClassSchedule = () => {
         setConfirmModal({
             show: true,
-            message: `Reset semua jadwal untuk Kelas ${selectedJadwalClass} di semester ini?`,
+            message: `Reset semua jadwal untuk Kelas ${uiState.selectedJadwalClass} di semester ini?`,
             onConfirm: () => {
                 setSchedules(schedules.map(s => {
                     if (s.id === activeScheduleId) {
-                        return { ...s, items: s.items.filter(i => i.classId !== selectedJadwalClass) };
+                        return { ...s, items: s.items.filter(i => i.classId !== uiState.selectedJadwalClass) };
                     }
                     return s;
                 }));
-                toast.success(`Jadwal Kelas ${selectedJadwalClass} dikosongkan.`);
+                toast.success(`Jadwal Kelas ${uiState.selectedJadwalClass} dikosongkan.`);
                 setConfirmModal({ show: false, message: '', onConfirm: () => { } });
             }
         });
@@ -1303,7 +1306,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
     const confirmAddTime = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newPeriodData.start || !newPeriodData.end) {
+        if (!uiState.newPeriodData.start || !uiState.newPeriodData.end) {
             toast.error("Jam mulai dan selesai wajib diisi!");
             return;
         }
@@ -1314,8 +1317,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
         const newPeriod: Period = {
             id: newId,
-            start: newPeriodData.start,
-            end: newPeriodData.end
+            start: uiState.newPeriodData.start,
+            end: uiState.newPeriodData.end
         };
 
         setSchedulePeriods([...schedulePeriods, newPeriod].sort((a, b) => a.start.localeCompare(b.start)));
@@ -1328,13 +1331,13 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         setSchedules(schedules.map(s => {
             if (s.id === activeScheduleId) {
                 // Find existing daily info
-                const existingInfoIndex = s.dailyInfos?.findIndex(info => info.classId === selectedJadwalClass && info.day === day);
+                const existingInfoIndex = s.dailyInfos?.findIndex(info => info.classId === uiState.selectedJadwalClass && info.day === day);
                 let newDailyInfos = s.dailyInfos ? [...s.dailyInfos] : [];
 
                 if (existingInfoIndex !== undefined && existingInfoIndex !== -1) {
                     newDailyInfos[existingInfoIndex] = { ...newDailyInfos[existingInfoIndex], [field]: value };
                 } else {
-                    newDailyInfos.push({ classId: selectedJadwalClass, day, [field]: value });
+                    newDailyInfos.push({ classId: uiState.selectedJadwalClass, day, [field]: value });
                 }
                 return { ...s, dailyInfos: newDailyInfos };
             }
@@ -1344,14 +1347,14 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
     const confirmAddSemester = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newSemesterName) {
+        if (!uiState.newSemesterName) {
             toast.error("Nama semester wajib diisi!");
             return;
         }
 
         const newSemester: MasterSchedule = {
             id: Date.now(),
-            name: newSemesterName,
+            name: uiState.newSemesterName,
             status: 'draft',
             items: [],
             dailyInfos: []
@@ -1361,7 +1364,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         setActiveScheduleId(newSemester.id);
         setShowSemesterModal(false);
         setNewSemesterName('');
-        toast.success(`Semester "${newSemesterName}" berhasil dibuat!`, {
+        toast.success(`Semester "${uiState.newSemesterName}" berhasil dibuat!`, {
             icon: '📅',
             style: {
                 borderRadius: '16px',
@@ -1413,10 +1416,10 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
             />
             {/* SIDEBAR */}
             <Sidebar
-                isSidebarOpen={isSidebarOpen}
-                setSidebarOpen={setSidebarOpen}
-                activeView={activeView}
-                setActiveView={setActiveView}
+                isSidebarOpen={uiState.isSidebarOpen}
+                setSidebarOpen={(open: boolean) => dispatch({ type: 'SET_SIDEBAR_OPEN', payload: open })}
+                activeView={uiState.activeView}
+                setActiveView={(view: string) => dispatch({ type: 'SET_ACTIVE_VIEW', payload: view })}
                 onLogout={onLogout}
                 user={user}
                 schoolSettings={schoolSettings}
@@ -1429,7 +1432,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
 
                     {/* --- VIEW: DASHBOARD HOME --- */}
-                    {activeView === 'dashboard' && (
+                    {uiState.activeView === 'dashboard' && (
                         <DashboardHome
                             students={students}
                             teachers={teachers}
@@ -1440,17 +1443,17 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     )}
 
                     {/* --- VIEW: DATA SISWA & KELAS --- */}
-                    {activeView === 'data_siswa' && (
+                    {uiState.activeView === 'data_siswa' && (
                         <DataSiswaView setActiveView={setActiveView} />
                     )}
 
                     {/* --- VIEW: CETAK KARTU LOGIN --- */}
-                    {activeView === 'cetak_kartu_login' && (
+                    {uiState.activeView === 'cetak_kartu_login' && (
                         <CetakKartuLoginView setActiveView={setActiveView} students={students} classes={classes} schoolSettings={schoolSettings} />
                     )}
 
                     {/* --- VIEW: TAMBAH KELAS --- */}
-                    {activeView === 'tambah_kelas_view' && (
+                    {uiState.activeView === 'tambah_kelas_view' && (
                         <TambahKelasView
                             setActiveView={setActiveView}
                             classes={classes}
@@ -1464,7 +1467,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     )}
 
                     {/* --- VIEW: UPLOAD SISWA BARU (MODERN TABLE + FILTER KELAS 1) --- */}
-                    {activeView === 'upload_kelas_satu_view' && (
+                    {uiState.activeView === 'upload_kelas_satu_view' && (
                         <UploadKelasSatuView
                             setActiveView={setActiveView}
                             handleDownloadTemplate={handleDownloadTemplate}
@@ -1479,7 +1482,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     )}
 
                     {/* --- VIEW: UPLOAD SISWA VIEW (MODERN TABLE) --- */}
-                    {activeView === 'upload_siswa_view' && (
+                    {uiState.activeView === 'upload_siswa_view' && (
                         <UploadSiswaView
                             setActiveView={setActiveView}
                             handleDownloadTemplate={handleDownloadTemplate}
@@ -1493,7 +1496,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     )}
 
                     {/* --- VIEW: UPLOAD PERKELAS VIEW (MODERN TABLE + FILTER) --- */}
-                    {activeView === 'upload_perkelas_view' && (
+                    {uiState.activeView === 'upload_perkelas_view' && (
                         <UploadPerKelasView
                             setActiveView={setActiveView}
                             handleDownloadTemplate={handleDownloadTemplate}
@@ -1509,12 +1512,12 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     )}
 
                     {/* --- VIEW: DATA GURU & STAFF (Refactored) --- */}
-                    {activeView === 'data_guru' && (
+                    {uiState.activeView === 'data_guru' && (
                         <GuruStaffView setActiveView={setActiveView} />
                     )}
 
                     {/* --- VIEW: TAMBAH DATA GURU (Refactored) --- */}
-                    {activeView === 'tambah_guru_view' && (
+                    {uiState.activeView === 'tambah_guru_view' && (
                         <TeacherDataView
                             teachers={teachers}
                             setTeachers={setTeachers}
@@ -1532,10 +1535,10 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                     {/* --- VIEW: TAMBAH MATA PELAJARAN --- */}
                     {/* --- VIEW: TAMBAH MATA PELAJARAN & KELOLA MAPEL (Refactored) --- */}
-                    {(activeView === 'mapel' || activeView === 'tambah_mapel_view') && (
+                    {(uiState.activeView === 'mapel' || uiState.activeView === 'tambah_mapel_view') && (
                         <MataPelajaranView
-                            mapelViewMode={mapelViewMode}
-                            setMapelViewMode={setMapelViewMode}
+                        mapelViewMode={uiState.mapelViewMode}
+                        setMapelViewMode={setMapelViewMode}
                             teacherAssignments={teacherAssignments}
                             setTeacherAssignments={setTeacherAssignments}
                             teachers={teachers}
@@ -1553,7 +1556,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                     {/* --- VIEW: TAMBAH JABATAN (Refactored) --- */}
                     {
-                        activeView === 'tambah_jabatan_view' && (
+                        uiState.activeView === 'tambah_jabatan_view' && (
                             <JabatanView
                                 positions={positions}
                                 handleAddPosition={handleAddPosition}
@@ -1568,12 +1571,12 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
 
                     {/* --- VIEW: JADWAL PELAJARAN --- */}
-                    {activeView === 'jadwal' && (
+                    {uiState.activeView === 'jadwal' && (
                         <JadwalPelajaranView
-                            activeView={activeView}
-                            selectedJadwalLevel={selectedJadwalLevel}
+                            activeView={uiState.activeView}
+                            selectedJadwalLevel={uiState.selectedJadwalLevel}
                             setSelectedJadwalLevel={setSelectedJadwalLevel}
-                            selectedJadwalClass={selectedJadwalClass}
+                            selectedJadwalClass={uiState.selectedJadwalClass}
                             setSelectedJadwalClass={setSelectedJadwalClass}
                             activeScheduleId={activeScheduleId}
                             setActiveScheduleId={setActiveScheduleId}
@@ -1600,9 +1603,9 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
 
                     {/* --- VIEW: ABSENSI SISWA --- */}
-                    {activeView === 'absen' && (
+                    {uiState.activeView === 'absen' && (
                         <AbsensiView
-                            activeView={activeView}
+                            activeView={uiState.activeView}
                             absenClass={absenClass}
                             setAbsenClass={setAbsenClass}
                             absenSemester={absenSemester}
@@ -1625,7 +1628,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                     {/* --- VIEW: KELAS DAN WALI KELAS --- */}
                     {
-                        activeView === 'kelas_wali' && (
+                        uiState.activeView === 'kelas_wali' && (
                             <div className="bg-white rounded-[2.5rem] p-4 h-full shadow-sm animate-in fade-in flex flex-col">
                                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                                     <div className="flex items-center gap-3">
@@ -1702,7 +1705,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                     {/* --- VIEW: JADWAL UJIAN --- */}
                     {
-                        activeView === 'ujian' && (
+                        uiState.activeView === 'ujian' && (
                             <div className="bg-white rounded-[2.5rem] p-4 h-full shadow-sm animate-in fade-in flex flex-col overflow-hidden">
                                 {/* Header & Toolbar */}
                                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-0 gap-1">
@@ -2026,7 +2029,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                     {/* --- VIEW: RAPOT --- */}
                     {
-                        activeView === 'rapot' && (
+                        uiState.activeView === 'rapot' && (
                             <div className="bg-white rounded-[2.5rem] p-6 h-full shadow-sm animate-in fade-in flex flex-col overflow-y-auto custom-scrollbar">
                                 {/* Header: Info Aktif & Filters */}
                                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -2041,7 +2044,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                     </div>
 
                                     <div className="flex flex-wrap gap-3">
-                                        <button onClick={() => setActiveView('rapot_settings')} className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm" title="Pengaturan Rapor">
+                                        <button onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'rapot_settings' })} className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm" title="Pengaturan Rapor">
                                             <Settings size={20} />
                                         </button>
                                         <select className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 cursor-pointer">
@@ -2091,7 +2094,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                             <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
                                                 <TrendingUp size={20} className="text-emerald-500" /> Progress Input Nilai
                                             </h3>
-                                            <button onClick={() => setActiveView('rapot_print')} className="text-xs font-bold text-emerald-600 hover:text-emerald-800">Cetak Rapor</button>
+                                            <button onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'rapot_print' })} className="text-xs font-bold text-emerald-600 hover:text-emerald-800">Cetak Rapor</button>
                                         </div>
                                         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
                                             {derivedClasses.length === 0 ? (
@@ -2172,11 +2175,11 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                                 {/* Quick Action Buttons */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <button onClick={() => setActiveView('nilai')} className="flex items-center justify-center gap-3 p-4 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-all font-bold shadow-lg shadow-emerald-200 group">
+                                    <button onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'nilai' })} className="flex items-center justify-center gap-3 p-4 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-all font-bold shadow-lg shadow-emerald-200 group">
                                         <div className="bg-white/20 p-2 rounded-lg group-hover:scale-110 transition-transform"><Plus size={20} /></div>
                                         <span>Input Nilai</span>
                                     </button>
-                                    <button onClick={() => setActiveView('rapot_print')} className="flex items-center justify-center gap-3 p-4 bg-white border-2 border-slate-200 text-slate-700 rounded-2xl hover:border-emerald-500 hover:text-emerald-600 transition-all font-bold group">
+                                    <button onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'rapot_print' })} className="flex items-center justify-center gap-3 p-4 bg-white border-2 border-slate-200 text-slate-700 rounded-2xl hover:border-emerald-500 hover:text-emerald-600 transition-all font-bold group">
                                         <div className="bg-slate-100 p-2 rounded-lg group-hover:bg-emerald-50 transition-colors"><Printer size={20} /></div>
                                         <span>Cetak Rapor</span>
                                     </button>
@@ -2185,7 +2188,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                         <div className="bg-slate-100 p-2 rounded-lg group-hover:bg-purple-50 transition-colors"><Lock size={20} /></div>
                                         <span>Kunci Nilai</span>
                                     </button>
-                                    <button onClick={() => setActiveView('rapot_print')} className="flex items-center justify-center gap-3 p-4 bg-white border-2 border-slate-200 text-slate-700 rounded-2xl hover:border-blue-500 hover:text-blue-600 transition-all font-bold group">
+                                    <button onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'rapot_print' })} className="flex items-center justify-center gap-3 p-4 bg-white border-2 border-slate-200 text-slate-700 rounded-2xl hover:border-blue-500 hover:text-blue-600 transition-all font-bold group">
                                         <div className="bg-slate-100 p-2 rounded-lg group-hover:bg-blue-50 transition-colors"><div className="rotate-90"><Archive size={20} /></div></div>
                                         <span>Cetak Massal</span>
                                     </button>
@@ -2195,34 +2198,34 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     }
 
                     {/* --- VIEW: RAPOR PRINT (Detail Cetak) --- */}
-                    {activeView === 'rapot_print' && (
+                    {uiState.activeView === 'rapot_print' && (
                         <div className="bg-white rounded-[2.5rem] p-6 h-full shadow-sm animate-in fade-in overflow-hidden">
                             <RaporView setActiveView={setActiveView} />
                         </div>
                     )}
 
                     {/* --- VIEW: RAPOR SETTINGS --- */}
-                    {activeView === 'rapot_settings' && (
+                    {uiState.activeView === 'rapot_settings' && (
                         <div className="bg-white rounded-[2.5rem] p-6 h-full shadow-sm animate-in fade-in overflow-hidden">
                             <RaporSettingsView setActiveView={setActiveView} />
                         </div>
                     )}
 
                     {/* --- VIEW: INPUT NILAI (NEW) --- */}
-                    {activeView === 'nilai' && (
+                    {uiState.activeView === 'nilai' && (
                         <div className="h-full">
                             <NilaiView setActiveView={setActiveView} students={students} classes={classes} subjects={subjects} />
                         </div>
                     )}
 
                     {/* --- VIEW: KEUANGAN --- */}
-                    {activeView === 'keuangan' && (
+                    {uiState.activeView === 'keuangan' && (
                         <KeuanganView students={students} classes={classes} />
                     )}
 
                     {/* --- VIEW: TABUNGAN --- */}
                     {
-                        activeView === 'tabungan' && (
+                        uiState.activeView === 'tabungan' && (
                             <div className="h-full overflow-y-auto custom-scrollbar animate-in fade-in space-y-6 pr-2 pb-6">
                                 {/* Header & Tabs */}
                                 <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 relative overflow-hidden">
@@ -2576,7 +2579,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                     {/* --- VIEW: NAIK KELAS --- */}
                     {
-                        activeView === 'naik_kelas' && (
+                        uiState.activeView === 'naik_kelas' && (
                             <div className="bg-[#F4F7FE] p-6 h-full overflow-y-auto">
                                 <div className="animate-in fade-in space-y-6">
                                     {/* Header & Tabs */}
@@ -2919,7 +2922,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                     {/* --- VIEW: BIMBINGAN BELAJAR --- */}
                     {
-                        activeView === 'bimbingan_belajar' && (
+                        uiState.activeView === 'bimbingan_belajar' && (
                             <div className="bg-[#F4F7FE] p-6 h-full overflow-y-auto">
                                 <div className="animate-in fade-in space-y-6">
                                     {/* Header & Tabs */}
@@ -3131,22 +3134,22 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     }
 
                     {/* --- VIEW: PENGUMUMAN --- */}
-                    {activeView === 'pengumuman' && <PengumumanView />}
+                    {uiState.activeView === 'pengumuman' && <PengumumanView />}
 
                     {/* --- VIEW: LAPORAN --- */}
-                    {activeView === 'laporan' && <LaporanView />}
+                    {uiState.activeView === 'laporan' && <LaporanView />}
 
                     {/* --- VIEW: MULTIMEDIA --- */}
-                    {activeView === 'multimedia' && <MultimediaView />}
+                    {uiState.activeView === 'multimedia' && <MultimediaView />}
 
                     {/* --- VIEW: PENGATURAN --- */}
                     {/* --- VIEW: PENGATURAN --- */}
-                    {activeView === 'settings' && <SettingsView schoolSettings={schoolSettings} setSchoolSettings={setSchoolSettings} />}
+                    {uiState.activeView === 'settings' && <SettingsView schoolSettings={schoolSettings} setSchoolSettings={setSchoolSettings} />}
 
                     {/* --- VIEW: AI MANAGEMENT --- */}
-                    {activeView === 'ai_management' && (
+                    {uiState.activeView === 'ai_management' && (
                         <div className="bg-white rounded-[2.5rem] p-6 h-full shadow-sm animate-in fade-in overflow-hidden">
-                            <AIManagementView onBack={() => setActiveView('dashboard')} />
+                            <AIManagementView onBack={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'dashboard' })} />
                         </div>
                     )}
 
@@ -3230,6 +3233,36 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                         </div>
 
                                         <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Jenis Kelamin</label>
+                                            <div className="flex gap-4 p-2 bg-slate-50 rounded-xl border border-slate-200 h-[50px] items-center">
+                                                <label className="flex items-center gap-2 cursor-pointer px-3 py-1 hover:bg-white rounded-lg transition-colors">
+                                                    <input
+                                                        type="radio"
+                                                        disabled={modalMode === 'view'}
+                                                        name="gender"
+                                                        value="L"
+                                                        checked={selectedStudent?.gender === 'L'}
+                                                        onChange={() => setSelectedStudent({ ...selectedStudent, gender: 'L' })}
+                                                        className="scale-125 accent-blue-600"
+                                                    />
+                                                    <span className="text-sm font-bold text-slate-700">Laki-laki</span>
+                                                </label>
+                                                <label className="flex items-center gap-2 cursor-pointer px-3 py-1 hover:bg-white rounded-lg transition-colors">
+                                                    <input
+                                                        type="radio"
+                                                        disabled={modalMode === 'view'}
+                                                        name="gender"
+                                                        value="P"
+                                                        checked={selectedStudent?.gender === 'P'}
+                                                        onChange={() => setSelectedStudent({ ...selectedStudent, gender: 'P' })}
+                                                        className="scale-125 accent-pink-600"
+                                                    />
+                                                    <span className="text-sm font-bold text-slate-700">Perempuan</span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div>
                                             <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Tempat Lahir</label>
                                             <input disabled={modalMode === 'view'} value={selectedStudent?.ttl?.split(',')[0] || ''} onChange={e => setSelectedStudent({ ...selectedStudent, ttl: `${e.target.value}, ${selectedStudent?.ttl?.split(',')[1] || ''}` })} className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors disabled:opacity-60" placeholder="Kota Kelahiran" />
                                         </div>
@@ -3252,7 +3285,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                                         <div>
                                             <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Kelas</label>
-                                            <select disabled={modalMode === 'view'} value={selectedStudent?.kelas || selectedClass} onChange={e => setSelectedStudent({ ...selectedStudent, kelas: e.target.value })} className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none disabled:opacity-60">
+                                            <select disabled={modalMode === 'view'} value={selectedStudent?.kelas || uiState.selectedClass} onChange={e => setSelectedStudent({ ...selectedStudent, kelas: e.target.value })} className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none disabled:opacity-60">
                                                 <option>1A</option>
                                                 <option>1B</option>
                                                 <option>2</option>
@@ -3343,16 +3376,16 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                     {/* MODAL EDIT DATA UMUM */}
                     {
-                        editItem && (
+                        uiState.editItem && (
                             <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center animate-in fade-in backdrop-blur-sm p-4">
                                 <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8">
                                     <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-                                        <h3 className="font-bold text-lg text-slate-800">Edit {editType}</h3>
+                                        <h3 className="font-bold text-lg text-slate-800">Edit {uiState.editType}</h3>
                                         <button onClick={() => setEditItem(null)}><X size={24} className="text-slate-400 hover:text-red-500" /></button>
                                     </div>
 
                                     <div className="space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                                        {Object.entries(editItem).map(([key, value]) => {
+                                        {Object.entries(uiState.editItem).map(([key, value]) => {
                                             if (key === 'id') return null; // Skip ID
                                             return (
                                                 <div key={key}>
@@ -3369,7 +3402,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                                     <div className="flex gap-4 mt-6">
                                         <button onClick={() => setEditItem(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">Batal</button>
-                                        <button onClick={() => { toast.success(`Data ${editType} berhasil diperbarui!`); setEditItem(null); }} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">Simpan Perubahan</button>
+                                        <button onClick={() => { toast.success(`Data ${uiState.editType} berhasil diperbarui!`); setEditItem(null); }} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">Simpan Perubahan</button>
                                     </div>
                                 </div>
                             </div>
@@ -3378,7 +3411,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                     {/* MODAL TAMBAH KELOMPOK */}
                     {
-                        showGroupModal && (
+                        uiState.showGroupModal && (
                             <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center animate-in fade-in backdrop-blur-sm p-4">
                                 <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg p-8">
                                     <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
@@ -3420,7 +3453,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                     {/* MODAL TAMBAH PELAJARAN */}
                     {
-                        showSubjectModal && (
+                        uiState.showSubjectModal && (
                             <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center animate-in fade-in backdrop-blur-sm p-4">
                                 <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg p-8">
                                     <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
@@ -3443,7 +3476,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                 <div className="relative">
                                                     <input
                                                         readOnly
-                                                        value={selectedLevels.length > 0 ? (selectedLevels.includes("Semua Tingkat") ? "Semua Tingkat" : `Tingkat ${selectedLevels.sort().join(', ')}`) : ""}
+                                                        value={uiState.selectedLevels.length > 0 ? (uiState.selectedLevels.includes("Semua Tingkat") ? "Semua Tingkat" : `Tingkat ${uiState.selectedLevels.sort().join(', ')}`) : ""}
                                                         placeholder="Pilih tingkat kelas..."
                                                         className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors mb-2"
                                                     />
@@ -3456,7 +3489,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                                 setSelectedLevels([]);
                                                             } else {
                                                                 // Remove "Semua Tingkat" if specific level is selected
-                                                                let newLevels = selectedLevels.filter(l => l !== "Semua Tingkat");
+                                                                let newLevels = uiState.selectedLevels.filter(l => l !== "Semua Tingkat");
                                                                 if (!newLevels.includes(val)) {
                                                                     newLevels.push(val);
                                                                 }
@@ -3500,21 +3533,21 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                     {/* MODAL TAMBAH JABATAN */}
                     {
-                        showPositionModal && (
+                        uiState.showPositionModal && (
                             <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center animate-in fade-in backdrop-blur-sm p-4">
                                 <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg p-8">
                                     <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-                                        <h3 className="font-bold text-lg text-slate-800">{editItem ? 'Edit' : 'Tambah'} Jabatan</h3>
+                                        <h3 className="font-bold text-lg text-slate-800">{uiState.editItem ? 'Edit' : 'Tambah'} Jabatan</h3>
                                         <button onClick={() => setShowPositionModal(false)}><X size={24} className="text-slate-400 hover:text-red-500" /></button>
                                     </div>
                                     <form onSubmit={confirmAddPosition} className="space-y-4">
                                         <div>
                                             <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Nama Jabatan</label>
-                                            <input name="positionName" required defaultValue={editItem?.nama || ''} className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors" placeholder="Contoh: Kepala Lab Komputer" />
+                                            <input name="positionName" required defaultValue={uiState.editItem?.nama || ''} className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors" placeholder="Contoh: Kepala Lab Komputer" />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Kategori</label>
-                                            <select name="positionCategory" defaultValue={editItem?.kategori || 'Struktural'} className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer">
+                                            <select name="positionCategory" defaultValue={uiState.editItem?.kategori || 'Struktural'} className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer">
                                                 <option value="Struktural">Struktural</option>
                                                 <option value="Fungsional">Fungsional</option>
                                                 <option value="Staff">Staff</option>
@@ -3524,7 +3557,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                         </div>
                                         <div className="flex gap-4 mt-8">
                                             <button type="button" onClick={() => setShowPositionModal(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">Batal</button>
-                                            <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">{editItem ? 'Update' : 'Simpan'}</button>
+                                            <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">{uiState.editItem ? 'Update' : 'Simpan'}</button>
                                         </div>
                                     </form>
                                 </div>
@@ -3534,7 +3567,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                     {/* MODAL TAMBAH WAKTU JADWAL */}
                     {
-                        showTimeModal && (
+                        uiState.showTimeModal && (
                             <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center animate-in fade-in backdrop-blur-sm p-4">
                                 <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8">
                                     <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
@@ -3548,8 +3581,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                 <input
                                                     type="time"
                                                     required
-                                                    value={newPeriodData.start}
-                                                    onChange={(e) => setNewPeriodData({ ...newPeriodData, start: e.target.value })}
+                                                    value={uiState.newPeriodData.start}
+                                                    onChange={(e) => setNewPeriodData({ ...uiState.newPeriodData, start: e.target.value })}
                                                     className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 font-mono"
                                                 />
                                             </div>
@@ -3558,8 +3591,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                 <input
                                                     type="time"
                                                     required
-                                                    value={newPeriodData.end}
-                                                    onChange={(e) => setNewPeriodData({ ...newPeriodData, end: e.target.value })}
+                                                    value={uiState.newPeriodData.end}
+                                                    onChange={(e) => setNewPeriodData({ ...uiState.newPeriodData, end: e.target.value })}
                                                     className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 font-mono"
                                                 />
                                             </div>
@@ -3576,7 +3609,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                     {/* MODAL TAMBAH SEMESTER JADWAL */}
                     {
-                        showSemesterModal && (
+                        uiState.showSemesterModal && (
                             <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center animate-in fade-in backdrop-blur-sm p-4">
                                 <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8">
                                     <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
@@ -3595,7 +3628,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                 type="text"
                                                 required
                                                 placeholder="Contoh: Genap 2025/2026"
-                                                value={newSemesterName}
+                                                value={uiState.newSemesterName}
                                                 onChange={(e) => setNewSemesterName(e.target.value)}
                                                 className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-all"
                                             />
@@ -3618,7 +3651,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                     {/* MODAL TAMBAH GURU */}
                     {
-                        showTeacherModal && (
+                        uiState.showTeacherModal && (
                             <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center animate-in fade-in backdrop-blur-sm p-4">
                                 <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto">
                                     <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
@@ -3630,8 +3663,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                             <div>
                                                 <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Nama Lengkap</label>
                                                 <input
-                                                    value={newTeacher.nama}
-                                                    onChange={(e) => setNewTeacher({ ...newTeacher, nama: e.target.value })}
+                                                    value={uiState.newTeacher.nama}
+                                                    onChange={(e) => setNewTeacher({ ...uiState.newTeacher, nama: e.target.value })}
                                                     required
                                                     className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors"
                                                     placeholder="Nama Lengkap dengan Gelar"
@@ -3640,8 +3673,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                             <div>
                                                 <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">NIP (Opsional)</label>
                                                 <input
-                                                    value={newTeacher.nip}
-                                                    onChange={(e) => setNewTeacher({ ...newTeacher, nip: e.target.value })}
+                                                    value={uiState.newTeacher.nip}
+                                                    onChange={(e) => setNewTeacher({ ...uiState.newTeacher, nip: e.target.value })}
                                                     className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors"
                                                     placeholder="Nomor Induk Pegawai"
                                                 />
@@ -3652,8 +3685,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                             <div>
                                                 <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Jabatan</label>
                                                 <select
-                                                    value={newTeacher.jabatan}
-                                                    onChange={(e) => setNewTeacher({ ...newTeacher, jabatan: e.target.value })}
+                                                    value={uiState.newTeacher.jabatan}
+                                                    onChange={(e) => setNewTeacher({ ...uiState.newTeacher, jabatan: e.target.value })}
                                                     className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer"
                                                 >
                                                     {positions && positions.map(p => (
@@ -3664,10 +3697,10 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                             <div>
                                                 <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Wali Kelas (Opsional)</label>
                                                 <select
-                                                    value={newTeacher.class}
-                                                    onChange={(e) => setNewTeacher({ ...newTeacher, class: e.target.value })}
+                                                    value={uiState.newTeacher.class}
+                                                    onChange={(e) => setNewTeacher({ ...uiState.newTeacher, class: e.target.value })}
                                                     className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer"
-                                                    disabled={newTeacher.jabatan !== 'Guru Kelas' && newTeacher.jabatan !== 'Wali Kelas'}
+                                                    disabled={uiState.newTeacher.jabatan !== 'Guru Kelas' && uiState.newTeacher.jabatan !== 'Wali Kelas'}
                                                 >
                                                     <option value="">- Bukan Wali Kelas -</option>
                                                     {classes && classes.map(c => (
@@ -3740,7 +3773,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                     {/* MODAL PLOTTING GURU MAPEL */}
                     {
-                        showPlottingModal && (
+                        uiState.showPlottingModal && (
                             <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center animate-in fade-in backdrop-blur-sm p-4">
                                 <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg p-8">
                                     <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
@@ -3749,12 +3782,12 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                     </div>
                                     <form onSubmit={(e) => {
                                         e.preventDefault();
-                                        if (plottingTeacherId && plottingClassNama && plottingSubjectIds.length > 0) {
+                                        if (uiState.plottingTeacherId && uiState.plottingClassNama && uiState.plottingSubjectIds.length > 0) {
                                             setTeacherAssignments([...teacherAssignments, {
                                                 id: Date.now(),
-                                                teacherId: plottingTeacherId,
-                                                classNama: plottingClassNama,
-                                                subjectIds: plottingSubjectIds
+                                                teacherId: uiState.plottingTeacherId,
+                                                classNama: uiState.plottingClassNama,
+                                                subjectIds: uiState.plottingSubjectIds
                                             }]);
                                             setShowPlottingModal(false);
                                         } else {
@@ -3767,7 +3800,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                 name="teacherId"
                                                 required
                                                 className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer"
-                                                value={plottingTeacherId}
+                                                value={uiState.plottingTeacherId}
                                                 onChange={(e) => {
                                                     const tid = e.target.value;
                                                     setPlottingTeacherId(tid);
@@ -3784,7 +3817,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                         <div>
                                             <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">NIP</label>
                                             <input
-                                                value={plottingNip}
+                                                value={uiState.plottingNip}
                                                 readOnly
                                                 className="w-full p-3 border border-slate-200 rounded-xl bg-slate-100 text-slate-500 cursor-not-allowed"
                                                 placeholder="Otomatis terisi..."
@@ -3796,7 +3829,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                 name="classNama"
                                                 required
                                                 className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer"
-                                                value={plottingClassNama}
+                                                value={uiState.plottingClassNama}
                                                 onChange={(e) => setPlottingClassNama(e.target.value)}
                                             >
                                                 <option value="">Pilih Kelas</option>
@@ -3813,10 +3846,11 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                 multiple
                                                 required
                                                 className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer h-32"
-                                                value={plottingSubjectIds.map(id => id.toString())}
+                                                value={uiState.plottingSubjectIds.map((id: any) => String(id))}
                                                 onChange={(e) => {
-                                                    const options = Array.from(e.target.selectedOptions);
-                                                    const values = options.map(opt => opt.value);
+                                                    const selectElement = e.target as HTMLSelectElement;
+                                                    const options = Array.from(selectElement.selectedOptions);
+                                                    const values = options.map((opt) => opt.value);
                                                     setPlottingSubjectIds(values);
                                                 }}
                                             >
@@ -3942,9 +3976,9 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     )}
 
                     {/* --- VIEW: AL QURAN --- */}
-                    {activeView === 'quran' && (
+                    {uiState.activeView === 'quran' && (
                         <div className="bg-[#F4F7FE] p-6 h-full overflow-hidden">
-                            <AlQuranSiswa onBack={() => setActiveView('dashboard')} />
+                            <AlQuranSiswa onBack={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'dashboard' })} />
                         </div>
                     )}
 

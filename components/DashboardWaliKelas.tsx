@@ -52,17 +52,17 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
 
     // Menu Items Data
     const menuItems = [
-        { id: 'jadwal', label: 'Jadwal Mengajar', icon: <Calendar size={24} />, color: 'bg-blue-500' },
-        { id: 'kehadiran', label: 'Absensi Siswa', icon: <UserCheck size={24} />, color: 'bg-teal-500' },
-        { id: 'nilai', label: 'Input Nilai', icon: <FolderInput size={24} />, color: 'bg-indigo-500' },
-        { id: 'deskripsi', label: 'Master Deskripsi', icon: <FileText size={24} />, color: 'bg-amber-600' },
-        { id: 'raport', label: 'E-Rapor', icon: <FileSpreadsheet size={24} />, color: 'bg-emerald-600' },
-        { id: 'latihan', label: 'Materi dan Latihan', icon: <BookOpen size={24} />, color: 'bg-rose-500' },
-        { id: 'quran', label: 'Al Quran', icon: <Book size={24} />, color: 'bg-green-600' },
-        { id: 'channel', label: 'Channel sekolah ku', icon: <Tv size={24} />, color: 'bg-red-600' },
-        { id: 'ai', label: 'Belajar dengan ku', icon: <Bot size={24} />, color: 'bg-cyan-500' },
-        { id: 'notepad', label: 'Notepad', icon: <StickyNote size={24} />, color: 'bg-amber-500' },
-        { id: 'informasi', label: 'Informasi', icon: <Megaphone size={24} />, color: 'bg-orange-500' },
+        { id: 'jadwal', label: 'Jadwal Mengajar', icon: <Calendar size={28} />, color: 'bg-gradient-to-br from-blue-500 to-indigo-600' },
+        { id: 'kehadiran', label: 'Absensi Siswa', icon: <UserCheck size={28} />, color: 'bg-gradient-to-br from-teal-400 to-emerald-600' },
+        { id: 'nilai', label: 'Input Nilai', icon: <FolderInput size={28} />, color: 'bg-gradient-to-br from-violet-500 to-purple-700' },
+        { id: 'deskripsi', label: 'Master Deskripsi', icon: <FileText size={28} />, color: 'bg-gradient-to-br from-amber-400 to-orange-600' },
+        { id: 'raport', label: 'E-Rapor', icon: <FileSpreadsheet size={28} />, color: 'bg-gradient-to-br from-emerald-400 to-green-700' },
+        { id: 'latihan', label: 'Materi dan Latihan', icon: <BookOpen size={28} />, color: 'bg-gradient-to-br from-rose-400 to-pink-600' },
+        { id: 'quran', label: 'Al Quran', icon: <Book size={28} />, color: 'bg-gradient-to-br from-green-500 to-emerald-800' },
+        { id: 'channel', label: 'Channel Sekolah', icon: <Tv size={28} />, color: 'bg-gradient-to-br from-red-500 to-rose-700' },
+        { id: 'ai', label: 'Asisten AI', icon: <Bot size={28} />, color: 'bg-gradient-to-br from-cyan-400 to-blue-500' },
+        { id: 'notepad', label: 'Notepad', icon: <StickyNote size={28} />, color: 'bg-gradient-to-br from-yellow-400 to-amber-600' },
+        { id: 'informasi', label: 'Informasi', icon: <Megaphone size={28} />, color: 'bg-gradient-to-br from-orange-400 to-red-500' },
     ];
 
     // Sync Announcements
@@ -82,7 +82,7 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
             <div className="fixed top-20 right-[-20px] w-24 h-24 rounded-full bg-[#BFDBFE] opacity-40 pointer-events-none"></div>
 
             {/* Header Section */}
-            <div className="flex-none bg-[#004AAD] text-white rounded-b-[24px] shadow-md relative z-20 overflow-hidden">
+            <div className={`flex-none bg-[#004AAD] text-white rounded-b-[24px] shadow-md relative z-20 overflow-hidden transition-all duration-500 ease-in-out transform ${activeView === 'home' ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none h-0'}`}>
                 <div className="absolute top-0 right-0 w-24 h-24 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                 <div className="px-5 pt-4 pb-2">
                     <div className="flex justify-between items-center mb-2">
@@ -120,7 +120,7 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 overflow-y-auto relative z-10 p-4 md:p-8 w-full max-w-7xl mx-auto pb-28 sm:pb-28 scrollbar-hide">
+            <div className={`flex-1 relative z-10 w-full max-w-7xl mx-auto scrollbar-hide transition-all duration-500 ${activeView === 'home' ? 'p-4 md:p-8 pb-28 sm:pb-28 overflow-y-auto' : 'p-0 overflow-y-auto pb-10'}`}>
                 {activeView === 'home' ? (
                     <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
                         {/* Left Column: Menu Items */}
@@ -210,9 +210,7 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
                         ) : activeView === 'nilai' ? (
                             <InputNilaiGuru user={user} onBack={() => setActiveView('home')} />
                         ) : activeView === 'deskripsi' ? (
-                            <div className="bg-white rounded-[2.5rem] p-6 h-full shadow-sm animate-in fade-in overflow-hidden">
-                                <RaporSettingsView setActiveView={() => setActiveView('home')} showOnlyDeskripsi={true} />
-                            </div>
+                            <RaporSettingsView setActiveView={() => setActiveView('home')} showOnlyDeskripsi={true} />
                         ) : activeView === 'raport' ? (
                             <RapotSiswa onBack={() => setActiveView('home')} user={user} />
                         ) : activeView === 'latihan' ? (
@@ -226,7 +224,12 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
                         ) : activeView === 'channel' ? (
                             <ChannelSekolahSiswa onBack={() => setActiveView('home')} />
                         ) : activeView === 'ai' ? (
-                            <BelajarAISiswa onBack={() => setActiveView('home')} />
+                            <BelajarAISiswa
+                                onBack={() => setActiveView('home')}
+                                user={user}
+                                title="Asisten AI"
+                                welcomeMessage="Halo Bapak/Ibu Guru! Saya asisten AI Anda. Ada yang bisa saya bantu dalam persiapan mengajar atau administrasi kelas hari ini?"
+                            />
                         ) : activeView === 'notifikasi' ? (
                             <NotifikasiSiswa onBack={() => setActiveView('home')} />
                         ) : activeView === 'profile' ? (
@@ -237,7 +240,7 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
             </div>
 
             {/* Bottom Navigation Bar */}
-            <div className="flex-none bg-white/95 backdrop-blur-lg border-t border-slate-200 px-6 py-3 pb-6 sm:pb-3 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] z-50">
+            <div className={`flex-none bg-white/95 backdrop-blur-lg border-t border-slate-200 px-6 py-3 pb-6 sm:pb-3 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] z-50 transition-all duration-500 transform ${activeView === 'home' ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none h-0 py-0 overflow-hidden'}`}>
                 <div className="flex justify-around items-center max-w-lg mx-auto">
                     <button
                         onClick={() => setActiveView('home')}

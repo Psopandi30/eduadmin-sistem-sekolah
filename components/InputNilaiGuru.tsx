@@ -1,4 +1,5 @@
-import { ChevronLeft, FolderInput, Save, Plus, Minus, Info } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, ChevronLeft, FolderInput, Save, Plus, Minus, Info } from 'lucide-react';
 import { useGrades } from './DashboardSuperAdmin/hooks/useGrades';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 
@@ -105,27 +106,41 @@ const InputNilaiGuru: React.FC<InputNilaiGuruProps> = ({ onBack, user }) => {
     return (
         <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col h-full">
             {/* Header */}
-            <div className="p-4 md:p-6 border-b border-slate-100 flex items-center gap-3 md:gap-4 shrink-0 bg-white sticky top-0 z-20">
-                <button onClick={onBack} className="p-2 md:p-2.5 hover:bg-slate-100 rounded-xl md:rounded-2xl transition-all text-slate-500">
-                    <ChevronLeft size={22} />
+            <div className="px-4 py-3 md:px-6 md:py-4 border-b border-slate-100 flex items-center gap-3 md:gap-4 shrink-0 bg-white sticky top-0 z-30">
+                <button
+                    onClick={onBack}
+                    className="p-2 md:p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl md:rounded-2xl transition-all border border-slate-100 shrink-0"
+                >
+                    <ArrowLeft size={20} className="md:w-[22px]" />
                 </button>
-                <div className="flex-1">
-                    <h2 className="font-bold text-base md:text-xl text-slate-800 flex items-center gap-2">
-                        <div className="p-1.5 md:p-2 bg-indigo-50 rounded-lg md:rounded-xl">
-                            <FolderInput className="text-indigo-600 w-4 h-4 md:w-5 md:h-5" />
-                        </div>
+                <div className="min-w-0">
+                    <h2 className="text-base md:text-2xl font-black text-slate-800 tracking-tight leading-tight truncate">
                         Input Nilai Siswa
                     </h2>
+                    <p className="text-slate-400 text-[10px] md:text-sm font-medium">Manajemen penilaian akademik siswa.</p>
                 </div>
             </div>
 
             {/* Content Area */}
             <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50/20">
 
+                {/* Info Card - Consistent Style */}
+                <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-blue-800 p-5 md:p-6 rounded-3xl text-white shadow-xl shadow-indigo-100 flex items-center gap-4 border border-white/10 mb-6">
+                    <div className="p-3 bg-white/15 backdrop-blur-xl rounded-2xl shrink-0 hidden sm:block">
+                        <FolderInput size={24} className="text-indigo-100" />
+                    </div>
+                    <div>
+                        <h3 className="font-black text-sm md:text-lg uppercase tracking-wide">Panel Penginputan Nilai</h3>
+                        <p className="text-[10px] md:text-xs text-indigo-100/90 leading-relaxed mt-0.5 italic">
+                            Nilai akan menghitung rata-rata secara otomatis saat raport dicetak. Klik simpan untuk mempermanenkan data.
+                        </p>
+                    </div>
+                </div>
+
                 {/* Filter Controls - Modern Card */}
-                <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm mb-6 flex flex-col lg:flex-row gap-4">
+                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm mb-6 flex flex-col lg:flex-row gap-4">
                     <div className="flex-1 min-w-[120px]">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1 block">Kelas</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1 block">Kelas</label>
                         {isWaliKelas ? (
                             <div className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700">
                                 {selectedClass}
@@ -134,7 +149,7 @@ const InputNilaiGuru: React.FC<InputNilaiGuruProps> = ({ onBack, user }) => {
                             <select
                                 value={selectedClass}
                                 onChange={(e) => setSelectedClass(e.target.value)}
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer appearance-none"
+                                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer appearance-none shadow-sm"
                             >
                                 {localStorage.getItem('classes_data_v2')
                                     ? JSON.parse(localStorage.getItem('classes_data_v2')!).map((c: any) => (
@@ -145,11 +160,11 @@ const InputNilaiGuru: React.FC<InputNilaiGuruProps> = ({ onBack, user }) => {
                         )}
                     </div>
                     <div className="flex-1 min-w-[180px]">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1 block">Mata Pelajaran</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1 block">Mata Pelajaran</label>
                         <select
                             value={selectedMapel}
                             onChange={(e) => setSelectedMapel(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer appearance-none"
+                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer appearance-none shadow-sm"
                         >
                             {localStorage.getItem('subjects_data_v2')
                                 ? JSON.parse(localStorage.getItem('subjects_data_v2')!).map((s: any) => (
@@ -159,11 +174,11 @@ const InputNilaiGuru: React.FC<InputNilaiGuruProps> = ({ onBack, user }) => {
                         </select>
                     </div>
                     <div className="flex-1 min-w-[120px]">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1 block">Semester</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1 block">Semester</label>
                         <select
                             value={selectedSemester}
                             onChange={(e) => setSelectedSemester(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-sm font-bold text-indigo-700 outline-none cursor-pointer appearance-none"
+                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-indigo-700 outline-none cursor-pointer appearance-none shadow-sm"
                         >
                             <option>1 (Ganjil)</option>
                             <option>2 (Genap)</option>
@@ -171,10 +186,10 @@ const InputNilaiGuru: React.FC<InputNilaiGuruProps> = ({ onBack, user }) => {
                     </div>
                     <div className="flex-[1.5] min-w-[240px]">
                         <div className="flex justify-between items-center mb-1.5 px-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Jenis Penilaian</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Jenis Penilaian</label>
                             <div className="flex gap-1.5">
-                                <button onClick={updateTpCount} className="p-1 hover:bg-slate-100 rounded text-slate-500 transition-colors" title="Tambah Ulangan"><Plus size={14} /></button>
-                                <button onClick={removeTpCount} className="p-1 hover:bg-rose-50 rounded text-rose-400 transition-colors" title="Hapus Terakhir"><Minus size={14} /></button>
+                                <button onClick={updateTpCount} className="p-1.5 hover:bg-indigo-50 rounded-lg text-indigo-500 transition-colors border border-indigo-100" title="Tambah Ulangan"><Plus size={14} /></button>
+                                <button onClick={removeTpCount} className="p-1.5 hover:bg-rose-50 rounded-lg text-rose-400 transition-colors border border-rose-100" title="Hapus Terakhir"><Minus size={14} /></button>
                             </div>
                         </div>
                         <select
@@ -191,12 +206,6 @@ const InputNilaiGuru: React.FC<InputNilaiGuruProps> = ({ onBack, user }) => {
                             <option value="pat">🎓 PAT (Akhir Tahun)</option>
                         </select>
                     </div>
-                </div>
-
-                {/* Info Note */}
-                <div className="mb-4 flex items-start gap-2 text-[11px] text-slate-400 bg-slate-100 px-4 py-2 rounded-xl border border-slate-200 italic">
-                    <Info size={14} className="mt-0.5 shrink-0" />
-                    <span>Nilai yang baru diinput akan menghitung rata-rata secara otomatis saat raport dicetak. Klik Simpan Nilai untuk mempermanenkan data.</span>
                 </div>
 
                 {/* Grades Table - Mobile Friendly List */}

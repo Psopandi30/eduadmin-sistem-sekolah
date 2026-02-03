@@ -89,6 +89,7 @@ const UploadPerKelasView: React.FC<UploadPerKelasViewProps> = ({
                             <th rowSpan={2} className="p-4 border-r border-slate-200">Nomor Induk Siswa</th>
                             <th rowSpan={2} className="p-4 border-r border-slate-200">Nama Lengkap Siswa</th>
                             <th rowSpan={2} className="p-4 border-r border-slate-200">Tempat & Tanggal Lahir</th>
+                            <th rowSpan={2} className="p-4 border-r border-slate-200">Jenis Kelamin</th>
                             <th rowSpan={2} className="p-4 border-r border-slate-200">Nama Kelas</th>
                             <th rowSpan={2} className="p-4 border-r border-slate-200">Tingkat</th>
                             <th rowSpan={2} className="p-4 border-r border-slate-200 text-center">Paralel</th>
@@ -110,6 +111,7 @@ const UploadPerKelasView: React.FC<UploadPerKelasViewProps> = ({
                                 <td className="p-4 font-mono text-slate-600">{siswa.nis}</td>
                                 <td className="p-4 font-bold text-slate-800">{siswa.nama}</td>
                                 <td className="p-4 text-slate-600">{siswa.ttl}</td>
+                                <td className="p-4 text-slate-600 text-center font-bold">{siswa.gender || '-'}</td>
                                 <td className="p-4"><span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">{siswa.kelas}</span></td>
                                 <td className="p-4 text-slate-600">Kelas {siswa.tingkat}</td>
                                 <td className="p-4 text-center font-bold text-[#1E1B4B]">{siswa.paralel}</td>

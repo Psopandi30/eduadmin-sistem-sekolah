@@ -58,7 +58,7 @@ const DashboardGuruMapel: React.FC<DashboardGuruMapelProps> = ({ user, onLogout,
         { id: 'latihan', label: 'Materi dan Latihan', icon: <BookOpen size={24} />, color: 'bg-rose-500' },
         { id: 'quran', label: 'Al Quran', icon: <Book size={24} />, color: 'bg-green-600' },
         { id: 'channel', label: 'Channel sekolah ku', icon: <Tv size={24} />, color: 'bg-red-600' },
-        { id: 'ai', label: 'Belajar dengan ku', icon: <Bot size={24} />, color: 'bg-cyan-500' },
+        { id: 'ai', label: 'Asisten AI', icon: <Bot size={24} />, color: 'bg-cyan-500' },
         { id: 'notepad', label: 'Notepad', icon: <StickyNote size={24} />, color: 'bg-amber-500' },
     ];
 
@@ -79,7 +79,7 @@ const DashboardGuruMapel: React.FC<DashboardGuruMapelProps> = ({ user, onLogout,
             <div className="fixed top-20 right-[-20px] w-24 h-24 rounded-full bg-[#BFDBFE] opacity-40 pointer-events-none"></div>
 
             {/* Header Section */}
-            <div className="flex-none bg-[#004AAD] text-white rounded-b-[24px] shadow-md relative z-20 overflow-hidden">
+            <div className={`flex-none bg-[#004AAD] text-white rounded-b-[24px] shadow-md relative z-20 overflow-hidden transition-all duration-500 ease-in-out transform ${activeView === 'home' ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none h-0'}`}>
                 <div className="absolute top-0 right-0 w-24 h-24 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                 <div className="px-5 pt-4 pb-2">
                     <div className="flex justify-between items-center mb-2">
@@ -117,7 +117,7 @@ const DashboardGuruMapel: React.FC<DashboardGuruMapelProps> = ({ user, onLogout,
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 overflow-y-auto relative z-10 p-4 md:p-8 w-full max-w-7xl mx-auto pb-28 sm:pb-28 scrollbar-hide">
+            <div className={`flex-1 relative z-10 w-full max-w-7xl mx-auto scrollbar-hide transition-all duration-500 ${activeView === 'home' ? 'p-4 md:p-8 pb-28 sm:pb-28 overflow-y-auto' : 'p-0 overflow-y-auto pb-10'}`}>
                 {activeView === 'home' ? (
                     <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
                         {/* Left Column: Menu Items */}
@@ -220,7 +220,12 @@ const DashboardGuruMapel: React.FC<DashboardGuruMapelProps> = ({ user, onLogout,
                         ) : activeView === 'channel' ? (
                             <ChannelSekolahSiswa onBack={() => setActiveView('home')} />
                         ) : activeView === 'ai' ? (
-                            <BelajarAISiswa onBack={() => setActiveView('home')} />
+                            <BelajarAISiswa
+                                onBack={() => setActiveView('home')}
+                                user={user}
+                                title="Asisten AI"
+                                welcomeMessage="Halo Bapak/Ibu Guru! Saya asisten AI Anda. Ada yang bisa saya bantu dalam materi mata pelajaran atau persiapan kuis hari ini?"
+                            />
                         ) : activeView === 'notifikasi' ? (
                             <NotifikasiSiswa onBack={() => setActiveView('home')} />
                         ) : activeView === 'profile' ? (
@@ -231,7 +236,7 @@ const DashboardGuruMapel: React.FC<DashboardGuruMapelProps> = ({ user, onLogout,
             </div>
 
             {/* Bottom Navigation Bar */}
-            <div className="flex-none bg-white/95 backdrop-blur-lg border-t border-slate-200 px-6 py-3 pb-6 sm:pb-3 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] z-50">
+            <div className={`flex-none bg-white/95 backdrop-blur-lg border-t border-slate-200 px-6 py-3 pb-6 sm:pb-3 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] z-50 transition-all duration-500 transform ${activeView === 'home' ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none h-0 py-0 overflow-hidden'}`}>
                 <div className="flex justify-around items-center max-w-lg mx-auto">
                     <button
                         onClick={() => setActiveView('home')}

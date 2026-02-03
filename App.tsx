@@ -31,10 +31,7 @@ import DashboardSuperAdmin from './components/DashboardSuperAdmin';
 import DashboardKepalaSekolah from './components/DashboardKepalaSekolah';
 
 import { schoolSettingsGlobal, updateAnnouncementsGlobal } from './data/sharedData';
-import { useStudents } from './components/DashboardSuperAdmin/hooks/useStudents';
-import { useTeachers } from './components/DashboardSuperAdmin/hooks/useTeachers';
-import { useClasses } from './components/DashboardSuperAdmin/hooks/useClasses';
-import { useSubjects } from './components/DashboardSuperAdmin/hooks/useSubjects';
+import { DataProvider, useDataContext } from './components/DashboardSuperAdmin/contexts/DataContext';
 import { supabase, isSupabaseConfigured } from './src/lib/supabase';
 
 const App: React.FC = () => {
@@ -176,19 +173,21 @@ const App: React.FC = () => {
     );
   }
 
-  // If Logged in, render the Data-Heavy authenticated view
+  // If Logged in, wrap with DataProvider and render the Data-Heavy authenticated view
   return (
-    <AuthenticatedApp
-      currentUser={currentUser}
-      userRole={userRole}
-      handleLogout={handleLogout}
-      activeTab={activeTab}
-      setActiveTab={setActiveTab}
-      isSidebarOpen={isSidebarOpen}
-      toggleSidebar={toggleSidebar}
-      schoolSettings={schoolSettings}
-      setSchoolSettings={setSchoolSettings}
-    />
+    <DataProvider>
+      <AuthenticatedApp
+        currentUser={currentUser}
+        userRole={userRole}
+        handleLogout={handleLogout}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isSidebarOpen={isSidebarOpen}
+        toggleSidebar={toggleSidebar}
+        schoolSettings={schoolSettings}
+        setSchoolSettings={setSchoolSettings}
+      />
+    </DataProvider>
   );
 };
 
@@ -197,11 +196,16 @@ const AuthenticatedApp: React.FC<any> = ({
   currentUser, userRole, handleLogout, activeTab, setActiveTab,
   isSidebarOpen, toggleSidebar, schoolSettings, setSchoolSettings
 }) => {
-  // 1. Initialize Heavy Data Hooks (ONLY RUN WHEN LOGGED IN)
-  const { students } = useStudents();
-  const { teachers, setTeachers } = useTeachers();
-  const { classes, setClasses } = useClasses();
-  const { subjects, setSubjects } = useSubjects();
+  // 1. Use DataContext for centralized data management
+  const { 
+    kelasData, 
+    stafList, 
+    mapelData, 
+    studentsDataByClass,
+    setClasses,
+    setTeachers,
+    setSubjects
+  } = useDataContext();
 
   // 2. Local State for Attendance & Grades (Sync to LocalStorage)
   const [attendanceData, setAttendanceData] = useState<Record<string, Record<string, 'H' | 'S' | 'I' | 'A'>>>(() => {
@@ -215,44 +219,6 @@ const AuthenticatedApp: React.FC<any> = ({
 
   const [gradesData, setGradesData] = useState<Record<string, Record<string, Record<string, string>>>>({});
   const [customColumnsData, setCustomColumnsData] = useState<Record<string, string[]>>({});
-
-  // 3. Derived / Mapped Data (Memoized for Performance)
-  const kelasData = useMemo(() => classes.map((c: any) => ({
-    id: c.id,
-    kode: `KLS-${c.nama}`,
-    nama: isNaN(parseInt(c.nama[0])) ? c.nama : `Kelas ${c.nama}`,
-    tingkat: c.tingkat.toString(),
-    paralel: c.paralel,
-    wali: teachers.find((t: any) => t.wali === c.nama)?.nama || 'Belum Ditentukan',
-    waliNip: teachers.find((t: any) => t.wali === c.nama)?.nip || '-'
-  })), [classes, teachers]);
-
-  const stafList = useMemo(() => teachers.map((t: any, idx: number) => ({
-    no: idx + 1,
-    noPegawai: t.nip,
-    nama: t.nama,
-    jabatan: t.jabatan,
-    username: t.username,
-    password: t.password
-  })), [teachers]);
-
-  const mapelData = useMemo(() => subjects.map((s: any, idx: number) => ({
-    no: idx + 1,
-    nama: s.name,
-    kode: s.code,
-    kelas: s.level ? s.level.replace('Kelas ', '') : '-',
-    kelompok: s.group
-  })), [subjects]);
-
-  const studentsDataByClass = useMemo(() => {
-    const data: Record<string, any[]> = {};
-    students.forEach((s: any) => {
-      const className = s.kelas || 'Tanpa Kelas';
-      if (!data[className]) data[className] = [];
-      data[className].push({ no: data[className].length + 1, nis: s.nis, nama: s.nama, gender: s.gender || 'L' });
-    });
-    return data;
-  }, [students]);
 
   // 4. Role-Based Dashboard Redirection (Pre-Sidebar Views)
   if (userRole === 'ot') return <DashboardOrangTua user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;

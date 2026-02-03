@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Calendar, BookOpen, AlertCircle } from 'lucide-react';
 import { schedulesDataGlobal, subjectsDataGlobal, schedulePeriodsGlobal } from '../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 
@@ -45,9 +45,10 @@ const JadwalPelajaran: React.FC<JadwalPelajaranProps> = ({ onBack, user }) => {
                 if (data && data.value) {
                     const parsedSchedules = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
                     if (Array.isArray(parsedSchedules)) {
-                        const published = parsedSchedules.find((s: any) => s.status === 'published');
-                        if (published) {
-                            setMasterSchedule(published);
+                        // Priority: Published -> First Entry -> Fallback
+                        const active = parsedSchedules.find((s: any) => s.status === 'published') || parsedSchedules[0];
+                        if (active) {
+                            setMasterSchedule(active);
                             localStorage.setItem('schedules_data_v2', JSON.stringify(parsedSchedules));
                         }
                     }
@@ -86,30 +87,37 @@ const JadwalPelajaran: React.FC<JadwalPelajaranProps> = ({ onBack, user }) => {
     };
 
     return (
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300">
+        <div className="bg-white/90 backdrop-blur-xl rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl shadow-blue-900/10 border border-white overflow-hidden animate-in slide-in-from-right duration-500 h-full flex flex-col">
             {/* Header / Title inside the card */}
-            <div className="p-6 border-b border-slate-100 flex items-center gap-3">
-                <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors lg:hidden">
-                    <ChevronRight className="rotate-180" size={24} />
+            <div className="p-5 sm:p-8 border-b border-slate-100 flex items-center gap-3 sm:gap-4 bg-gradient-to-r from-blue-50/50 to-indigo-50/30">
+                <button
+                    onClick={onBack}
+                    className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white shadow-md rounded-xl sm:rounded-2xl text-slate-400 hover:text-blue-600 hover:scale-110 transition-all active:scale-95"
+                >
+                    <ChevronRight className="rotate-180" size={20} sm:size={24} strokeWidth={3} />
                 </button>
                 <div className="flex-1">
-                    <h3 className="font-bold text-slate-800 text-lg">Jadwal Pelajaran</h3>
-                    <p className="text-xs text-slate-500">
-                        Kelas {studentClass} • {masterSchedule?.name || 'Jadwal'}
-                    </p>
+                    <h3 className="font-black text-slate-800 text-base sm:text-xl tracking-tight">Jadwal Pelajaran</h3>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-[#004AAD] bg-blue-100 px-1.5 py-0.5 rounded-lg">
+                            Kelas {studentClass}
+                        </span>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-[8px] sm:text-xs font-bold text-slate-400">{masterSchedule?.name || 'Jadwal'}</span>
+                    </div>
                 </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-8 flex-1 overflow-y-auto scrollbar-hide">
                 {/* Day Tabs */}
-                <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide mb-4">
+                <div className="flex gap-1.5 sm:gap-3 overflow-x-auto pb-3 scrollbar-hide mb-4 sm:mb-6 -mx-1 px-1">
                     {days.map((day) => (
                         <button
                             key={day}
                             onClick={() => setSelectedDay(day)}
-                            className={`px-6 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${selectedDay === day
-                                ? 'bg-[#004AAD] text-white border-[#004AAD] shadow-md shadow-blue-500/20'
-                                : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'
+                            className={`px-4 sm:px-8 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-[10px] sm:text-sm font-black whitespace-nowrap transition-all duration-300 border-2 ${selectedDay === day
+                                ? 'bg-[#004AAD] text-white border-[#004AAD] shadow-lg shadow-blue-500/30 scale-105'
+                                : 'bg-white text-slate-400 border-slate-100 hover:border-blue-200 hover:text-blue-600 hover:bg-blue-50/30'
                                 }`}
                         >
                             {day}
@@ -117,51 +125,84 @@ const JadwalPelajaran: React.FC<JadwalPelajaranProps> = ({ onBack, user }) => {
                     ))}
                 </div>
 
-                {/* Uniform Info */}
-                <div className="mb-6">
-                    <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
-                        <span className="text-sm font-bold text-slate-700 w-20 flex-shrink-0">Seragam</span>
-                        <div className="h-6 w-[1px] bg-slate-300"></div>
-                        <span className="text-xs sm:text-sm text-slate-600 font-medium truncate">
-                            {dailyInfo?.seragam || 'Sesuaikan dengan tata tertib sekolah'}
-                        </span>
+
+                {/* Schedule Table View */}
+                <div className="mb-8">
+                    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-blue-900/5 overflow-hidden">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50 border-b border-slate-100">
+                                    <th className="px-4 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest w-16">JP</th>
+                                    <th className="px-4 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Waktu</th>
+                                    <th className="px-4 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Mata Pelajaran</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {/* SERAGAM ROW - Consistent with Admin Structure */}
+                                <tr className="bg-blue-50/50 border-b border-slate-100">
+                                    <td className="px-4 py-3 text-center">
+                                        <div className="text-[10px] font-black text-[#004AAD] uppercase">INFO</div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">SERAGAM</div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <div className="font-extrabold text-[#004AAD] text-[10px] sm:text-sm uppercase tracking-tight">
+                                            {dailyInfo?.seragam || '-'}
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                {items.length > 0 ? (
+                                    items.map((item, index) => (
+                                        <tr key={item.id} className="border-b border-slate-50 last:border-0 hover:bg-blue-50/30 transition-colors group">
+                                            <td className="px-4 py-4">
+                                                <div className="w-8 h-8 flex items-center justify-center bg-blue-100 text-[#004AAD] font-black rounded-lg text-xs mx-auto">
+                                                    {index + 1}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <div className="flex items-center gap-1.5 font-bold text-slate-400 text-[10px] sm:text-xs">
+                                                    {getTimeLabel(item.period)}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <div className="font-black text-slate-700 text-xs sm:text-base group-hover:text-[#004AAD] transition-colors uppercase tracking-tight">
+                                                    {getSubjectName(item.subjectId, item.customName)}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={3} className="px-4 py-16 text-center">
+                                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
+                                                <Calendar size={32} />
+                                            </div>
+                                            <p className="text-slate-400 font-extrabold text-[10px] uppercase tracking-widest italic">Libur / Tidak ada jadwal</p>
+                                        </td>
+                                    </tr>
+                                )}
+
+                                {/* CATATAN ROW - Consistent with Admin Structure */}
+                                <tr className="bg-orange-50/30 border-t border-slate-100">
+                                    <td className="px-4 py-3 text-center">
+                                        <div className="text-[10px] font-black text-orange-600 uppercase">INFO</div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">CATATAN</div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <div className="font-bold text-slate-600 text-[10px] sm:text-xs italic leading-relaxed">
+                                            {dailyInfo?.catatan || '-'}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
-                {/* Schedule List */}
-                <div className="space-y-3 mb-8">
-                    {items.length > 0 ? (
-                        items.map((item, index) => (
-                            <div key={item.id} className="flex items-center bg-white border border-slate-200 rounded-xl p-3 hover:border-blue-300 transition-colors shadow-sm">
-                                <div className="w-8 h-8 flex items-center justify-center bg-slate-100 text-slate-600 font-bold rounded-lg text-sm mr-4 flex-shrink-0">
-                                    {index + 1}
-                                </div>
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:gap-6 flex-1">
-                                    <div className="text-[10px] sm:text-xs font-mono text-slate-400 bg-slate-50 px-2 py-1 rounded w-fit mb-1 sm:mb-0">
-                                        {getTimeLabel(item.period)}
-                                    </div>
-                                    <div className="font-bold text-slate-800 text-sm">
-                                        {getSubjectName(item.subjectId, item.customName)}
-                                    </div>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                            <p className="text-slate-400 text-sm italic">Belum ada jadwal untuk hari ini.</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Notes */}
-                <div>
-                    <h4 className="font-bold text-slate-800 text-sm mb-2">Catatan</h4>
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 min-h-[100px]">
-                        <p className="text-sm text-slate-600">
-                            {dailyInfo?.catatan || 'Tidak ada catatan khusus.'}
-                        </p>
-                    </div>
-                </div>
             </div>
         </div>
     );

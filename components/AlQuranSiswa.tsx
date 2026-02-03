@@ -83,8 +83,8 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
                 fetch: async () => {
                     const response = await fetch(
                         `https://api.alquran.cloud/v1/surah/${surah.number}/editions/quran-uthmani,id.indonesian,ar.alafasy`,
-                        { 
-                            mode: 'cors', 
+                        {
+                            mode: 'cors',
                             credentials: 'omit',
                             headers: {
                                 'Accept': 'application/json',
@@ -93,7 +93,7 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
                     );
                     if (!response.ok) throw new Error('API Error');
                     const data = await response.json();
-                    
+
                     if (data.code === 200 && data.data.length === 3) {
                         const arabicData = data.data[0].ayahs;
                         const transData = data.data[1].ayahs;
@@ -124,8 +124,8 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
                 fetch: async () => {
                     const response = await fetch(
                         `https://equran.id/api/v2/surat/${surah.number}`,
-                        { 
-                            mode: 'cors', 
+                        {
+                            mode: 'cors',
                             credentials: 'omit',
                             headers: {
                                 'Accept': 'application/json',
@@ -162,8 +162,8 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
                     // Fetch Arabic text
                     const arabicRes = await fetch(
                         `https://api.quran.com/api/v4/quran/verses/uthmani?chapter_number=${surah.number}`,
-                        { 
-                            mode: 'cors', 
+                        {
+                            mode: 'cors',
                             credentials: 'omit',
                             headers: {
                                 'Accept': 'application/json',
@@ -173,8 +173,8 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
                     // Fetch Indonesian translation (ID: 134)
                     const transRes = await fetch(
                         `https://api.quran.com/api/v4/quran/translations/134?chapter_number=${surah.number}`,
-                        { 
-                            mode: 'cors', 
+                        {
+                            mode: 'cors',
                             credentials: 'omit',
                             headers: {
                                 'Accept': 'application/json',
@@ -183,7 +183,7 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
                     );
 
                     if (!arabicRes.ok || !transRes.ok) throw new Error('API Error');
-                    
+
                     const arabicData = await arabicRes.json();
                     const transData = await transRes.json();
 
@@ -215,7 +215,7 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
             try {
                 console.log(`🔄 Trying ${api.name}...`);
                 const ayahsData = await api.fetch();
-                
+
                 // Success! Cache the data for offline use
                 try {
                     localStorage.setItem(`quran_surah_${surah.number}`, JSON.stringify({
@@ -276,13 +276,21 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
         return (
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col h-full">
                 {/* Header Detail */}
-                <div className="p-6 border-b border-slate-100 flex items-center gap-3 shrink-0 bg-[#004AAD] text-white">
-                    <button onClick={() => setSelectedSurah(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors">
-                        <ArrowLeft size={24} />
+                <div className="px-4 py-3 md:px-6 md:py-4 border-b border-white/10 flex items-center gap-3 md:gap-4 shrink-0 bg-[#004AAD] text-white sticky top-0 z-30 shadow-lg shadow-blue-900/10">
+                    <button
+                        onClick={() => setSelectedSurah(null)}
+                        className="p-2 md:p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl md:rounded-2xl transition-all border border-white/10 shrink-0"
+                    >
+                        <ArrowLeft size={20} className="md:w-[22px]" />
                     </button>
-                    <div className="flex-1 text-center pr-10">
-                        <h3 className="font-bold text-xl font-serif">{selectedSurah.name}</h3>
-                        <p className="text-xs opacity-80">{selectedSurah.englishName} • {selectedSurah.numberOfAyahs} Ayat</p>
+                    <div className="min-w-0 flex-1">
+                        <h2 className="text-base md:text-xl font-black tracking-tight leading-tight truncate">
+                            Surat {selectedSurah.englishName}
+                        </h2>
+                        <p className="text-blue-100/70 text-[10px] md:text-xs font-medium">{selectedSurah.numberOfAyahs} Ayat • {selectedSurah.revelationType}</p>
+                    </div>
+                    <div className="font-serif text-xl md:text-2xl font-black text-blue-50/90 pr-2">
+                        {selectedSurah.name}
                     </div>
                 </div>
 
@@ -358,31 +366,50 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
     return (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col h-full">
             {/* Header */}
-            <div className="p-6 border-b border-slate-100 flex items-center gap-3 shrink-0">
-                <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                    <ChevronRight className="rotate-180" size={24} />
+            <div className="px-4 py-3 md:px-6 md:py-4 border-b border-slate-100 flex items-center gap-3 md:gap-4 shrink-0 bg-white sticky top-0 z-30">
+                <button
+                    onClick={onBack}
+                    className="p-2 md:p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl md:rounded-2xl transition-all border border-slate-100 shrink-0"
+                >
+                    <ArrowLeft size={20} className="md:w-[22px]" />
                 </button>
-                <div className="flex-1">
-                    <h3 className="font-bold text-slate-800 text-lg">Al-Qur'an Digital</h3>
+                <div className="min-w-0">
+                    <h2 className="text-base md:text-2xl font-black text-slate-800 tracking-tight leading-tight truncate">
+                        Al-Qur'an Digital
+                    </h2>
+                    <p className="text-slate-400 text-[10px] md:text-sm font-medium">Mushaf digital dengan audio murattal.</p>
                 </div>
             </div>
 
-            {/* Search Bar */}
-            <div className="px-6 pt-6 pb-2">
-                <div className="relative">
-                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50/20">
+
+                {/* Info Card - Consistent Style */}
+                <div className="bg-gradient-to-br from-green-600 via-green-700 to-emerald-800 p-5 md:p-6 rounded-3xl text-white shadow-xl shadow-green-100 flex items-center gap-4 border border-white/10 mb-6 font-sans">
+                    <div className="p-3 bg-white/15 backdrop-blur-xl rounded-2xl shrink-0 hidden sm:block">
+                        <BookOpen size={24} className="text-green-100" />
+                    </div>
+                    <div>
+                        <h3 className="font-black text-sm md:text-lg uppercase tracking-wide">Mushaf Al-Qur'an</h3>
+                        <p className="text-[10px] md:text-xs text-green-100/90 leading-relaxed mt-0.5 italic">
+                            Bacalah Al-Qur'an setiap hari untuk keberkahan dalam mengajar dan mendidik.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative mb-6">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
                         type="text"
-                        placeholder="Cari Surat (e.g., Al-Fatihah)..."
-                        className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#004AAD] focus:border-transparent transition-all"
+                        placeholder="Cari Surat (Al-Fatihah)..."
+                        className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-green-500/5 focus:border-green-500 transition-all text-sm font-bold shadow-sm"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-            </div>
 
-            <div className="flex-1 overflow-y-auto p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredSurahs.map((surah) => (
                         <button
                             key={surah.number}

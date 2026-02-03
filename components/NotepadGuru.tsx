@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, StickyNote, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, StickyNote, Plus, Trash2, ChevronLeft } from 'lucide-react';
 
 interface NotepadGuruProps {
     onBack: () => void;
@@ -43,23 +43,43 @@ const NotepadGuru: React.FC<NotepadGuruProps> = ({ onBack }) => {
     return (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col h-full">
             {/* Header */}
-            <div className="p-4 border-b border-slate-100 flex items-center gap-3 shrink-0 bg-white sticky top-0 z-10">
-                <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
-                    <ChevronLeft size={24} />
+            <div className="px-4 py-3 md:px-6 md:py-4 border-b border-slate-100 flex items-center gap-3 md:gap-4 shrink-0 bg-white sticky top-0 z-30">
+                <button
+                    onClick={onBack}
+                    className="p-2 md:p-2.5 bg-white border border-slate-100 text-slate-500 rounded-xl md:rounded-2xl transition-all hover:bg-slate-50 shrink-0 shadow-sm"
+                >
+                    <ArrowLeft size={20} className="md:w-[22px]" />
                 </button>
-                <div className="flex-1">
-                    <h2 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                        <StickyNote className="text-amber-500" size={20} />
+                <div className="min-w-0 flex-1">
+                    <h2 className="text-base md:text-2xl font-black text-slate-800 tracking-tight leading-tight truncate">
                         Notepad Guru
                     </h2>
+                    <p className="text-slate-400 text-[10px] md:text-sm font-medium">Catatan pribadi tugas & administrasi.</p>
                 </div>
-                <button onClick={addNote} className="p-2 bg-amber-500 text-white rounded-full hover:bg-amber-600 transition-colors shadow-lg shadow-amber-200">
+                <button
+                    onClick={addNote}
+                    className="p-2.5 md:p-3 bg-amber-500 text-white rounded-xl md:rounded-2xl hover:bg-amber-600 transition-all shadow-lg shadow-amber-200 active:scale-95"
+                    title="Tambah Catatan"
+                >
                     <Plus size={20} />
                 </button>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50/50">
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50/20">
+
+                {/* Info Card - Consistent Style */}
+                <div className="bg-gradient-to-br from-amber-500 via-orange-600 to-amber-700 p-5 md:p-6 rounded-3xl text-white shadow-xl shadow-amber-100 flex items-center gap-4 border border-white/10 mb-6 font-sans">
+                    <div className="p-3 bg-white/15 backdrop-blur-xl rounded-2xl shrink-0 hidden sm:block">
+                        <StickyNote size={24} className="text-amber-100" />
+                    </div>
+                    <div>
+                        <h3 className="font-black text-sm md:text-lg uppercase tracking-wide">Papan Catatan Guru</h3>
+                        <p className="text-[10px] md:text-xs text-amber-100/90 leading-relaxed mt-0.5 italic">
+                            Tuliskan ide, rencana, atau tugas administratif yang perlu Anda selesaikan di sini agar tidak lupa.
+                        </p>
+                    </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {notes.map((note) => (
                         <div key={note.id} className={`${note.color} p-5 rounded-2xl shadow-sm relative group hover:-translate-y-1 transition-transform duration-300`}>

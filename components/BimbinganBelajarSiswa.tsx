@@ -15,9 +15,12 @@ const BimbinganBelajarSiswa: React.FC<BimbinganBelajarSiswaProps> = ({ onBack, u
     const [selectedSession, setSelectedSession] = useState<any>(null);
     const [showCBT, setShowCBT] = useState(false);
 
-    // Filter classes if user info exists (Simulasi: Siswa hanya lihat kelas mereka)
-    // Untuk demo, kita tampilkan semua kelas yang 'Aktif'
-    const classes = tutoringClasses;
+    // Filter classes basically: Show classes where target class matches student class
+    const studentClass = user?.studentClass || '1A';
+    const classes = tutoringClasses.filter(cls =>
+        cls.title.toLowerCase().includes(studentClass.toLowerCase()) ||
+        cls.description.toLowerCase().includes(studentClass.toLowerCase())
+    );
 
     const handleClassClick = (cls: any) => {
         setSelectedClass(cls);
@@ -34,116 +37,141 @@ const BimbinganBelajarSiswa: React.FC<BimbinganBelajarSiswaProps> = ({ onBack, u
     }
 
     return (
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col h-full">
+        <div className="bg-white/90 backdrop-blur-xl rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl shadow-blue-900/10 border border-white overflow-hidden animate-in slide-in-from-right duration-500 flex flex-col h-full">
             {/* Header */}
-            <div className="p-4 border-b border-slate-100 flex items-center gap-3 shrink-0 bg-white sticky top-0 z-10">
+            <div className="p-5 sm:p-8 border-b border-slate-100 flex items-center gap-3 sm:gap-4 bg-gradient-to-r from-blue-50/50 to-indigo-50/30">
                 <button
                     onClick={() => {
                         if (view === 'session') setView('detail');
                         else if (view === 'detail') setView('list');
                         else onBack();
                     }}
-                    className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"
+                    className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white shadow-md rounded-xl sm:rounded-2xl text-slate-400 hover:text-blue-600 hover:scale-110 transition-all active:scale-95"
                 >
-                    <ChevronLeft size={24} />
+                    <ChevronLeft size={20} sm:size={24} strokeWidth={3} />
                 </button>
-                <h2 className="font-bold text-lg text-slate-800">
-                    {view === 'list' ? 'Bimbingan Belajar' : selectedClass?.title}
-                </h2>
+                <div className="flex-1">
+                    <h2 className="font-black text-slate-800 text-base sm:text-xl tracking-tight leading-tight">
+                        {view === 'list' ? 'Bimbingan Belajar' : selectedClass?.title}
+                    </h2>
+                    {view === 'list' && (
+                        <p className="text-[8px] sm:text-xs font-bold text-blue-600/60 uppercase tracking-widest mt-0.5 shadow-sm">
+                            PROGRAM KHUSUS KELAS {studentClass}
+                        </p>
+                    )}
+                </div>
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50/50">
-
+            <div className="flex-1 overflow-y-auto p-4 sm:p-10 scrollbar-hide">
                 {view === 'list' && (
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-2 text-slate-800 font-bold text-lg">
-                            <BookOpen className="text-[#004AAD]" size={20} />
-                            <h3>Kelas Saya</h3>
+                    <div className="space-y-6 sm:space-y-8">
+                        <div className="flex items-center gap-3 px-1">
+                            <div className="w-1.5 h-5 sm:h-6 bg-blue-600 rounded-full"></div>
+                            <h3 className="font-black text-slate-800 text-sm sm:text-lg tracking-tight uppercase">Kelas Bimbel Saya</h3>
                         </div>
 
-                        <div className="space-y-4">
-                            {classes.map((cls) => (
-                                <div
-                                    key={cls.id}
-                                    onClick={() => handleClassClick(cls)}
-                                    className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
-                                >
-                                    <span className="absolute top-5 right-5 px-3 py-1 bg-green-100 text-green-600 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                                        {cls.status}
-                                    </span>
-
-                                    <h4 className="font-bold text-slate-800 text-lg pr-16 mb-3 group-hover:text-[#004AAD] transition-colors">
-                                        {cls.title}
-                                    </h4>
-
-                                    <div className="space-y-2 text-sm text-slate-500">
-                                        <div className="flex items-center gap-2">
-                                            <User size={16} className="text-slate-400" />
-                                            <span>{cls.teacher}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Clock size={16} className="text-slate-400" />
-                                            <span>{cls.schedule}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <MapPin size={16} className="text-slate-400" />
-                                            <span>{cls.room}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between text-xs font-semibold text-[#004AAD]">
-                                        <span className="flex items-center gap-1"><Clock size={14} /> Sesi Berikutnya: Senin, 27 Okt</span>
-                                    </div>
+                        {classes.length === 0 ? (
+                            <div className="text-center py-16 sm:py-20 bg-slate-50/50 rounded-[2rem] sm:rounded-[3rem] border-4 border-dashed border-slate-100 flex flex-col items-center gap-3 sm:gap-4">
+                                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center text-slate-200">
+                                    <BookOpen size={28} sm:size={32} />
                                 </div>
-                            ))}
-                        </div>
+                                <p className="text-slate-400 font-extrabold text-[10px] sm:text-sm uppercase tracking-widest italic">Belum ada kelas aktif</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4 sm:gap-6">
+                                {classes.map((cls) => (
+                                    <div
+                                        key={cls.id}
+                                        onClick={() => handleClassClick(cls)}
+                                        className="bg-white p-4.5 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border-2 border-slate-50 shadow-xl shadow-blue-900/5 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-900/10 transition-all cursor-pointer group relative overflow-hidden active:scale-[0.98]"
+                                    >
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-blue-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                                        <div className="flex justify-between items-start mb-3 relative z-10">
+                                            <h4 className="font-black text-slate-800 text-sm sm:text-xl pr-10 group-hover:text-blue-600 transition-colors leading-tight uppercase tracking-tight">
+                                                {cls.title}
+                                            </h4>
+                                            <span className="shrink-0 px-2 py-0.5 bg-blue-600/10 text-blue-600 rounded-lg text-[7px] sm:text-[10px] font-black uppercase tracking-wider border border-blue-100">
+                                                {cls.status}
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2 mb-4 relative z-10">
+                                            <div className="flex items-center gap-1.5 text-slate-500 bg-slate-50 p-2 sm:p-3 rounded-xl sm:rounded-2xl border border-slate-100">
+                                                <User size={12} sm:size={16} className="text-blue-500" />
+                                                <span className="text-[9px] sm:text-xs font-black truncate uppercase">{cls.teacher}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-slate-500 bg-slate-50 p-2 sm:p-3 rounded-xl sm:rounded-2xl border border-slate-100">
+                                                <Clock size={12} sm:size={16} className="text-blue-500" />
+                                                <span className="text-[9px] sm:text-xs font-black truncate uppercase">{cls.schedule.split(',')[0]}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-3 border-t border-slate-50 flex items-center justify-between text-[7px] sm:text-[10px] font-black tracking-[0.2em] text-blue-600 uppercase relative z-10">
+                                            <span className="flex items-center gap-1.5 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
+                                                <PlayCircle size={12} sm:size={16} />
+                                                {cls.sessions.length} MATERI
+                                            </span>
+                                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all transform group-hover:translate-x-1">
+                                                <ChevronRight size={16} sm:size={20} strokeWidth={3} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
 
                 {view === 'detail' && selectedClass && (
-                    <div className="space-y-6 animate-in slide-in-from-right duration-300">
+                    <div className="space-y-6 sm:space-y-8 animate-in slide-in-from-right duration-300">
                         {/* Class Info Box */}
-                        <div className="bg-[#f8faff] p-6 rounded-3xl border border-blue-100 text-center space-y-2">
-                            <h3 className="font-bold text-slate-800 text-xl">{selectedClass.title}</h3>
-                            <p className="text-slate-500 text-sm">{selectedClass.teacher}</p>
+                        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] text-center shadow-2xl shadow-blue-500/20 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-white/15 transition-all"></div>
+                            <div className="relative z-10">
+                                <h3 className="font-black text-white text-xl sm:text-3xl tracking-tight uppercase leading-tight mb-2">{selectedClass.title}</h3>
+                                <p className="text-blue-100 font-extrabold text-xs sm:text-lg uppercase tracking-widest">{selectedClass.teacher}</p>
+                            </div>
                         </div>
 
                         {/* Description */}
-                        <div className="bg-purple-50 p-5 rounded-2xl border border-purple-100 text-slate-700 text-sm leading-relaxed">
+                        <div className="bg-indigo-50/50 p-5 sm:p-8 rounded-[1.5rem] sm:rounded-[2.5rem] border-2 border-indigo-100 text-slate-600 text-xs sm:text-sm font-extrabold leading-relaxed uppercase tracking-tight">
                             {selectedClass.description}
                         </div>
 
                         {/* Sessions List */}
                         <div>
-                            <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                <BookOpen size={18} className="text-[#004AAD]" />
-                                Daftar Materi & Pertemuan
-                            </h4>
-                            <div className="space-y-3">
+                            <div className="flex items-center gap-3 mb-5 sm:mb-6 px-1">
+                                <div className="w-1.5 h-5 sm:h-6 bg-indigo-600 rounded-full"></div>
+                                <h4 className="font-black text-slate-800 text-sm sm:text-lg tracking-tight uppercase">Daftar Materi & Pertemuan</h4>
+                            </div>
+                            <div className="space-y-3 sm:space-y-4">
                                 {selectedClass.sessions.map((session: any) => (
                                     <div
                                         key={session.id}
                                         onClick={() => handleSessionClick(session)}
-                                        className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:border-blue-200 cursor-pointer group transition-all"
+                                        className="bg-white p-4 sm:p-5 rounded-[1.5rem] sm:rounded-[2rem] border-2 border-slate-50 shadow-xl shadow-blue-900/5 flex items-center gap-3 sm:gap-5 hover:border-blue-200 cursor-pointer group transition-all active:scale-[0.98]"
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center shrink-0 group-hover:bg-green-100 transition-colors">
-                                            <PlayCircle size={20} />
+                                        <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:bg-emerald-100 transition-colors border border-emerald-100 shadow-inner">
+                                            <PlayCircle size={20} sm:size={28} strokeWidth={2.5} />
                                         </div>
-                                        <div className="flex-1">
-                                            <h5 className="font-bold text-slate-800 text-sm group-hover:text-[#004AAD] transition-colors">{session.title}</h5>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-xs text-slate-400 flex items-center gap-1">
-                                                    <Clock size={12} /> {session.date}
+                                        <div className="flex-1 min-w-0">
+                                            <h5 className="font-black text-slate-800 text-xs sm:text-base group-hover:text-blue-600 transition-colors truncate leading-tight uppercase tracking-tight mb-1 sm:mb-1.5">{session.title}</h5>
+                                            <div className="flex items-center flex-wrap gap-2">
+                                                <span className="text-[8px] sm:text-[10px] font-black text-slate-400 flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100 uppercase tracking-tighter">
+                                                    <Clock size={10} sm:size={12} strokeWidth={2.5} /> {session.date}
                                                 </span>
                                                 {session.meetingLink && (
-                                                    <span className="flex items-center gap-1 text-[9px] font-bold bg-blue-600 text-white px-2 py-0.5 rounded-full animate-pulse shadow-sm shadow-blue-200">
-                                                        <Video size={10} /> LIVE MEET
+                                                    <span className="flex items-center gap-1 text-[8px] sm:text-[10px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-lg animate-pulse shadow-sm border border-blue-500 uppercase tracking-tighter">
+                                                        <Video size={10} sm:size={12} strokeWidth={2.5} /> LIVE MEET
                                                     </span>
                                                 )}
                                             </div>
                                         </div>
-                                        <ChevronRight size={18} className="text-slate-300 group-hover:text-[#004AAD]" />
+                                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-blue-600 group-hover:text-white transition-all transform group-hover:translate-x-1">
+                                            <ChevronRight size={18} sm:size={20} strokeWidth={3} />
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -152,9 +180,9 @@ const BimbinganBelajarSiswa: React.FC<BimbinganBelajarSiswaProps> = ({ onBack, u
                 )}
 
                 {view === 'session' && selectedSession && (
-                    <div className="space-y-6 animate-in slide-in-from-right duration-300">
+                    <div className="space-y-6 sm:space-y-8 animate-in slide-in-from-right duration-300">
                         {/* Video Player Container */}
-                        <div className="bg-black rounded-3xl overflow-hidden shadow-lg aspect-video relative">
+                        <div className="bg-slate-900 rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl shadow-blue-900/20 aspect-video relative border-4 sm:border-8 border-white p-0.5">
                             <iframe
                                 className="w-full h-full absolute top-0 left-0"
                                 src={`https://www.youtube.com/embed/${selectedSession.youtubeId}`}
@@ -165,65 +193,70 @@ const BimbinganBelajarSiswa: React.FC<BimbinganBelajarSiswaProps> = ({ onBack, u
                             ></iframe>
                         </div>
 
-                        <div className="space-y-4">
-                            <h3 className="font-bold text-slate-800 text-xl">{selectedSession.title}</h3>
-                            <div className="flex items-center gap-2 text-sm text-slate-500">
-                                <Clock size={16} /> <span>{selectedSession.date}</span>
+                        <div className="space-y-5 sm:space-y-6">
+                            <div className="px-1">
+                                <h3 className="font-black text-slate-800 text-lg sm:text-2xl tracking-tight leading-tight uppercase mb-2">{selectedSession.title}</h3>
+                                <div className="flex items-center gap-2 text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest bg-slate-50 w-fit px-3 py-1 rounded-lg border border-slate-100">
+                                    <Clock size={14} sm:size={16} strokeWidth={2.5} /> <span>{selectedSession.date}</span>
+                                </div>
                             </div>
 
-                            {/* Meeting Link Button */}
-                            {selectedSession.meetingLink && (
+                            <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                                {/* Meeting Link Button */}
+                                {selectedSession.meetingLink && (
+                                    <a
+                                        href={selectedSession.meetingLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="group p-4 sm:p-5 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[1.5rem] sm:rounded-[2rem] flex items-center gap-4 text-white shadow-xl shadow-blue-500/20 hover:scale-[1.02] transition-all active:scale-95 border-b-4 border-blue-900 overflow-hidden relative"
+                                    >
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12 blur-xl"></div>
+                                        <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shrink-0">
+                                            <Video size={20} sm:size={28} strokeWidth={2.5} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-black text-sm sm:text-base uppercase tracking-tight">Join Zoom / Google Meet</h4>
+                                            <p className="text-[9px] sm:text-xs text-blue-100 font-extrabold uppercase tracking-widest">GABUNG PERTEMUAN DARING</p>
+                                        </div>
+                                        <ChevronRight size={20} sm:size={24} className="group-hover:translate-x-1 transition-transform opacity-50" strokeWidth={3} />
+                                    </a>
+                                )}
+
+                                {/* Materi Button */}
                                 <a
-                                    href={selectedSession.meetingLink}
+                                    href={selectedSession.driveLink}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="block w-full bg-[#004AAD] border border-blue-700 hover:bg-blue-800 transition-all p-4 rounded-xl flex items-center gap-3 text-white shadow-lg shadow-blue-200 group animate-bounce-subtle"
+                                    className="group p-4 sm:p-5 bg-white rounded-[1.5rem] sm:rounded-[2rem] flex items-center gap-4 text-slate-700 shadow-xl shadow-blue-900/5 border-2 border-slate-50 hover:border-blue-200 transition-all active:scale-95 overflow-hidden relative"
                                 >
-                                    <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                                        <Video size={20} />
+                                    <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shrink-0 shadow-inner">
+                                        <FileText size={20} sm:size={28} strokeWidth={2.5} />
                                     </div>
-                                    <div className="flex-1">
-                                        <h4 className="font-bold text-sm">Join Zoom / Google Meet</h4>
-                                        <p className="text-xs text-blue-100">Klik untuk bergabung ke pertemuan daring</p>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-black text-sm sm:text-base uppercase tracking-tight">Materi Pembelajaran</h4>
+                                        <p className="text-[9px] sm:text-xs text-slate-400 font-extrabold uppercase tracking-widest">UNDUH MODUL (PDF)</p>
                                     </div>
-                                    <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                    <ChevronRight size={20} sm:size={24} className="group-hover:translate-x-1 transition-transform text-slate-300" strokeWidth={3} />
                                 </a>
-                            )}
 
-                            {/* Materi Button */}
-                            <a
-                                href={selectedSession.driveLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block w-full bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 transition-colors p-4 rounded-xl flex items-center gap-3 text-indigo-700 group"
-                            >
-                                <div className="w-10 h-10 rounded-lg bg-indigo-200 flex items-center justify-center">
-                                    <FileText size={20} />
-                                </div>
-                                <div className="flex-1">
-                                    <h4 className="font-bold text-sm">Materi Pembelajaran (PDF)</h4>
-                                    <p className="text-xs text-indigo-500">Klik untuk melihat materi di Google Drive</p>
-                                </div>
-                                <ChevronRight size={18} />
-                            </a>
-
-                            {/* Latihan Soal Button */}
-                            {/* Latihan Soal Button */}
-                            <button
-                                onClick={() => setShowCBT(true)}
-                                className="block w-full text-left bg-orange-50 border border-orange-100 hover:bg-orange-100 transition-colors p-4 rounded-xl flex items-center gap-3 text-orange-700 group"
-                            >
-                                <div className="w-10 h-10 rounded-lg bg-orange-200 flex items-center justify-center">
-                                    <PlayCircle size={20} className="fill-orange-500 text-white" />
-                                </div>
-                                <div className="flex-1">
-                                    <h4 className="font-bold text-sm">Latihan Soal / Kuis</h4>
-                                    <p className="text-xs text-orange-500">Kerjakan soal latihan untuk pertemuan ini</p>
-                                </div>
-                                <div className="px-3 py-1 bg-white rounded-full text-[10px] font-bold text-orange-600 shadow-sm border border-orange-100">
-                                    Mulai
-                                </div>
-                            </button>
+                                {/* Latihan Soal Button */}
+                                <button
+                                    onClick={() => setShowCBT(true)}
+                                    className="group p-4 sm:p-5 bg-gradient-to-r from-orange-500 to-amber-600 rounded-[1.5rem] sm:rounded-[2rem] flex items-center gap-4 text-white shadow-xl shadow-orange-500/20 hover:scale-[1.02] transition-all active:scale-95 border-b-4 border-orange-900 overflow-hidden relative"
+                                >
+                                    <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12 blur-xl"></div>
+                                    <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shrink-0">
+                                        <PlayCircle size={20} sm:size={28} strokeWidth={2.5} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-black text-sm sm:text-base uppercase tracking-tight">Latihan Soal / Kuis</h4>
+                                        <p className="text-[9px] sm:text-xs text-orange-100 font-extrabold uppercase tracking-widest">UJI KEMAMPUAN KAMU</p>
+                                    </div>
+                                    <div className="bg-white text-orange-600 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-xs font-black uppercase tracking-widest shadow-lg">
+                                        MULAI
+                                    </div>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}

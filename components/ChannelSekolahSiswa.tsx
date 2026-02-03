@@ -81,20 +81,28 @@ const ChannelSekolahSiswa: React.FC<ChannelSekolahSiswaProps> = ({ onBack }) => 
     }
 
     return (
-        <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col h-[calc(100vh-250px)] md:h-[calc(100vh-180px)]">
+        <div className="bg-white/90 backdrop-blur-xl rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl shadow-blue-900/10 border border-white overflow-hidden animate-in slide-in-from-right duration-500 h-full flex flex-col">
             {/* Header */}
-            <div className="p-4 md:p-5 border-b border-slate-100 flex items-center gap-3 shrink-0 bg-slate-900 text-white">
-                <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                    <ChevronLeft size={24} />
+            <div className="p-4 sm:p-6 border-b border-slate-100 flex items-center gap-3 shrink-0 bg-slate-900 text-white relative">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 via-orange-500 to-red-600 animate-pulse"></div>
+                <button
+                    onClick={onBack}
+                    className="w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-xl transition-all active:scale-90"
+                >
+                    <ChevronLeft size={20} sm:size={24} strokeWidth={3} />
                 </button>
-                <div className="flex-1 flex items-center gap-3">
-                    <div className="relative flex h-3 w-3">
+                <div className="flex-1 flex items-center gap-3 min-w-0">
+                    <div className="relative flex h-2 w-2 sm:h-3 sm:w-3 shrink-0">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 sm:h-3 sm:w-3 bg-red-500"></span>
                     </div>
-                    <div>
-                        <h3 className="font-black text-sm md:text-base leading-none tracking-tight">LIVE: {settings?.name || 'Channel Sekolah'}</h3>
-                        <p className="text-[10px] text-slate-400 mt-1 font-bold">{viewerCount} MATA MEMANDANG</p>
+                    <div className="min-w-0">
+                        <h3 className="font-black text-xs sm:text-base leading-tight tracking-tight uppercase truncate">
+                            {settings?.name || 'Channel Sekolah'}
+                        </h3>
+                        <p className="text-[7px] sm:text-[10px] text-red-400 font-extrabold tracking-widest uppercase">
+                            {viewerCount} Live Viewers
+                        </p>
                     </div>
                 </div>
             </div>
@@ -114,29 +122,32 @@ const ChannelSekolahSiswa: React.FC<ChannelSekolahSiswaProps> = ({ onBack }) => 
                         ></iframe>
                     </div>
 
-                    <div className="p-6 md:p-8 bg-white min-h-[300px]">
+                    <div className="p-5 sm:p-8 bg-white min-h-[300px]">
                         <div className="flex items-center gap-2 mb-3">
-                            <span className="px-2 py-1 bg-red-600 text-white text-[10px] font-black rounded uppercase tracking-widest">LIVE</span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded">{activeBroadcast?.category || 'KATEGORI'}</span>
+                            <span className="px-2 py-0.5 bg-red-600 text-white text-[8px] sm:text-[10px] font-black rounded uppercase tracking-widest">ON AIR</span>
+                            <span className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">{activeBroadcast?.category || 'MULTIMEDIA'}</span>
                         </div>
-                        <h1 className="text-xl md:text-2xl font-black text-slate-900 leading-tight mb-4">{activeBroadcast?.title || 'Menyiapkan Siaran...'}</h1>
+                        <h1 className="text-lg sm:text-2xl font-black text-slate-900 leading-tight mb-4 uppercase tracking-tight">{activeBroadcast?.title || 'Menyiapkan Siaran...'}</h1>
 
-                        <div className="flex items-center gap-4 text-xs text-slate-500 mb-8 border-b border-slate-100 pb-6">
+                        <div className="flex items-center gap-3 text-xs text-slate-500 mb-6 border-b border-slate-50 pb-6">
                             <div className="flex -space-x-2">
                                 {[1, 2, 3].map(i => (
-                                    <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center overflow-hidden">
-                                        <User size={14} className="text-slate-400" />
+                                    <div key={i} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center overflow-hidden shadow-sm">
+                                        <User size={12} className="text-slate-300" />
                                     </div>
                                 ))}
                             </div>
-                            <span className="font-bold text-slate-400">Dimulai pada {activeBroadcast?.date || '-'}</span>
+                            <span className="font-black text-[9px] sm:text-xs text-slate-400 uppercase tracking-widest">Penyiar: Staff Multimedia Sekolah</span>
                         </div>
 
-                        <div className="prose prose-slate prose-sm max-w-none">
-                            <h4 className="font-bold text-slate-800 mb-2">Deskripsi Siaran:</h4>
-                            <p className="text-slate-600 leading-relaxed font-medium">
-                                {activeBroadcast?.description || 'Tidak ada deskripsi tambahan untuk siaran ini.'}
-                            </p>
+                        <div className="relative">
+                            <div className="absolute left-0 top-0 w-1 h-full bg-blue-100 rounded-full"></div>
+                            <div className="pl-4">
+                                <h4 className="font-black text-[10px] sm:text-xs text-[#004AAD] uppercase tracking-widest mb-2">Informasi Siaran</h4>
+                                <p className="text-slate-600 leading-relaxed font-bold text-[10px] sm:text-sm uppercase tracking-tight">
+                                    {activeBroadcast?.description || 'Terima kasih telah bergabung di channel sekolah kami. Silakan saksikan tayangan edukasi dan liputan kegiatan sekolah terbaru.'}
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>

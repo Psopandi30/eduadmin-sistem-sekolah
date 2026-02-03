@@ -271,12 +271,12 @@ export const useStudents = () => {
     const handleDownloadTemplate = (type: string = 'Seluruh_Data_Siswa') => {
         // ... (Existing template logic is fine)
         const headers = [
-            'No', 'NIS', 'Nama Lengkap', 'Tempat_Tanggal_Lahir', 'Tingkat', 'KELAS',
+            'No', 'NIS', 'Nama Lengkap', 'Tempat_Tanggal_Lahir', 'Jenis_Kelamin', 'Tingkat', 'KELAS',
             'Paralel', 'Nama_Ayah', 'Nama_Ibu', 'Pekerjaan_Ayah', 'Pekerjaan_Ibu',
             'Username', 'Password'
         ];
         let exampleData = [
-            '1', '2024001', 'Budi Santoso', 'Garut, 12-05-2010', '1A', '1',
+            '1', '2024001', 'Budi Santoso', 'Garut, 12-05-2010', 'L', '1', '1A',
             'A', 'Sandi Santoso', 'Siti Aminah', 'Wiraswasta', 'Ibu Rumah Tangga',
             '2024001', '2024001'
         ];
@@ -319,27 +319,28 @@ export const useStudents = () => {
                     }
 
                     const importedStudents: Student[] = data.slice(1).map((row, idx) => {
-                        const tingkatVal = String(row[4] || '');
-                        const paralelVal = String(row[6] || '');
-                        const nisVal = String(row[1] || row[11] || '').trim(); // Smart NIS detection
-                        const usernameVal = String(row[11] || row[1] || '').trim();
+                        const tingkatVal = String(row[5] || '');
+                        const paralelVal = String(row[7] || '');
+                        const nisVal = String(row[1] || row[12] || '').trim(); // Smart NIS detection
+                        const usernameVal = String(row[12] || row[1] || '').trim();
 
-                        const kelasName = (row[5] && String(row[5]).length === 1)
-                            ? `${row[5]}${paralelVal}`
-                            : String(row[5] || `${tingkatVal}${paralelVal}`);
+                        const kelasName = (row[6] && String(row[6]).length === 1)
+                            ? `${row[6]}${paralelVal}`
+                            : String(row[6] || `${tingkatVal}${paralelVal}`);
 
                         return {
                             id: `temp-${Date.now()}-${idx}`,
                             nis: nisVal,
                             nama: String(row[2] || ''),
                             ttl: String(row[3] || ''),
-                            tingkat: parseInt(row[4]) || 1,
+                            gender: String(row[4] || 'L').toUpperCase().startsWith('L') ? 'L' : 'P',
+                            tingkat: parseInt(row[5]) || 1,
                             kelas: kelasName,
                             paralel: paralelVal,
-                            ayah: String(row[7] || ''),
-                            ibu: String(row[8] || ''),
-                            jobAyah: String(row[9] || ''),
-                            jobIbu: String(row[10] || ''),
+                            ayah: String(row[8] || ''),
+                            ibu: String(row[9] || ''),
+                            jobAyah: String(row[10] || ''),
+                            jobIbu: String(row[11] || ''),
                             username: usernameVal,
                         };
                     }).filter(s => s.nama && s.nis);

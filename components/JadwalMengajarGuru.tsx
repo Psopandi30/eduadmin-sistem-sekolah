@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Calendar, Clock, MapPin } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin, ChevronLeft } from 'lucide-react';
 import { schedulesDataGlobal, subjectsDataGlobal, schedulePeriodsGlobal } from '../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 
@@ -114,31 +114,58 @@ const JadwalMengajarGuru: React.FC<JadwalMengajarGuruProps> = ({ onBack, user })
     return (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col h-full">
             {/* Header */}
-            <div className="p-4 border-b border-slate-100 flex items-center gap-3 shrink-0 bg-white sticky top-0 z-10">
-                <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
-                    <ChevronLeft size={24} />
+            <div className="px-4 py-3 md:px-6 md:py-4 border-b border-slate-100 flex items-center gap-3 md:gap-4 shrink-0 bg-white sticky top-0 z-30">
+                <button
+                    onClick={onBack}
+                    className="p-2 md:p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl md:rounded-2xl transition-all border border-slate-100 shrink-0"
+                >
+                    <ArrowLeft size={20} className="md:w-[22px]" />
                 </button>
-                <h2 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                    <Calendar className="text-blue-600" size={20} />
-                    Jadwal Mengajar
-                </h2>
-            </div>
-            <div className="flex gap-2 p-4 pb-0">
-                <div className="bg-white border rounded-xl px-4 py-2 text-sm font-bold text-blue-600 flex items-center gap-2">
-                    <span className="text-slate-400 font-medium">Semester:</span>
-                    <select
-                        value={selectedSemester}
-                        onChange={(e) => setSelectedSemester(e.target.value)}
-                        className="bg-transparent border-none outline-none focus:ring-0 cursor-pointer pr-1"
-                    >
-                        <option>1 (Ganjil)</option>
-                        <option>2 (Genap)</option>
-                    </select>
+                <div className="min-w-0">
+                    <h2 className="text-base md:text-2xl font-black text-slate-800 tracking-tight leading-tight truncate">
+                        Jadwal Mengajar
+                    </h2>
+                    <p className="text-slate-400 text-[10px] md:text-sm font-medium">Informasi waktu dan ploting mengajar.</p>
                 </div>
             </div>
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50/20">
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50/50">
+                {/* Info Card - Consistent Style */}
+                <div className="bg-gradient-to-br from-blue-600 via-indigo-700 to-indigo-800 p-5 md:p-6 rounded-3xl text-white shadow-xl shadow-blue-100 flex items-center gap-4 border border-white/10 mb-6 font-sans">
+                    <div className="p-3 bg-white/15 backdrop-blur-xl rounded-2xl shrink-0 hidden sm:block">
+                        <Calendar size={24} className="text-blue-100" />
+                    </div>
+                    <div>
+                        <h3 className="font-black text-sm md:text-lg uppercase tracking-wide">Panel Jadwal Mengajar</h3>
+                        <p className="text-[10px] md:text-xs text-blue-100/90 leading-relaxed mt-0.5 italic">
+                            Berikut adalah rincian jadwal mengajar Anda. Pastikan hadir tepat waktu sesuai ploting yang telah ditentukan.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Filter Semester */}
+                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
+                    <div>
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Semester Aktif</h4>
+                        <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 text-sm font-bold text-blue-700 flex items-center gap-2">
+                            <select
+                                value={selectedSemester}
+                                onChange={(e) => setSelectedSemester(e.target.value)}
+                                className="bg-transparent border-none outline-none focus:ring-0 cursor-pointer appearance-none pr-6 relative"
+                            >
+                                <option>1 (Ganjil)</option>
+                                <option>2 (Genap)</option>
+                            </select>
+                            <Calendar size={14} className="text-blue-400 pointer-events-none -ml-5" />
+                        </div>
+                    </div>
+                    {jadwal.length > 0 && (
+                        <div className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 text-[10px] font-black uppercase tracking-wider">
+                            {jadwal.length} Sesi Terjadwal
+                        </div>
+                    )}
+                </div>
                 <div className="grid gap-4">
                     {jadwal.length > 0 ? (
                         jadwal.map((item) => (
