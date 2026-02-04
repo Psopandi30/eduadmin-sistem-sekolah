@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, Lock, ArrowRight, School } from 'lucide-react';
 import { studentsDataGlobal, classesDataGlobal, teachersDataGlobal } from '../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
+import logger from '../src/utils/logger';
 
 interface LoginProps {
     onLogin: (role: string, userData: any) => void;
@@ -61,7 +62,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                     return;
                 }
             } catch (err: any) {
-                console.warn("⚠️ Supabase auth failed, falling back to legacy login:", err.message);
+                logger.warn("⚠️ Supabase auth failed, falling back to legacy login:", err.message);
                 // Fallback to legacy login if Supabase fails
                 handleLegacyLogin();
                 return;
@@ -96,23 +97,22 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
 
                 if (studentSourceLabel === 'global' && isSupabaseConfigured()) {
                     // FALLBACK: Try Fetch from Cloud app_settings if Local is empty
-                    console.log('☁️ Local students empty or [], trying cloud sync...');
+                    logger.log('☁️ Local students empty or [], trying cloud sync...');
                     try {
                         const { data: cloudData } = await supabase.from('app_settings').select('value').eq('key', 'students_data_v10_sync').maybeSingle();
                         if (cloudData && cloudData.value) {
                             studentsSource = cloudData.value as any[];
                             localStorage.setItem('students_data_v10', JSON.stringify(studentsSource));
                             studentSourceLabel = 'cloud';
-                            console.log('✅ Students synced from cloud');
+                            logger.log('✅ Students synced from cloud');
                         }
                     } catch (e) {
-                        console.log('ℹ️ No cloud backup for students found');
+                        logger.log('ℹ️ No cloud backup for students found');
                     }
                 }
 
-                console.log(`📦 Students data source: ${studentSourceLabel}`);
-                console.log('📊 Total students:', studentsSource.length);
-                console.log('📋 First 3 students:', studentsSource.slice(0, 3));
+                logger.debug(`📦 Students data source: ${studentSourceLabel}`);
+                logger.debug('📊 Total students:', studentsSource.length);
 
                 const localClasses = localStorage.getItem('classes_data_v10');
                 const classesSource = localClasses ? JSON.parse(localClasses) : classesDataGlobal;
@@ -121,31 +121,16 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                     (s.username === username || s.nis === username)
                 );
 
-                console.log('📝 Student account search:', studentAccount ? 'FOUND' : 'NOT FOUND');
+                logger.debug('📝 Student account search:', studentAccount ? 'FOUND' : 'NOT FOUND');
 
+                // Security: Only check against stored password and NIS (no hardcoded fallbacks)
                 const isStudentPasswordCorrect = studentAccount && (
                     password === studentAccount.password ||
-                    password === studentAccount.nis ||
-                    password === '123456' ||
-                    password === 'ortu123'
+                    password === studentAccount.nis
                 );
 
-                console.log('📝 Student login debug:');
-                console.log('Username match found:', studentAccount ? studentAccount.nama : 'NONE');
-                if (studentAccount) {
-                    console.log('Password correct:', studentAccount.password === password);
-                }
-                console.log('Username entered:', username);
-                console.log('Password entered:', password);
-                console.log('Student account found:', studentAccount);
-                if (studentAccount) {
-                    console.log('Student NIS:', studentAccount.nis);
-                    console.log('Student password from DB:', studentAccount.password);
-                    console.log('Password matches DB?', password === studentAccount.password);
-                }
-
                 if (studentAccount && isStudentPasswordCorrect) { // Simplified condition as password check is now in find
-                    console.log('✅ Login successful for student:', studentAccount.nama);
+                    logger.log('✅ Login successful for student:', studentAccount.nama);
                     // Cari info Wali
                     const localTeachers = localStorage.getItem('teachers_data_v10');
                     const teachersSource = localTeachers ? JSON.parse(localTeachers) : teachersDataGlobal;
@@ -186,36 +171,27 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
 
                 if (teacherSourceLabel === 'global' && isSupabaseConfigured()) {
                     // FALLBACK: Try Fetch from Cloud app_settings if Local is empty
-                    console.log('☁️ Local teachers empty or [], trying cloud sync...');
+                    logger.log('☁️ Local teachers empty or [], trying cloud sync...');
                     try {
                         const { data: cloudData } = await supabase.from('app_settings').select('value').eq('key', 'teachers_data_v10_sync').maybeSingle();
                         if (cloudData && cloudData.value) {
                             teachersSource = cloudData.value as any[];
                             localStorage.setItem('teachers_data_v10', JSON.stringify(teachersSource));
                             teacherSourceLabel = 'cloud';
-                            console.log('✅ Teachers synced from cloud');
+                            logger.log('✅ Teachers synced from cloud');
                         }
                     } catch (e) {
-                        console.log('ℹ️ No cloud backup for teachers found');
+                        logger.log('ℹ️ No cloud backup for teachers found');
                     }
                 }
 
-                console.log(`📦 Teachers data source: ${teacherSourceLabel}`);
-                console.log('📊 Total teachers:', teachersSource.length);
+                logger.debug(`📦 Teachers data source: ${teacherSourceLabel}`);
+                logger.debug('📊 Total teachers:', teachersSource.length);
 
                 // Cari akun guru yang cocok
                 const teacherAccount = teachersSource.find((t: any) =>
                     (t.username === username || t.user === username || t.nip === username)
                 );
-
-                console.log('👨‍🏫 Teacher login debug:');
-                console.log('Username match found:', teacherAccount ? teacherAccount.nama : 'NONE');
-                if (teacherAccount) {
-                    console.log('Stored password:', teacherAccount.password);
-                    console.log('Try direct match:', password === teacherAccount.password);
-                    console.log('Try NIP fallback:', password === teacherAccount.nip);
-                    console.log('Try default fallback:', password === '12345678');
-                }
 
                 // Verify password with fallbacks for masked data
                 const isPasswordCorrect = teacherAccount && (
@@ -249,12 +225,10 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                     return;
                 }
 
-                // 3. Super Admin Fallback (Master Access)
-                if (username === 'admin' && password === 'admin123') {
-                    onLogin('admin', { nama: 'Super Admin', role: 'admin', roleDisplay: 'Super Admin' });
-                    setIsLoading(false);
-                    return;
-                }
+                // 3. Super Admin - Only via Supabase Auth (no hardcoded credentials)
+                // If Supabase is configured, admin must use proper authentication
+                // If not configured, admin account should be created in database
+                // SECURITY: Removed hardcoded admin credentials
 
                 // Jika tidak ada yang cocok
                 if (username && password) {
@@ -263,7 +237,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                     setError('Mohon isi username dan password');
                 }
             } catch (err: any) {
-                console.error("❌ Error in handleLegacyLogin:", err);
+                logger.error("❌ Error in handleLegacyLogin:", err);
                 setError("Terjadi kesalahan sistem saat login. Silakan hubungi admin.");
             } finally {
                 setIsLoading(false);

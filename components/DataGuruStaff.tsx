@@ -110,7 +110,7 @@ const DataGuruStaff: React.FC<DataGuruStaffProps> = ({
   // --- STAF ---
   // Using shared state or fallback (though fallback shouldn't be reached if App passes it)
   const [localStafList, setLocalStafList] = useState([
-    { no: 1, noPegawai: '19750101 200012 1 001', nama: 'Abdul Solihin, S.Pd.I', jabatan: 'Kepala Sekolah', username: 'abdul.solihin', password: 'password123' },
+    { no: 1, noPegawai: '19750101 200012 1 001', nama: 'Abdul Solihin, S.Pd.I', jabatan: 'Kepala Sekolah', username: 'abdul.solihin', password: '[SET_PASSWORD]' }, // Security: No hardcoded password
   ]);
   const stafList = sharedStafList || localStafList;
   const setStafList = setSharedStafList || setLocalStafList;

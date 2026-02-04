@@ -61,7 +61,7 @@ const UploadSiswa: React.FC<UploadSiswaProps> = ({ onBack }) => {
       pIbu: 'Bidan',
       username: '2025891023',
       noHp: '081234567890',
-      password: 'password123'
+      password: '[SET_PASSWORD]' // Security: No hardcoded password in template
     }
   ]);
 
@@ -91,7 +91,7 @@ const UploadSiswa: React.FC<UploadSiswaProps> = ({ onBack }) => {
 
     // Data contoh untuk template
     const sampleData = [
-      '2025891024,Siti Aminah,"Bandung, 10 Maret 2022",KLS-1B,Kelas 1,B,Asep,Susi,Wiraswasta,Ibu Rumah Tangga,081234567891,2025891024,password123'
+      '2025891024,Siti Aminah,"Bandung, 10 Maret 2022",KLS-1B,Kelas 1,B,Asep,Susi,Wiraswasta,Ibu Rumah Tangga,081234567891,2025891024,[SET_PASSWORD]'
     ];
 
     const csvContent = [headers.join(','), ...sampleData].join('\n');

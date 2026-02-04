@@ -28,6 +28,7 @@ import ProfilGuru from './ProfilGuru';
 import JadwalBimbelGuru from './JadwalBimbelGuru';
 import KehadiranBimbelGuru from './KehadiranBimbelGuru';
 import InputNilaiBimbelGuru from './InputNilaiBimbelGuru';
+import InformasiWaliKelas from './InformasiWaliKelas';
 import { useTutoring } from './DashboardSuperAdmin/hooks/useTutoring';
 
 interface DashboardGuruBimbelProps {
@@ -132,12 +133,10 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
             </div>
 
             <div className={`flex-1 relative z-10 w-full max-w-7xl mx-auto scrollbar-hide transition-all duration-500 ${activeView === 'home' ? 'p-4 md:p-8 pb-28 sm:pb-28 overflow-y-auto' : 'p-0 overflow-y-auto pb-10'}`}>
-                Sands
-
-                <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
-                    {/* Left Column: Menu Items */}
-                    <div className="flex-1">
-                        {activeView === 'home' ? (
+                {activeView === 'home' ? (
+                    <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+                        {/* Left Column: Menu Items */}
+                        <div className="flex-1">
                             <div className="bg-white/50 backdrop-blur-sm rounded-3xl p-6 border border-white/20 shadow-sm">
                                 <h3 className="font-bold text-slate-800 text-lg mb-6 flex items-center gap-2 lg:hidden">
                                     <Home size={20} className="text-[#004AAD]" />
@@ -156,6 +155,7 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
                                                 else if (item.id === 'quran') setActiveView('quran');
                                                 else if (item.id === 'channel') setActiveView('channel');
                                                 else if (item.id === 'ai') setActiveView('ai');
+                                                else if (item.id === 'informasi') setActiveView('informasi');
                                             }}
                                             className="flex flex-col items-center gap-3 group w-full"
                                         >
@@ -170,39 +170,73 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
                                     ))}
                                 </div>
                             </div>
-                        ) : activeView === 'quran' ? (
-                            <AlQuranSiswa onBack={() => setActiveView('home')} />
-                        ) : activeView === 'channel' ? (
-                            <ChannelSekolahSiswa onBack={() => setActiveView('home')} />
-                        ) : activeView === 'jadwal' ? (
-                            <JadwalBimbelGuru onBack={() => setActiveView('home')} user={user} />
-                        ) : activeView === 'kehadiran' ? (
-                            <KehadiranBimbelGuru onBack={() => setActiveView('home')} />
-                        ) : activeView === 'nilai' ? (
-                            <InputNilaiBimbelGuru onBack={() => setActiveView('home')} />
-                        ) : activeView === 'latihan' ? (
-                            <InputMateriBimbelLengkap
-                                onBack={() => setActiveView('home')}
-                                classes={myTutoringClasses}
-                            />
-                        ) : activeView === 'notepad' ? (
-                            <NotepadGuru onBack={() => setActiveView('home')} />
-                        ) : activeView === 'ai' ? (
-                            <BelajarAISiswa
-                                onBack={() => setActiveView('home')}
-                                user={user}
-                                title="Asisten AI"
-                                welcomeMessage="Halo Bapak/Ibu Guru Bimbel! Saya asisten AI Anda. Ada yang bisa saya bantu dalam materi bimbingan atau pembahasan soal olimpiade hari ini?"
-                            />
-                        ) : activeView === 'notifikasi' ? (
-                            <NotifikasiSiswa onBack={() => setActiveView('home')} />
-                        ) : activeView === 'profile' ? (
-                            <ProfilGuru user={user} onBack={() => setActiveView('home')} onLogout={onLogout} />
-                        ) : null}
+                        </div>
+
+                        {/* Right Column: Announcements */}
+                        <div className="w-full lg:w-[400px] shrink-0">
+                            <div className="sticky top-8">
+                                <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+                                    <Bell size={20} className="text-[#004AAD]" strokeWidth={2.5} />
+                                    Informasi Sekolah
+                                </h3>
+                                <div className="space-y-4">
+                                    {announcements.map((info) => (
+                                        <div key={info.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md hover:border-blue-200 transition-all group cursor-pointer relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-bl-full -mr-8 -mt-8 opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
+                                            <div className="flex gap-3 mb-2 relative z-10">
+                                                <div className="w-1.5 rounded-full bg-[#004AAD] h-5 mt-0.5"></div>
+                                                <div className="flex-1">
+                                                    <h4 className="font-bold text-slate-800 text-sm md:text-base line-clamp-1 group-hover:text-[#004AAD] transition-colors">{info.title}</h4>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">{info.date}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <p className="text-xs md:text-sm text-slate-600 leading-relaxed pl-4.5 mb-4 relative z-10 line-clamp-3">
+                                                {info.content}
+                                            </p>
+                                            <div className="flex items-center justify-end pl-4.5 relative z-10">
+                                                <button className="text-[#004AAD] text-xs font-bold flex items-center gap-1 hover:gap-2 transition-all">
+                                                    Selengkapnya <ChevronRight size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     </div>
-
-
-                </div>
+                ) : activeView === 'quran' ? (
+                    <AlQuranSiswa onBack={() => setActiveView('home')} />
+                ) : activeView === 'channel' ? (
+                    <ChannelSekolahSiswa onBack={() => setActiveView('home')} />
+                ) : activeView === 'jadwal' ? (
+                    <JadwalBimbelGuru onBack={() => setActiveView('home')} user={user} />
+                ) : activeView === 'kehadiran' ? (
+                    <KehadiranBimbelGuru onBack={() => setActiveView('home')} />
+                ) : activeView === 'nilai' ? (
+                    <InputNilaiBimbelGuru onBack={() => setActiveView('home')} />
+                ) : activeView === 'latihan' ? (
+                    <InputMateriBimbelLengkap
+                        onBack={() => setActiveView('home')}
+                        classes={myTutoringClasses}
+                    />
+                ) : activeView === 'notepad' ? (
+                    <NotepadGuru onBack={() => setActiveView('home')} />
+                ) : activeView === 'ai' ? (
+                    <BelajarAISiswa
+                        onBack={() => setActiveView('home')}
+                        user={user}
+                        title="Asisten AI"
+                        welcomeMessage="Halo Bapak/Ibu Guru Bimbel! Saya asisten AI Anda. Ada yang bisa saya bantu dalam materi bimbingan atau pembahasan soal olimpiade hari ini?"
+                    />
+                ) : activeView === 'informasi' ? (
+                    <InformasiWaliKelas onBack={() => setActiveView('home')} />
+                ) : activeView === 'notifikasi' ? (
+                    <NotifikasiSiswa onBack={() => setActiveView('home')} />
+                ) : activeView === 'profile' ? (
+                    <ProfilGuru user={user} onBack={() => setActiveView('home')} onLogout={onLogout} />
+                ) : null}
             </div>
 
             {/* Bottom Navigation Bar */}

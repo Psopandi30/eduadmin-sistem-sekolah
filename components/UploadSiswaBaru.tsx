@@ -115,7 +115,7 @@ const UploadSiswaBaru: React.FC<UploadSiswaBaruProps> = ({ onBack }) => {
       pekerjaanIbu: student.pIbu,
       noHp: '08123456789',
       username: student.username,
-      password: 'password123'
+      password: '[SET_PASSWORD]' // Security: No hardcoded password
     });
     setIsAddModalOpen(true);
   };
@@ -134,7 +134,7 @@ const UploadSiswaBaru: React.FC<UploadSiswaBaruProps> = ({ onBack }) => {
       pekerjaanIbu: student.pIbu,
       noHp: '08123456789',
       username: student.username,
-      password: 'password123'
+      password: '[SET_PASSWORD]' // Security: No hardcoded password
     });
     setIsAddModalOpen(true);
   };

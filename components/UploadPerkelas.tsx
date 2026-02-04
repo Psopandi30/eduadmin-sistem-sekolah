@@ -119,7 +119,7 @@ const UploadPerkelas: React.FC<UploadPerkelasProps> = ({ onBack }) => {
       pekerjaanIbu: student.pIbu,
       noHp: '08123456789', // Dummy data
       username: student.username,
-      password: 'password123' // Dummy Data
+      password: '[SET_PASSWORD]' // Security: No hardcoded password
     });
     setIsAddModalOpen(true);
   };
@@ -138,7 +138,7 @@ const UploadPerkelas: React.FC<UploadPerkelasProps> = ({ onBack }) => {
       pekerjaanIbu: student.pIbu,
       noHp: '08123456789', // Dummy data
       username: student.username,
-      password: 'password123' // Dummy Data
+      password: '[SET_PASSWORD]' // Security: No hardcoded password
     });
     setIsAddModalOpen(true);
   };

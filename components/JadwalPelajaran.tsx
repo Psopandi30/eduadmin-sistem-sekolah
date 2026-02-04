@@ -108,7 +108,7 @@ const JadwalPelajaran: React.FC<JadwalPelajaranProps> = ({ onBack, user }) => {
                 </div>
             </div>
 
-            <div className="p-4 sm:p-8 flex-1 overflow-y-auto scrollbar-hide">
+            <div className="p-4 sm:p-8 flex-1 overflow-y-auto scrollbar-hide pb-20 sm:pb-24">
                 {/* Day Tabs */}
                 <div className="flex gap-1.5 sm:gap-3 overflow-x-auto pb-3 scrollbar-hide mb-4 sm:mb-6 -mx-1 px-1">
                     {days.map((day) => (

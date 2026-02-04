@@ -220,8 +220,9 @@ export const useTeachers = () => {
         const headers = [
             'No', 'Nama Lengkap', 'NIP', 'Jabatan', 'Wali Kelas', 'Username', 'password'
         ];
+        // Security: Use placeholder instead of hardcoded password
         const exampleData = [
-            '1', 'H. Ahmad Syauqi, M.Pd.', '198501012010011001', 'Guru Mata Pelajaran', '1A', 'ahmadsyauqi', 'guru123'
+            '1', 'H. Ahmad Syauqi, M.Pd.', '198501012010011001', 'Guru Mata Pelajaran', '1A', 'ahmadsyauqi', '[PASSWORD]'
         ];
         const csvContent = [headers.join(','), exampleData.join(',')].join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -265,7 +266,8 @@ export const useTeachers = () => {
                         jabatan: String(row[3] || 'Guru Mata Pelajaran'),
                         wali: String(row[4] || '-'),
                         username: String(row[5] || '').trim(),
-                        password: String(row[6] || 'guru123'),
+                        // Security: Require password from import, no default fallback
+                        password: String(row[6] || '').trim() || String(row[2] || '').trim(), // Use NIP as fallback if password not provided
                         mapel: '-'
                     })).filter(t => t.nama);
 

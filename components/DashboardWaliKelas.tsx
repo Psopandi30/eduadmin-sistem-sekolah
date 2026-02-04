@@ -146,7 +146,6 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
                                                 else if (item.id === 'quran') setActiveView('quran');
                                                 else if (item.id === 'channel') setActiveView('channel');
                                                 else if (item.id === 'ai') setActiveView('ai');
-                                                else if (item.id === 'library') setActiveView('library');
                                             }}
                                             className="flex flex-col items-center gap-3 group w-full"
                                         >
