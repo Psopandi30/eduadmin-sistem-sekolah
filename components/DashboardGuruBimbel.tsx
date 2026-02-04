@@ -85,7 +85,7 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
     ];
 
     return (
-        <div className="h-screen bg-[#E0F2FE] font-sans flex flex-col relative overflow-hidden">
+        <div className="min-h-screen bg-[#E0F2FE] font-sans flex flex-col relative">
             {/* Background Decoration - Bubbles (Consistent with Login) */}
             <div className="fixed top-[-50px] left-[-50px] w-40 h-40 rounded-full border-[6px] border-[#BFDBFE] opacity-60 pointer-events-none"></div>
             <div className="fixed top-20 right-[-20px] w-24 h-24 rounded-full bg-[#BFDBFE] opacity-40 pointer-events-none"></div>
@@ -132,7 +132,7 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
                 </div>
             </div>
 
-            <div className={`flex-1 relative z-10 w-full max-w-7xl mx-auto scrollbar-hide transition-all duration-500 ${activeView === 'home' ? 'p-4 md:p-8 pb-28 sm:pb-28 overflow-y-auto' : 'p-0 overflow-y-auto pb-10'}`}>
+            <div className={`flex-1 relative z-10 w-full max-w-7xl mx-auto scrollbar-hide transition-all duration-500 ${activeView === 'home' ? 'p-4 md:p-8 pb-24 sm:pb-20 overflow-y-auto' : 'p-0 overflow-y-auto pb-16'}`}>
                 {activeView === 'home' ? (
                     <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
                         {/* Left Column: Menu Items */}
@@ -142,7 +142,7 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
                                     <Home size={20} className="text-[#004AAD]" />
                                     Menu Utama
                                 </h3>
-                                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-6 gap-x-4 gap-y-8 md:gap-x-8 md:gap-y-10">
+                                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-6 gap-x-4 gap-y-8 md:gap-x-8 md:gap-y-10 pb-4">
                                     {menuItems.map((item) => (
                                         <button
                                             key={item.id}

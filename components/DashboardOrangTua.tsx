@@ -102,7 +102,7 @@ const DashboardOrangTua: React.FC<DashboardOrangTuaProps> = ({ user, onLogout, s
     ];
 
     return (
-        <div className="h-screen bg-[#E0F2FE] font-sans flex flex-col relative overflow-hidden">
+        <div className="min-h-screen bg-[#E0F2FE] font-sans flex flex-col relative">
             {/* Background Decoration - Bubbles (Consistent with Login) */}
             <div className="fixed top-[-50px] left-[-50px] w-40 h-40 rounded-full border-[6px] border-[#BFDBFE] opacity-60 pointer-events-none"></div>
             <div className="fixed top-20 right-[-20px] w-24 h-24 rounded-full bg-[#BFDBFE] opacity-40 pointer-events-none"></div>
@@ -164,7 +164,7 @@ const DashboardOrangTua: React.FC<DashboardOrangTuaProps> = ({ user, onLogout, s
                 </div>
             </div>
 
-            <div className={`flex-1 relative z-10 w-full max-w-7xl mx-auto scrollbar-hide transition-all duration-500 ${activeView === 'home' ? 'p-3 sm:p-4 md:p-8 overflow-y-auto pb-32 sm:pb-32' : 'p-0 overflow-y-auto pb-10'}`}>
+            <div className={`flex-1 relative z-10 w-full max-w-7xl mx-auto scrollbar-hide transition-all duration-500 ${activeView === 'home' ? 'p-3 sm:p-4 md:p-8 overflow-y-auto pb-24 sm:pb-20' : 'p-0 overflow-y-auto pb-16'}`}>
                 {activeView === 'home' ? (
                     <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 animate-in fade-in duration-500">
                         {/* Left Column: Main Content Area */}
@@ -179,7 +179,7 @@ const DashboardOrangTua: React.FC<DashboardOrangTuaProps> = ({ user, onLogout, s
                                     </h3>
                                 </div>
 
-                                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-x-4 gap-y-10 md:gap-x-10 md:gap-y-12">
+                                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-x-4 gap-y-10 md:gap-x-10 md:gap-y-12 pb-4">
                                     {menuItems.map((item) => (
                                         <button
                                             key={item.id}
