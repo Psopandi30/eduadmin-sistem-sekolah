@@ -36,17 +36,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                 });
 
                 if (authError) {
-                    // In production, we don't fall back to legacy if Supabase is available
-                    // except for specific non-auth errors if any
-                    if (import.meta.env.PROD) {
-                        logger.error("❌ Supabase authentication failed:", authError.message);
-                        setError("Email atau password salah.");
-                        setIsLoading(false);
-                        return;
-                    }
-
-                    // In development, we can still fall back to legacy
-                    logger.debug("Supabase auth failed, falling back to legacy login (DEV ONLY):", authError.message);
+                    // Falls back to legacy login if Supabase auth fails (e.g. invalid credentials or user not in auth.users)
+                    logger.warn("Supabase auth failed, falling back to legacy login:", authError.message);
                     handleLegacyLogin();
                     return;
                 }
@@ -77,12 +68,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                     return;
                 }
             } catch (err: any) {
-                logger.warn("⚠️ Authentication error:", err.message);
-                if (import.meta.env.PROD) {
-                    setError("Terjadi kesalahan sistem saat login.");
-                    setIsLoading(false);
-                    return;
-                }
+                logger.warn("⚠️ Authentication error, falling back to legacy login:", err.message);
                 handleLegacyLogin();
                 return;
             }
