@@ -136,6 +136,23 @@ const DashboardOperatorData: React.FC<DashboardOperatorDataProps> = ({ user, onL
         showNew: false
     });
 
+    const isInitialLoadTutoring = React.useRef(true);
+    const isSyncingFromServer = React.useRef(false);
+
+    // Auto-sync for Tutoring Data (Debounced)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (tutoringSubjects.length > 0 || tutoringTeachers.length > 0) {
+                // Since this uses handleSaveTutoringData from context, 
+                // we should ideally update it to accept a silent param.
+                // For now, let's just trigger it.
+                handleSaveTutoringData(true);
+            }
+        }, 5000);
+
+        return () => clearTimeout(timer);
+    }, [tutoringSubjects, tutoringTeachers, tutoringMaterials, tutoringEnrollments]);
+
     // Positions State (Mirrors SuperAdmin)
     const [positions, setPositions] = useState<any[]>(() => {
         if (typeof window !== 'undefined') {
@@ -564,12 +581,10 @@ const DashboardOperatorData: React.FC<DashboardOperatorDataProps> = ({ user, onL
                                             <h2 className="text-2xl font-bold text-slate-800">Bimbingan Belajar</h2>
                                             <div className="flex items-center gap-4 mt-1">
                                                 <p className="text-slate-500 text-sm font-medium">Manajemen kelas tambahan dan materi bimbel.</p>
-                                                <button
-                                                    onClick={handleSaveTutoringData}
-                                                    className="flex items-center gap-1.5 px-3 py-1 bg-red-600 text-white text-[10px] font-bold rounded-lg hover:bg-red-700 transition-all shadow-lg shadow-red-200 animate-pulse"
-                                                >
-                                                    <Save size={12} /> SIMPAN KE DATABASE
-                                                </button>
+                                                <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded-lg border border-emerald-100">
+                                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></div>
+                                                    Auto-Sync Aktif
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

@@ -146,52 +146,61 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    const handleSaveTutoringData = async () => {
+    const handleSaveTutoringData = async (silent = false) => {
         if (!isSupabaseConfigured()) {
-            import('react-hot-toast').then(m => m.toast.error("Supabase tidak terkonfigurasi!"));
+            if (!silent) import('react-hot-toast').then(m => m.toast.error("Supabase tidak terkonfigurasi!"));
             return;
         }
 
         const toast = (await import('react-hot-toast')).toast;
-        const loadingToast = toast.loading("Sinkronisasi data Bimbel...");
+        let loadingToast: string | undefined;
+        if (!silent) loadingToast = toast.loading("Sinkronisasi data Bimbel...");
 
         try {
             // Logic moved from DashboardSuperAdmin
             // Sync Subjects
             if (tutoringSubjects.length > 0) {
-                await supabase.from('tutoring_subjects').upsert(tutoringSubjects.map(s => ({
-                    id: s.id > 1000000000 ? undefined : s.id,
-                    name: s.name,
-                    classes: s.classes,
-                    meetings_count: s.meetings,
-                    status: s.status
-                })));
+                const subjectsToSave = tutoringSubjects.map(s => {
+                    const obj: any = {
+                        name: s.name,
+                        classes: s.classes,
+                        meetings_count: s.meetings,
+                        status: s.status
+                    };
+                    if (typeof s.id === 'number' && s.id < 1000000000) obj.id = s.id;
+                    return obj;
+                });
+                await supabase.from('tutoring_subjects').upsert(subjectsToSave);
             }
             // Sync Teachers
             if (tutoringTeachers.length > 0) {
-                await supabase.from('tutoring_teachers').upsert(tutoringTeachers.map(t => ({
-                    id: t.id > 1000000000 ? undefined : t.id,
-                    name: t.name,
-                    source: t.source,
-                    subject_id: isNaN(parseInt(t.subjectId)) ? null : parseInt(t.subjectId),
-                    subject_name: t.subjectName,
-                    class_id: t.classId,
-                    schedule_day: t.scheduleDay,
-                    schedule_start: t.scheduleStart,
-                    schedule_end: t.scheduleEnd,
-                    username: t.username,
-                    password: t.password,
-                    students_count: t.studentsCount,
-                    status: t.status
-                })));
+                const teachersToSave = tutoringTeachers.map(t => {
+                    const obj: any = {
+                        name: t.name,
+                        source: t.source,
+                        subject_id: isNaN(parseInt(t.subjectId)) ? null : parseInt(t.subjectId),
+                        subject_name: t.subjectName,
+                        class_id: t.classId,
+                        schedule_day: t.scheduleDay,
+                        schedule_start: t.scheduleStart,
+                        schedule_end: t.scheduleEnd,
+                        username: t.username,
+                        password: t.password,
+                        students_count: t.studentsCount,
+                        status: t.status
+                    };
+                    if (typeof t.id === 'number' && t.id < 1000000000) obj.id = t.id;
+                    return obj;
+                });
+                await supabase.from('tutoring_teachers').upsert(teachersToSave);
             }
             // Materials & Enrollments sync could be added here too
 
-            toast.success("Data Bimbel berhasil disinkronkan!", { id: loadingToast });
+            if (!silent && loadingToast) toast.success("Data Bimbel berhasil disinkronkan!", { id: loadingToast });
             await fetchTutoringDataMain();
         } catch (err) {
             logger.error('Error saving tutoring data:', err);
-            toast.error("Gagal sinkronisasi data Bimbel", { id: loadingToast });
+            if (!silent && loadingToast) toast.error("Gagal sinkronisasi data Bimbel", { id: loadingToast });
         }
     };
 
