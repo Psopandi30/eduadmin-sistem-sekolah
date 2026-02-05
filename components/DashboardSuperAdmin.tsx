@@ -549,8 +549,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
     const isInitialLoadTutoring = React.useRef(true);
     const isSyncingFromServer = React.useRef(false);
-    const [editItem, setEditItem] = useState<any>(null);
-    const [editType, setEditType] = useState<'SubjectBimbel' | 'TeacherBimbel' | null>(null);
+    const [editItemLocal, setEditItemLocal] = useState<any>(null);
+    const [editTypeLocal, setEditTypeLocal] = useState<'SubjectBimbel' | 'TeacherBimbel' | null>(null);
     const [showEnrollStudentModal, setShowEnrollStudentModal] = useState(false);
     const [selectedTutoringGroupId, setSelectedTutoringGroupId] = useState<number | null>(null);
     const [searchStudentQuery, setSearchStudentQuery] = useState('');
@@ -1851,8 +1851,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                                                     studentsCount: t.studentsCount,
                                                                                     status: t.status
                                                                                 });
-                                                                                setEditItem(t);
-                                                                                setEditType('TeacherBimbel');
+                                                                                setEditItemLocal(t);
+                                                                                setEditTypeLocal('TeacherBimbel');
                                                                                 setShowAddTutoringTeacher(true);
                                                                             }}
                                                                             className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
@@ -2816,8 +2816,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                     return;
                                                 }
 
-                                                if (editItem && editType === 'TeacherBimbel') {
-                                                    setTutoringTeachers(prev => prev.map(t => t.id === editItem.id ? { ...newTutoringTeacher, id: editItem.id } : t));
+                                                if (editItemLocal && editTypeLocal === 'TeacherBimbel') {
+                                                    setTutoringTeachers(prev => prev.map(t => t.id === editItemLocal.id ? { ...newTutoringTeacher, id: editItemLocal.id } : t));
                                                     toast.success("Data guru bimbel berhasil diperbarui!");
                                                 } else {
                                                     setTutoringTeachers([...tutoringTeachers, { ...newTutoringTeacher, id: Date.now() + Math.random() }]);
@@ -2825,8 +2825,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                 }
 
                                                 setShowAddTutoringTeacher(false);
-                                                setEditItem(null);
-                                                setEditType(null);
+                                                setEditItemLocal(null);
+                                                setEditTypeLocal(null);
                                                 setNewTutoringTeacher({
                                                     name: '', source: 'Internal', subjectId: '', subjectName: '',
                                                     classId: '', scheduleDay: 'Senin', scheduleStart: '14:00', scheduleEnd: '15:30',
@@ -2835,7 +2835,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                             }}
                                             className="w-full py-4 bg-orange-600 text-white font-bold rounded-2xl hover:bg-orange-700 shadow-lg shadow-orange-200 transition-all mt-4"
                                         >
-                                            {editItem && editType === 'TeacherBimbel' ? 'Update Data Guru' : 'Simpan Data Guru'}
+                                            {editItemLocal && editTypeLocal === 'TeacherBimbel' ? 'Update Data Guru' : 'Simpan Data Guru'}
                                         </button>
                                     </div>
                                 </div>

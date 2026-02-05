@@ -142,7 +142,7 @@ const DashboardOperatorData: React.FC<DashboardOperatorDataProps> = ({ user, onL
     const isInitialLoadTutoring = React.useRef(true);
     const isSyncingFromServer = React.useRef(false);
     const [editItem, setEditItem] = useState<any>(null);
-    const [editType, setEditType] = useState<'SubjectBimbel' | 'TeacherBimbel' | null>(null);
+    const [editType, setEditType] = useState<string>('');
 
     // Auto-sync for Tutoring Data (Debounced)
     useEffect(() => {
@@ -182,9 +182,6 @@ const DashboardOperatorData: React.FC<DashboardOperatorDataProps> = ({ user, onL
     const [showTeacherModal, setShowTeacherModal] = useState(false);
     const [showPositionModal, setShowPositionModal] = useState(false);
 
-    // Generic Edit State
-    const [editItem, setEditItem] = useState<any>(null);
-    const [editType, setEditType] = useState('');
 
     // Form States
     const [newTeacher, setNewTeacher] = useState({ nama: '', nip: '', jabatan: 'Guru Mata Pelajaran', class: '' });
