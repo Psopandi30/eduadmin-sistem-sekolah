@@ -547,9 +547,13 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         localStorage.setItem('tutoring_enrollments_v10', JSON.stringify(tutoringEnrollments));
     }, [tutoringEnrollments]);
 
+    const isInitialLoadTutoring = React.useRef(true);
+    const isSyncingFromServer = React.useRef(false);
+
     // NEW: FETCH TUTORING DATA FROM SUPABASE
     const fetchTutoringDataMain = async () => {
         if (!isSupabaseConfigured()) return;
+        isSyncingFromServer.current = true;
         try {
             // Fetch Subjects
             const { data: subData } = await supabase.from('tutoring_subjects').select('*');
@@ -607,6 +611,11 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
             }
         } catch (err) {
             logger.error('Error fetching tutoring data:', err);
+        } finally {
+            setTimeout(() => {
+                isSyncingFromServer.current = false;
+                isInitialLoadTutoring.current = false;
+            }, 1000);
         }
     };
 
@@ -615,25 +624,30 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     }, []);
 
     // NEW: SAVE TUTORING DATA TO SUPABASE
-    const handleSaveTutoringData = async () => {
+    const handleSaveTutoringData = async (silent = false) => {
         if (!isSupabaseConfigured()) {
-            toast.error("Supabase tidak terkonfigurasi!");
+            if (!silent) toast.error("Supabase tidak terkonfigurasi!");
             return;
         }
 
-        const loadingToast = toast.loading("Sinkronisasi data Bimbel ke database...");
+        let loadingToast: string | undefined;
+        if (!silent) loadingToast = toast.loading("Sinkronisasi data Bimbel ke database...");
 
         try {
             // 1. Sync Subjects and get real IDs
             let subjectsMap: Record<number, number> = {}; // temporary ID -> real DB ID
             if (tutoringSubjects.length > 0) {
-                const subjectsToSave = tutoringSubjects.map(s => ({
-                    id: s.id > 1000000000 ? undefined : s.id,
-                    name: s.name,
-                    classes: s.classes,
-                    meetings_count: s.meetings,
-                    status: s.status
-                }));
+                const subjectsToSave = tutoringSubjects.map(s => {
+                    const obj: any = {
+                        name: s.name,
+                        classes: s.classes,
+                        meetings_count: s.meetings,
+                        status: s.status
+                    };
+                    // Only include id if it's an existing record from DB (small numeric ID)
+                    if (typeof s.id === 'number' && s.id < 1000000000) obj.id = s.id;
+                    return obj;
+                });
 
                 const { data: savedSubjects, error: subError } = await supabase
                     .from('tutoring_subjects')
@@ -644,7 +658,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                 // Map temporary IDs to real IDs
                 tutoringSubjects.forEach((s) => {
-                    if (s.id > 1000000000 && savedSubjects) {
+                    if (typeof s.id === 'number' && s.id > 1000000000 && savedSubjects) {
                         const saved = savedSubjects.find(ss => ss.name === s.name);
                         if (saved) subjectsMap[s.id] = saved.id;
                     } else {
@@ -660,8 +674,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     const tempSubId = parseInt(t.subjectId);
                     const realSubId = subjectsMap[tempSubId] || tempSubId;
 
-                    return {
-                        id: t.id > 1000000000 ? undefined : t.id,
+                    const obj: any = {
                         name: t.name,
                         source: t.source,
                         subject_id: isNaN(realSubId) ? null : realSubId,
@@ -675,6 +688,9 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                         students_count: t.studentsCount,
                         status: t.status
                     };
+                    // Only include id if it's an existing record from DB (small numeric ID)
+                    if (typeof t.id === 'number' && t.id < 1000000000) obj.id = t.id;
+                    return obj;
                 });
 
                 const { data: savedTeachers, error: teachError } = await supabase
@@ -686,7 +702,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                 // Map temporary IDs to real IDs
                 tutoringTeachers.forEach((t) => {
-                    if (t.id > 1000000000 && savedTeachers) {
+                    if (typeof t.id === 'number' && t.id > 1000000000 && savedTeachers) {
                         const saved = savedTeachers.find(st => st.username === t.username);
                         if (saved) teachersMap[t.id] = saved.id;
                     } else {
@@ -699,8 +715,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
             if (tutoringMaterials.length > 0) {
                 const materialsToSave = tutoringMaterials.map(m => {
                     const realTeachId = teachersMap[m.teacherId] || m.teacherId;
-                    return {
-                        id: m.id > 1000000000 ? undefined : m.id,
+                    const obj: any = {
                         teacher_id: realTeachId,
                         subject_name: m.subjectName,
                         meeting_number: m.meeting,
@@ -708,6 +723,9 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                         video_url: m.videoUrl,
                         file_url: m.fileUrl
                     };
+                    // Only include id if it's an existing record from DB (small numeric ID)
+                    if (typeof m.id === 'number' && m.id < 1000000000) obj.id = m.id;
+                    return obj;
                 });
                 const { error: matError } = await supabase.from('tutoring_materials').upsert(materialsToSave);
                 if (matError) throw matError;
@@ -725,13 +743,26 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                 if (enrollError) logger.warn("Enrollment sync warned:", enrollError);
             }
 
-            toast.success("Data Bimbel Berhasil Disinkronkan!", { id: loadingToast });
+            if (!silent && loadingToast) toast.success("Data Bimbel Berhasil Disinkronkan!", { id: loadingToast });
             fetchTutoringDataMain();
         } catch (err: any) {
             logger.error('Save error:', err);
-            toast.error("Gagal sinkron: " + err.message, { id: loadingToast });
+            if (!silent && loadingToast) toast.error("Gagal sinkron: " + err.message, { id: loadingToast });
         }
     };
+
+    // Auto-sync for Tutoring Data (Debounced)
+    useEffect(() => {
+        if (isSyncingFromServer.current || isInitialLoadTutoring.current) return;
+
+        const timer = setTimeout(() => {
+            if (tutoringSubjects.length > 0 || tutoringTeachers.length > 0) {
+                handleSaveTutoringData(true);
+            }
+        }, 5000); // 5 seconds delay for safer auto-sync
+
+        return () => clearTimeout(timer);
+    }, [tutoringSubjects, tutoringTeachers, tutoringMaterials, tutoringEnrollments]);
 
     // --- TUTORING HELPERS ---
     const [showAddTutoringSubject, setShowAddTutoringSubject] = useState(false);
@@ -1623,12 +1654,10 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                     <h2 className="text-2xl font-bold text-slate-800">Bimbingan Belajar</h2>
                                                     <div className="flex items-center gap-4 mt-1">
                                                         <p className="text-slate-500 text-sm font-medium">Manajemen kelas tambahan dan materi bimbel.</p>
-                                                        <button
-                                                            onClick={handleSaveTutoringData}
-                                                            className="flex items-center gap-1.5 px-3 py-1 bg-red-600 text-white text-[10px] font-bold rounded-lg hover:bg-red-700 transition-all shadow-lg shadow-red-200 animate-pulse hover:animate-none"
-                                                        >
-                                                            <Save size={12} /> SIMPAN KE DATABASE
-                                                        </button>
+                                                        <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded-lg border border-emerald-100">
+                                                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></div>
+                                                            Auto-Sync Aktif
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
