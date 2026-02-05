@@ -274,6 +274,53 @@ const DashboardOperatorData: React.FC<DashboardOperatorDataProps> = ({ user, onL
 
     return (
         <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
+            {/* Sidebar */}
+            <aside className={`bg-[#1E3A8A] flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'} hidden md:flex rounded-r-[2rem] my-4 ml-4 shadow-2xl z-20 overflow-hidden`}>
+                <div className="h-20 flex items-center justify-between px-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white font-bold text-lg backdrop-blur-sm shrink-0">
+                            <Database size={20} />
+                        </div>
+                        {!isSidebarCollapsed && <span className="text-white font-bold text-xl tracking-tight truncate">Operator</span>}
+                    </div>
+                </div>
+
+                <nav className="flex-1 overflow-y-auto py-2 space-y-1 custom-scrollbar">
+                    {menuItems.map((item) => (
+                        <div
+                            key={item.id}
+                            onClick={() => setActiveView(item.id)}
+                            title={isSidebarCollapsed ? item.label : ''}
+                            className={`
+                                flex items-center gap-3 px-4 py-2.5 transition-all duration-300 font-medium relative group cursor-pointer text-sm
+                                ${activeView === item.id || activeView.startsWith(item.id.replace('data_', ''))
+                                    ? 'text-blue-800 bg-slate-50 rounded-r-full mr-4'
+                                    : 'text-blue-100 hover:text-white hover:bg-white/10 mx-4 rounded-xl'
+                                }
+                                ${isSidebarCollapsed ? 'justify-center mx-2' : ''}
+                            `}
+                        >
+                            <span className={`${activeView === item.id || activeView.startsWith(item.id.replace('data_', '')) ? 'text-[#1E3A8A]' : ''} shrink-0`}>
+                                {item.icon}
+                            </span>
+                            {!isSidebarCollapsed && <span className="truncate text-sm font-medium">{item.label}</span>}
+                            {(activeView === item.id || activeView.startsWith(item.id.replace('data_', ''))) && !isSidebarCollapsed && (
+                                <>
+                                    <div className="absolute right-0 -top-8 w-8 h-8 bg-transparent rounded-br-full shadow-[5px_5px_0_5px_#F8FAFC]"></div>
+                                    <div className="absolute right-0 -bottom-8 w-8 h-8 bg-transparent rounded-tr-full shadow-[5px_-5px_0_5px_#F8FAFC]"></div>
+                                </>
+                            )}
+                        </div>
+                    ))}
+                </nav>
+
+                <div className="p-6">
+                    <button onClick={onLogout} className={`flex items-center gap-3 text-red-300 hover:text-red-100 transition-colors text-sm ${isSidebarCollapsed ? 'justify-center' : ''}`}>
+                        <LogOut size={18} /> {!isSidebarCollapsed && "Logout"}
+                    </button>
+                </div>
+            </aside>
+
             {/* Main Content */}
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
                 {/* Header */}
@@ -1053,52 +1100,6 @@ const DashboardOperatorData: React.FC<DashboardOperatorDataProps> = ({ user, onL
                 </main>
             </div>
 
-            {/* Sidebar */}
-            <aside className={`bg-[#1E1B4B] flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'} hidden md:flex rounded-l-[2rem] my-4 mr-4 shadow-2xl z-20 overflow-hidden`}>
-                <div className="h-20 flex items-center justify-between px-6">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white font-bold text-lg backdrop-blur-sm shrink-0">
-                            <Database size={20} />
-                        </div>
-                        {!isSidebarCollapsed && <span className="text-white font-bold text-xl tracking-tight truncate">Operator</span>}
-                    </div>
-                </div>
-
-                <nav className="flex-1 overflow-y-auto py-2 space-y-1 custom-scrollbar">
-                    {menuItems.map((item) => (
-                        <div
-                            key={item.id}
-                            onClick={() => setActiveView(item.id)}
-                            title={isSidebarCollapsed ? item.label : ''}
-                            className={`
-                                flex items-center gap-3 px-4 py-2.5 transition-all duration-300 font-medium relative group cursor-pointer text-sm
-                                ${activeView === item.id || activeView.startsWith(item.id.replace('data_', ''))
-                                    ? 'text-blue-800 bg-slate-50 rounded-l-full ml-4'
-                                    : 'text-blue-100 hover:text-white hover:bg-white/10 mx-4 rounded-xl'
-                                }
-                                ${isSidebarCollapsed ? 'justify-center mx-2' : ''}
-                            `}
-                        >
-                            <span className={`${activeView === item.id || activeView.startsWith(item.id.replace('data_', '')) ? 'text-[#1E1B4B]' : ''} shrink-0`}>
-                                {item.icon}
-                            </span>
-                            {!isSidebarCollapsed && <span className="truncate text-sm font-medium">{item.label}</span>}
-                            {(activeView === item.id || activeView.startsWith(item.id.replace('data_', ''))) && !isSidebarCollapsed && (
-                                <>
-                                    <div className="absolute right-0 -top-8 w-8 h-8 bg-transparent rounded-br-full shadow-[5px_5px_0_5px_#F8FAFC]"></div>
-                                    <div className="absolute right-0 -bottom-8 w-8 h-8 bg-transparent rounded-tr-full shadow-[5px_-5px_0_5px_#F8FAFC]"></div>
-                                </>
-                            )}
-                        </div>
-                    ))}
-                </nav>
-
-                <div className="p-6">
-                    <button onClick={onLogout} className={`flex items-center gap-3 text-red-300 hover:text-red-100 transition-colors text-sm ${isSidebarCollapsed ? 'justify-center' : ''}`}>
-                        <LogOut size={18} /> {!isSidebarCollapsed && "Logout"}
-                    </button>
-                </div>
-            </aside>
         </div>
     );
 };

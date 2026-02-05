@@ -74,7 +74,7 @@ const DashboardKepalaSekolah: React.FC<DashboardKepalaSekolahProps> = ({ user, o
     return (
         <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
             {/* Sidebar - Super Admin Style */}
-            <aside className="bg-[#1E1B4B] flex flex-col transition-all duration-300 w-64 hidden md:flex rounded-r-[2rem] my-4 ml-4 shadow-2xl z-20">
+            <aside className="bg-[#1E3A8A] flex flex-col transition-all duration-300 w-64 hidden md:flex rounded-r-[2rem] my-4 ml-4 shadow-2xl z-20">
                 <div className="h-20 flex items-center justify-between px-6">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white font-bold text-lg backdrop-blur-sm">KS</div>
@@ -91,7 +91,7 @@ const DashboardKepalaSekolah: React.FC<DashboardKepalaSekolahProps> = ({ user, o
                                 : 'text-blue-100 hover:text-white hover:bg-white/10 mx-4 rounded-xl'
                             }
                         `}>
-                            <span className={activeView === item.id ? 'text-[#1E1B4B]' : ''}>{item.icon}</span>
+                            <span className={activeView === item.id ? 'text-[#1E3A8A]' : ''}>{item.icon}</span>
                             <span className="truncate text-sm font-medium">{item.label}</span>
                             {/* Decorative Curve */}
                             {activeView === item.id && (

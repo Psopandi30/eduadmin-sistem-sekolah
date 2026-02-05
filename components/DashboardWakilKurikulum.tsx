@@ -236,7 +236,7 @@ const DashboardWakilKurikulum: React.FC<DashboardWakilKurikulumProps> = ({ user,
     return (
         <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
             {/* Sidebar */}
-            <aside className={`bg-[#1E1B4B] flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'w-24' : 'w-64'} hidden md:flex rounded-r-[2rem] my-4 ml-4 shadow-2xl z-20`}>
+            <aside className={`bg-[#1E3A8A] flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'w-24' : 'w-64'} hidden md:flex rounded-r-[2rem] my-4 ml-4 shadow-2xl z-20`}>
                 <div className={`h-20 flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'} px-6`}>
                     {!isSidebarCollapsed && (
                         <div className="flex items-center gap-3 animate-in fade-in zoom-in duration-300">
@@ -267,7 +267,7 @@ const DashboardWakilKurikulum: React.FC<DashboardWakilKurikulumProps> = ({ user,
                             `}
                             title={isSidebarCollapsed ? item.label : ''}
                         >
-                            <span className={activeView === item.id ? 'text-[#1E1B4B]' : ''}>{item.icon}</span>
+                            <span className={activeView === item.id ? 'text-[#1E3A8A]' : ''}>{item.icon}</span>
                             {!isSidebarCollapsed && <span className="truncate text-sm font-medium animate-in fade-in slide-in-from-left-2 duration-300">{item.label}</span>}
                             {activeView === item.id && !isSidebarCollapsed && (
                                 <>

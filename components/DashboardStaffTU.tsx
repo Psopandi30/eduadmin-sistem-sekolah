@@ -124,7 +124,7 @@ const DashboardStaffTU: React.FC<DashboardStaffTUProps> = ({ user, onLogout, sch
     return (
         <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
             {/* Sidebar */}
-            <aside className={`bg-[#1E1B4B] flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'} hidden md:flex rounded-r-[2rem] my-4 ml-4 shadow-2xl z-20 overflow-hidden`}>
+            <aside className={`bg-[#1E3A8A] flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'} hidden md:flex rounded-r-[2rem] my-4 ml-4 shadow-2xl z-20 overflow-hidden`}>
                 <div className={`h-20 flex items-center transition-all duration-300 ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-6'}`}>
                     <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'hidden' : 'flex'}`}>
                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white font-bold text-lg backdrop-blur-sm">TU</div>
@@ -153,7 +153,7 @@ const DashboardStaffTU: React.FC<DashboardStaffTUProps> = ({ user, onLogout, sch
                             `}
                             title={isSidebarCollapsed ? item.label : ''}
                         >
-                            <span className={activeView === item.id ? 'text-[#1E1B4B]' : ''}>{item.icon}</span>
+                            <span className={activeView === item.id ? 'text-[#1E3A8A]' : ''}>{item.icon}</span>
                             {!isSidebarCollapsed && <span className="truncate text-sm font-medium">{item.label}</span>}
                             {activeView === item.id && !isSidebarCollapsed && (
                                 <>
