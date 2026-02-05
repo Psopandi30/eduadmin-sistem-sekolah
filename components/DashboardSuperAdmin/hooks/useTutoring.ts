@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { tutoringSubjectsGlobal, tutoringTeachersGlobal, updateTutoringSubjectsGlobal, updateTutoringTeachersGlobal } from '../../../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
 import { toast } from 'react-hot-toast';
+import logger from '../../../src/utils/logger';
 
 export interface TutoringSession {
     id: number;
@@ -83,7 +84,7 @@ export const useTutoring = () => {
                 setTutoringClasses(mappedClasses);
             }
         } catch (error) {
-            console.error('Error fetching tutoring data:', error);
+            logger.error('Error fetching tutoring data:', error);
         } finally {
             setIsLoading(false);
         }
@@ -117,7 +118,7 @@ export const useTutoring = () => {
             toast.success("Materi berhasil diunggah ke cloud!");
             await fetchTutoringData();
         } catch (err) {
-            console.error("Error saving material", err);
+            logger.error("Error saving material", err);
             toast.error("Gagal mengunggah materi.");
         }
     };
@@ -129,7 +130,7 @@ export const useTutoring = () => {
             toast.success("Materi berhasil dihapus!");
             await fetchTutoringData();
         } catch (err) {
-            console.error("Error deleting material", err);
+            logger.error("Error deleting material", err);
         }
     };
 

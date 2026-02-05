@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronRight, Calendar, BookOpen, AlertCircle } from 'lucide-react';
 import { schedulesDataGlobal, subjectsDataGlobal, schedulePeriodsGlobal } from '../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
+import logger from '../src/utils/logger';
 
 interface JadwalPelajaranProps {
     onBack: () => void;
@@ -54,7 +55,7 @@ const JadwalPelajaran: React.FC<JadwalPelajaranProps> = ({ onBack, user }) => {
                     }
                 }
             } catch (err) {
-                console.warn("Could not fetch schedules from cloud, using local fallback");
+                logger.warn("Could not fetch schedules from cloud, using local fallback");
             } finally {
                 setLoading(false);
             }

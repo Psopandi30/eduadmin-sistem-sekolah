@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, MessageCircle, User } from 'lucide-react';
 import { broadcastsDataGlobal, multimediaSettingsGlobal } from '../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
+import logger from '../src/utils/logger';
 
 interface ChannelSekolahSiswaProps {
     onBack: () => void;
@@ -41,7 +42,7 @@ const ChannelSekolahSiswa: React.FC<ChannelSekolahSiswaProps> = ({ onBack }) => 
                     setSettings(multimediaSettingsGlobal);
                 }
             } catch (err) {
-                console.error("Failed to load channel data from cloud", err);
+                logger.error("Failed to load channel data from cloud", err);
                 setBroadcasts(broadcastsDataGlobal);
                 setSettings(multimediaSettingsGlobal);
             } finally {

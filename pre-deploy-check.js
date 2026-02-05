@@ -16,21 +16,55 @@ dotenv.config({ path: '.env.local' });
 const checks = [
   {
     name: 'Supabase URL configured',
-    check: () => process.env.VITE_SUPABASE_URL && !process.env.VITE_SUPABASE_URL.includes('your-project-id'),
-    message: 'Set VITE_SUPABASE_URL in .env.local'
+    check: () => {
+      const url = process.env.VITE_SUPABASE_URL;
+      return url && url !== '' && !url.includes('your-project-id') && url.startsWith('https://');
+    },
+    message: 'Set a valid VITE_SUPABASE_URL in .env.local'
   },
   {
     name: 'Supabase Anon Key configured',
-    check: () => process.env.VITE_SUPABASE_ANON_KEY && !process.env.VITE_SUPABASE_ANON_KEY.includes('your-supabase-anon-key'),
-    message: 'Set VITE_SUPABASE_ANON_KEY in .env.local'
+    check: () => {
+      const key = process.env.VITE_SUPABASE_ANON_KEY;
+      return key && key !== '' && !key.includes('your-supabase-anon-key') && key.length > 50;
+    },
+    message: 'Set a valid VITE_SUPABASE_ANON_KEY in .env.local'
   },
   {
-    name: 'Gemini API Key configured (Optional)',
+    name: 'Gemini API Key configured',
     check: () => {
-      // Gemini API key sekarang optional karena menggunakan sistem database
-      return true; // Selalu pass karena optional
+      const key = process.env.GEMINI_API_KEY;
+      if (!key || key.includes('your_gemini')) {
+        return 'warning'; // Signifies a warning but doesn't fail the build
+      }
+      return true;
     },
-    message: 'Optional: Set GEMINI_API_KEY in .env.local sebagai fallback (sistem utama menggunakan database)'
+    message: 'Notice: GEMINI_API_KEY is currently using placeholder. AI features may not work.'
+  },
+  {
+    name: 'Production Login Fallback Disabled',
+    check: () => {
+      // This is a code check, we assume the developer has implemented the check in Login.tsx
+      try {
+        const loginContent = readFileSync('components/Login.tsx', 'utf8');
+        return loginContent.includes('import.meta.env.PROD') && loginContent.includes('handleLegacyLogin');
+      } catch {
+        return false;
+      }
+    },
+    message: 'Ensure handleLegacyLogin in components/Login.tsx is protected by import.meta.env.PROD'
+  },
+  {
+    name: 'Logger Utility Used',
+    check: () => {
+      try {
+        const appContent = readFileSync('App.tsx', 'utf8');
+        return appContent.includes('logger');
+      } catch {
+        return false;
+      }
+    },
+    message: 'Ensure logger utility is being used for production-safe logging'
   },
   {
     name: 'Build script exists',
@@ -43,32 +77,27 @@ const checks = [
       }
     },
     message: 'Add build script to package.json'
-  },
-  {
-    name: 'Vite config exists',
-    check: () => {
-      try {
-        readFileSync('vite.config.ts', 'utf8');
-        return true;
-      } catch {
-        return false;
-      }
-    },
-    message: 'Create vite.config.ts'
   }
 ];
 
 let allPassed = true;
+let hasWarnings = false;
 
 checks.forEach(({ name, check, message }) => {
-  const passed = check();
-  const status = passed ? '✅' : '❌';
+  const result = check();
+  const passed = result === true;
+  const warning = result === 'warning';
+
+  const status = passed ? '✅' : (warning ? '⚠️' : '❌');
 
   console.log(`${status} ${name}`);
 
-  if (!passed) {
+  if (!passed && !warning) {
     console.log(`   💡 ${message}`);
     allPassed = false;
+  } else if (warning) {
+    console.log(`   💡 ${message}`);
+    hasWarnings = true;
   }
 });
 

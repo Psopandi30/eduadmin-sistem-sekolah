@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Edit3, ChevronDown, FileSpreadsheet, Star, ChevronRight } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 import { toast } from 'react-hot-toast';
+import logger from '../src/utils/logger';
 
 interface RapotSiswaProps {
     onBack: () => void;
@@ -20,7 +21,9 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
             try {
                 const parsed = JSON.parse(saved);
                 return parsed.map((s: any) => s.name);
-            } catch (e) { }
+            } catch (e) {
+                logger.warn("Failed to parse subjects from localStorage", e);
+            }
         }
         return [
             "Pendidikan Agama", "Pendidikan Pancasila", "Bahasa Indonesia",
@@ -82,6 +85,7 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
                     }
                     loadedSubjects.push({ id: i + 1, name: subj, daily, exam, report });
                 } catch (e) {
+                    logger.error(`Error loading grades for ${subj}:`, e);
                     loadedSubjects.push({ id: i + 1, name: subj, daily: 0, exam: 0, report: 0 });
                 }
             }
@@ -111,7 +115,9 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
                         decision: "Naik Ke Kelas"
                     });
                 }
-            } catch (e) { }
+            } catch (e) {
+                logger.error("Error loading supplementary data:", e);
+            }
         };
 
         loadContent();
@@ -133,6 +139,7 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
                 });
                 toast.success("Data pelengkap rapor berhasil disinkronkan!");
             } catch (e) {
+                logger.error("Cloud sync failed:", e);
                 toast.error("Gagal sinkron ke cloud.");
             }
         }

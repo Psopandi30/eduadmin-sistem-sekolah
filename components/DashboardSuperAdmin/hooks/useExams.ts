@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
 import { examsDataGlobal, updateExamsDataGlobal, MasterExamSchedule } from '../../../data/sharedData';
 import { toast } from 'react-hot-toast';
+import logger from '../../../src/utils/logger';
 
 export const useExams = () => {
     const [examSchedules, setExamSchedules] = useState<MasterExamSchedule[]>(() => {
@@ -31,7 +32,7 @@ export const useExams = () => {
                 localStorage.setItem('exam_schedules_v2', JSON.stringify(parsed));
             }
         } catch (err) {
-            console.warn('No cloud exams found');
+            logger.warn('No cloud exams found');
         } finally {
             setLoading(false);
         }
@@ -56,7 +57,7 @@ export const useExams = () => {
             if (error) throw error;
             toast.success('Jadwal ujian berhasil disinkronkan ke cloud!');
         } catch (err: any) {
-            console.error('Failed to sync exams:', err.message);
+            logger.error('Failed to sync exams:', err.message);
             toast.error('Gagal simpan ke cloud, data tetap tersimpan lokal.');
         }
     };

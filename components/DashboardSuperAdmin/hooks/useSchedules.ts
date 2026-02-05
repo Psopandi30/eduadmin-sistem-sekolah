@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { schedulesDataGlobal, updateSchedulesDataGlobal, MasterSchedule } from '../../../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
 import { toast } from 'react-hot-toast';
+import logger from '../../../src/utils/logger';
 
 export const useSchedules = () => {
     const [schedules, setSchedules] = useState<MasterSchedule[]>(() => {
@@ -38,7 +39,7 @@ export const useSchedules = () => {
             }
             setIsInitialFetched(true);
         } catch (err) {
-            console.warn('Note: app_settings table might not exist yet. Using local data for schedules.');
+            logger.warn('Note: app_settings table might not exist yet. Using local data for schedules.');
             setIsInitialFetched(true);
         } finally {
             setLoading(false);
@@ -64,7 +65,7 @@ export const useSchedules = () => {
             if (error) throw error;
             toast.success('Jadwal berhasil disimpan ke cloud!');
         } catch (err: any) {
-            console.error('Failed to save to Supabase:', err.message);
+            logger.error('Failed to save to Supabase:', err.message);
             toast.error('Gagal simpan ke cloud, data tetap tersimpan lokal.');
         }
     };

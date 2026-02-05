@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { gradesDataGlobal } from '../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
+import logger from '../src/utils/logger';
 
 interface DetailNilaiProps {
     onBack: () => void;
@@ -75,7 +76,7 @@ const DetailNilai: React.FC<DetailNilaiProps> = ({ onBack, category, user }) => 
             }
             setCloudGrades(results);
         } catch (err) {
-            console.error("Error fetching grades from cloud", err);
+            logger.error("Error fetching grades from cloud", err);
         } finally {
             setLoading(false);
         }
@@ -120,7 +121,7 @@ const DetailNilai: React.FC<DetailNilaiProps> = ({ onBack, category, user }) => 
                     }
                 }
             } catch (e) {
-                console.error("Failed to parse grades for " + sub.name, e);
+                logger.error("Failed to parse grades for " + sub.name, e);
             }
 
             if (category === 'Nilai Ulangan') {

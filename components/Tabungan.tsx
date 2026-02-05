@@ -26,6 +26,7 @@ import { getColorClasses, type ColorName } from '../utils/tailwindHelpers';
 import { studentsDataGlobal } from '../data/sharedData';
 import { useSavings } from './DashboardSuperAdmin/hooks/useSavings';
 import { toast } from 'react-hot-toast';
+import logger from '../src/utils/logger';
 
 const Tabungan: React.FC = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -485,6 +486,7 @@ const Tabungan: React.FC = () => {
                                                                         setSavingPreviewData(preview);
                                                                         toast.success(`${preview.length} data dimuat.`);
                                                                     } catch (err) {
+                                                                        logger.error("Excel import error:", err);
                                                                         toast.error("Format file tidak didukung!");
                                                                     }
                                                                 };

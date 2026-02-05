@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { supabase, isSupabaseConfigured } from '../../../../src/lib/supabase';
 import { useRef } from 'react';
+import { logger } from '../../../../src/utils/logger';
 
 
 import { GradeRow } from '../../types'; // Move interface if shared, or keep here for now but generic is okay
@@ -18,11 +19,12 @@ interface NilaiViewProps {
     students: any[];
     classes: any[];
     subjects: any[];
+    readOnly?: boolean;
 }
 
 
 
-const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes, subjects }) => {
+const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes, subjects, readOnly = false }) => {
     // --- STATE FILTER ---
     // Use optional chaining and default to empty string or first item if available
     const [selectedClass, setSelectedClass] = useState('');
@@ -58,39 +60,43 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes,
 
     // --- INITIALIZE DATA ---
     useEffect(() => {
-        if (!selectedClass || !selectedSubject) return;
+        if (!selectedClass) {
+            setGrades([]);
+            return;
+        }
 
-        const key = getStorageKey();
-        const savedData = localStorage.getItem(key);
+        const classStudents = students.filter(s => s.kelas === selectedClass || s.class === selectedClass);
 
-        if (savedData) {
-            try {
-                setGrades(JSON.parse(savedData));
-                setIsDirty(false);
-                return;
-            } catch (e) {
-                console.error("Failed to parse saved grades:", e);
-                localStorage.removeItem(key);
+        // Try to load saved grades if subject is selected
+        if (selectedSubject) {
+            const key = getStorageKey();
+            const savedData = localStorage.getItem(key);
+
+            if (savedData) {
+                try {
+                    const parsed = JSON.parse(savedData);
+                    // Ensure the number of students matches (optional sync)
+                    if (parsed.length > 0) {
+                        setGrades(parsed);
+                        setIsDirty(false);
+                        return;
+                    }
+                } catch (e) {
+                    logger.error("Failed to parse saved grades:", e);
+                    localStorage.removeItem(key);
+                }
             }
         }
 
-        const classStudents = students.filter(s => s.kelas === selectedClass || s.class === selectedClass); // Handle varying key casing if needed
-
-        // Initial empty state (0) instead of random mock
+        // Fallback: Initial state with students of the class
         const initialGrades: GradeRow[] = classStudents.map(s => ({
             studentId: s.id,
             studentName: s.nama,
-            studentNis: s.nis || s.username || '', // Fallback
-            tp1: 0,
-            tp2: 0,
-            tp3: 0,
-            tp4: 0,
+            studentNis: s.nis || s.username || '',
+            tp1: 0, tp2: 0, tp3: 0, tp4: 0,
             avgSumatif: 0,
-            pts: 0,
-            pas: 0,
-            pat: 0,
-            ujisn: 0,
-            sas: 0,
+            pts: 0, pas: 0, pat: 0,
+            ujisn: 0, sas: 0,
             finalScore: 0,
             predicate: '-',
             description: ''
@@ -138,7 +144,7 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes,
             try {
                 setMasterDescriptions(JSON.parse(savedDesc));
             } catch (e) {
-                console.error("Failed to load master descriptions", e);
+                logger.error("Failed to load master descriptions", e);
             }
         }
     }, []);
@@ -248,7 +254,7 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes,
                 if (error) throw error;
                 toast.success('Data berhasil disimpan ke Cloud!', { id: toastId });
             } catch (err) {
-                console.error("Supabase Save Error:", err);
+                logger.error("Supabase Save Error:", err);
                 toast.error('Gagal simpan ke Cloud, tersimpan lokal.', { id: toastId });
             }
         } else {
@@ -363,7 +369,7 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes,
                 setIsDirty(true);
                 toast.success(`Berhasil mengimpor nilai untuk ${data.length} siswa!`);
             } catch (err) {
-                console.error("Import Error:", err);
+                logger.error("Import Error:", err);
                 toast.error("Gagal membaca file Excel. Pastikan format benar.");
             }
         };
@@ -396,8 +402,8 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes,
                                 <FileSpreadsheet size={24} className="text-blue-600" />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold text-slate-800">Manajemen Nilai</h2>
-                                <p className="text-slate-500 text-sm font-medium">Kelola nilai harian (ulangan) dan ujian akhir siswa.</p>
+                                <h2 className="text-2xl font-bold text-slate-800">Monitoring Nilai</h2>
+                                <p className="text-slate-500 text-sm font-medium">Pantau nilai harian and ujian siswa per kelas.</p>
                             </div>
                         </div>
 
@@ -426,11 +432,11 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes,
                                         onChange={(e) => setSelectedSubject(e.target.value)}
                                         className="appearance-none bg-transparent font-bold text-slate-700 outline-none text-sm cursor-pointer pr-6 w-40 truncate"
                                     >
+                                        {!selectedSubject && <option value="">Pilih Mapel...</option>}
                                         {subjects.map(s => {
                                             const name = typeof s === 'string' ? s : s.name;
                                             return <option key={name} value={name} className="text-slate-800">{name}</option>;
                                         })}
-
                                     </select>
                                     <ChevronDown size={14} className="absolute right-0 top-1 text-slate-400 pointer-events-none" />
                                 </div>
@@ -450,341 +456,405 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes,
                         </div>
                     </div>
 
-                    {/* Navigation Tabs */}
-                    <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-2">
-                        {[
-                            { id: 'sumatif', label: 'Ulangan Harian', icon: <BookOpen size={16} /> },
-                            { id: 'pts', label: 'PTS', icon: <FileSpreadsheet size={16} /> },
-                            { id: 'pas_pat', label: 'PAS / PAT', icon: <Calculator size={16} /> },
-                            { id: 'rapor', label: 'Nilai Rapor', icon: <Trophy size={16} /> },
-                        ].map(tab => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
-                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === tab.id
-                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-                                    : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-100'
-                                    }`}
-                            >
-                                {tab.icon}
-                                <span>{tab.label}</span>
-                            </button>
-                        ))}
+                    {/* MONITORING STATS FOR WAKA / ADMIN */}
+                    <div className="flex flex-wrap gap-4 mb-8">
+                        {(() => {
+                            const countA = grades.filter(g => g.predicate === 'A').length;
+                            const countB = grades.filter(g => g.predicate === 'B').length;
+                            const countC = grades.filter(g => g.predicate === 'C').length;
+                            const countD = grades.filter(g => g.predicate === 'D').length;
+                            const avgVal = grades.length > 0 ? Math.round(grades.reduce((acc, curr) => acc + (curr.finalScore || 0), 0) / grades.length) : 0;
+
+                            return (
+                                <>
+                                    <div className="flex-1 min-w-[150px] bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Rata-rata Kelas</p>
+                                        <h4 className="text-2xl font-bold text-blue-600">{avgVal} <span className="text-xs font-medium text-slate-400">/ 100</span></h4>
+                                    </div>
+                                    <div className="flex-1 min-w-[120px] bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                                        <p className="text-emerald-500 text-[10px] font-bold uppercase tracking-widest mb-1">Predikat A</p>
+                                        <h4 className="text-2xl font-bold text-emerald-600">{countA} <span className="text-xs font-medium opacity-60 text-emerald-400">Siswa</span></h4>
+                                    </div>
+                                    <div className="flex-1 min-w-[120px] bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                                        <p className="text-blue-500 text-[10px] font-bold uppercase tracking-widest mb-1">Predikat B</p>
+                                        <h4 className="text-2xl font-bold text-blue-600">{countB} <span className="text-xs font-medium opacity-60 text-blue-400">Siswa</span></h4>
+                                    </div>
+                                    <div className="flex-1 min-w-[120px] bg-amber-50 p-4 rounded-2xl border border-amber-100">
+                                        <p className="text-amber-500 text-[10px] font-bold uppercase tracking-widest mb-1">Predikat C</p>
+                                        <h4 className="text-2xl font-bold text-amber-600">{countC} <span className="text-xs font-medium opacity-60 text-amber-400">Siswa</span></h4>
+                                    </div>
+                                    <div className="flex-1 min-w-[120px] bg-rose-50 p-4 rounded-2xl border border-rose-100">
+                                        <p className="text-rose-500 text-[10px] font-bold uppercase tracking-widest mb-1">Perlu Remedial (D)</p>
+                                        <h4 className="text-2xl font-bold text-rose-600">{countD} <span className="text-xs font-medium opacity-60 text-rose-400">Siswa</span></h4>
+                                    </div>
+                                </>
+                            );
+                        })()}
                     </div>
+
+                    {/* Space padding */}
+                    <div className="pb-2"></div>
                 </div>
             </div>
 
             {/* MAIN WORKSPACE */}
             <div className="flex-1 bg-white rounded-[2.5rem] shadow-sm border border-slate-200 flex flex-col overflow-hidden">
 
-                {/* TOOLBAR */}
-                <div className="px-8 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                    {/* TABS */}
-                    <div className="flex bg-slate-200/50 p-1 rounded-xl overflow-x-auto custom-scrollbar gap-1">
-                        <button
-                            onClick={() => setActiveTab('sumatif')}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'sumatif' ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-                        >
-                            <BookOpen size={16} /> Ulangan
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('pts')}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'pts' ? 'bg-white shadow text-amber-600' : 'text-slate-500 hover:text-slate-700'}`}
-                        >
-                            <FileSpreadsheet size={16} /> PTS
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('pas_pat')}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'pas_pat' ? 'bg-white shadow text-purple-600' : 'text-slate-500 hover:text-slate-700'}`}
-                        >
-                            <Calculator size={16} /> PAS / PAT
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('rapor')}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'rapor' ? 'bg-white shadow text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
-                        >
-                            <Trophy size={16} /> Nilai Rapor
-                        </button>
+                {!selectedSubject ? (
+                    <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-slate-50/10">
+                        <div className="w-24 h-24 bg-blue-50/50 rounded-full flex items-center justify-center mb-6 border border-blue-100 animate-pulse">
+                            <BookOpen size={48} className="text-blue-400 opacity-60" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-800 mb-2">Pilih Mata Pelajaran Terlebih Dahulu</h3>
+                        <p className="text-slate-500 text-sm max-w-sm mx-auto leading-relaxed">
+                            Area statistik dan detail nilai akan muncul secara otomatis setelah Anda memilih mata pelajaran pada menu di atas.
+                        </p>
                     </div>
+                ) : (
+                    <>
+                        {/* TOOLBAR */}
+                        <div className="px-8 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            {/* TABS */}
+                            <div className="flex bg-slate-200/50 p-1 rounded-xl overflow-x-auto custom-scrollbar gap-1">
+                                <button
+                                    onClick={() => setActiveTab('sumatif')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'sumatif' ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    <BookOpen size={16} /> Ulangan
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('pts')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'pts' ? 'bg-white shadow text-amber-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    <FileSpreadsheet size={16} /> PTS
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('pas_pat')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'pas_pat' ? 'bg-white shadow text-purple-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    <Calculator size={16} /> PAS / PAT
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('rapor')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'rapor' ? 'bg-white shadow text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    <Trophy size={16} /> Nilai Rapor
+                                </button>
+                            </div>
 
-                    {/* SEARCH & ACTIONS */}
-                    <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Cari Siswa..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-blue-500 w-48"
-                            />
+                            {/* SEARCH & ACTIONS */}
+                            <div className="flex items-center gap-3">
+                                <div className="relative">
+                                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Cari Siswa..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-blue-500 w-48"
+                                    />
+                                </div>
+
+                                <div className="h-8 w-[1px] bg-slate-200 mx-2"></div>
+
+                                {!readOnly && (
+                                    <>
+                                        <button
+                                            onClick={handleExportExcel}
+                                            className="flex items-center gap-2 px-4 py-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all font-bold text-xs"
+                                            title="Unduh Template Excel">
+                                            <Download size={16} />
+                                            <span className="hidden sm:inline">Template</span>
+                                        </button>
+                                        <button
+                                            onClick={handleImportExcel}
+                                            className="flex items-center gap-2 px-4 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all font-bold text-xs"
+                                            title="Import Nilai Excel">
+                                            <Upload size={16} />
+                                            <span className="hidden sm:inline">Impor Nilai</span>
+                                        </button>
+                                    </>
+                                )}
+
+                                {/* Hidden Input */}
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileChange}
+                                    hidden
+                                    accept=".xlsx, .xls, .csv"
+                                />
+
+                                {!readOnly && (
+                                    <button
+                                        onClick={handleSave}
+                                        className={`ml-2 px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-lg bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200`}
+                                    >
+                                        <Save size={18} /> Simpan Perubahan
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
-                        <div className="h-8 w-[1px] bg-slate-200 mx-2"></div>
+                        {/* TABLE AREA */}
+                        <div className="flex-1 overflow-auto custom-scrollbar p-0 bg-white">
+                            <table className="w-full text-sm text-left border-collapse">
+                                <thead className="bg-[#F8FAFC] text-slate-500 font-bold sticky top-0 z-10 shadow-sm">
+                                    <tr>
+                                        <th className="py-4 px-6 w-16 text-center border-b font-extrabold bg-[#F8FAFC]">No</th>
+                                        <th className="py-4 px-6 w-64 border-b bg-[#F8FAFC]">Nama Siswa</th>
 
-                        <button
-                            onClick={handleExportExcel}
-                            className="flex items-center gap-2 px-4 py-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all font-bold text-xs"
-                            title="Unduh Template Excel">
-                            <Download size={16} />
-                            <span className="hidden sm:inline">Template</span>
-                        </button>
-                        <button
-                            onClick={handleImportExcel}
-                            className="flex items-center gap-2 px-4 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all font-bold text-xs"
-                            title="Import Nilai Excel">
-                            <Upload size={16} />
-                            <span className="hidden sm:inline">Impor Nilai</span>
-                        </button>
+                                        {activeTab === 'sumatif' && (
+                                            <>
+                                                {Array.from({ length: tpCount }).map((_, i) => (
+                                                    <th key={i} className="py-4 px-2 w-24 text-center border-b bg-[#F8FAFC]">
+                                                        U {i + 1}
+                                                    </th>
+                                                ))}
+                                                {/* Add Button - ONLY FOR EDITORS */}
+                                                {!readOnly && (
+                                                    <th className="py-4 px-2 w-20 text-center border-b bg-[#F8FAFC]">
+                                                        <div className="flex items-center justify-center gap-1">
+                                                            <button
+                                                                onClick={() => updateTpCount(Math.min(tpCount + 1, 15))}
+                                                                className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors"
+                                                                title="Tambah Kolom Ulangan"
+                                                            >
+                                                                <Plus size={14} />
+                                                            </button>
+                                                            <button
+                                                                onClick={removeTpCount}
+                                                                className="w-6 h-6 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center hover:bg-rose-600 hover:text-white transition-colors"
+                                                                title="Hapus Kolom Ulangan Terakhir"
+                                                            >
+                                                                <Minus size={14} />
+                                                            </button>
+                                                        </div>
+                                                    </th>
+                                                )}
+                                                <th className="py-4 px-4 w-32 text-center border-b bg-blue-50 text-blue-700 border-l border-r border-blue-100">Rerata Nilai</th>
+                                                <th className="border-b bg-[#F8FAFC] min-w-[20px]"></th>
+                                            </>
+                                        )}
 
-                        {/* Hidden Input */}
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
-                            hidden
-                            accept=".xlsx, .xls, .csv"
-                        />
+                                        {activeTab === 'pts' && (
+                                            <>
+                                                <th className="py-4 px-4 w-40 text-center border-b bg-amber-50 text-amber-700 border-l border-amber-100">Nilai PTS</th>
+                                                <th className="border-b bg-[#F8FAFC] w-full"></th>
+                                            </>
+                                        )}
 
-                        <button
-                            onClick={handleSave}
-                            // Disabled only if empty data (optional) or let it always active to force save
-                            className={`ml-2 px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-lg bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200`}
-                        >
-                            <Save size={18} /> Simpan Perubahan
-                        </button>
-                    </div>
-                </div>
+                                        {activeTab === 'pas_pat' && (
+                                            <>
+                                                <th className="py-4 px-4 w-32 text-center border-b bg-purple-50 text-purple-700 border-l border-purple-100">Nilai PAS (Ganjil)</th>
+                                                <th className="py-4 px-4 w-32 text-center border-b bg-rose-50 text-rose-700 border-l border-rose-100">Nilai PAT (Genap)</th>
+                                                <th className="border-b bg-[#F8FAFC] w-full"></th>
+                                            </>
+                                        )}
 
-                {/* TABLE AREA */}
-                <div className="flex-1 overflow-auto custom-scrollbar p-0 bg-white">
-                    <table className="w-full text-sm text-left border-collapse">
-                        <thead className="bg-[#F8FAFC] text-slate-500 font-bold sticky top-0 z-10 shadow-sm">
-                            <tr>
-                                <th className="py-4 px-6 w-16 text-center border-b font-extrabold bg-[#F8FAFC]">No</th>
-                                <th className="py-4 px-6 w-64 border-b bg-[#F8FAFC]">Nama Siswa</th>
-
-                                {activeTab === 'sumatif' && (
-                                    <>
-                                        {Array.from({ length: tpCount }).map((_, i) => (
-                                            <th key={i} className="py-4 px-2 w-24 text-center border-b bg-[#F8FAFC]">
-                                                U {i + 1}
-                                            </th>
-                                        ))}
-                                        {/* Add Button */}
-                                        <th className="py-4 px-2 w-20 text-center border-b bg-[#F8FAFC]">
-                                            <div className="flex items-center justify-center gap-1">
-                                                <button
-                                                    onClick={() => updateTpCount(Math.min(tpCount + 1, 15))}
-                                                    className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors"
-                                                    title="Tambah Kolom Ulangan"
-                                                >
-                                                    <Plus size={14} />
-                                                </button>
-                                                <button
-                                                    onClick={removeTpCount}
-                                                    className="w-6 h-6 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center hover:bg-rose-600 hover:text-white transition-colors"
-                                                    title="Hapus Kolom Ulangan Terakhir"
-                                                >
-                                                    <Minus size={14} />
-                                                </button>
-                                            </div>
-                                        </th>
-                                        <th className="py-4 px-4 w-32 text-center border-b bg-blue-50 text-blue-700 border-l border-r border-blue-100">Rerata Nilai</th>
-                                        <th className="border-b bg-[#F8FAFC] min-w-[20px]"></th>
-                                    </>
-                                )}
-
-                                {activeTab === 'pts' && (
-                                    <>
-                                        <th className="py-4 px-4 w-40 text-center border-b bg-amber-50 text-amber-700 border-l border-amber-100">Nilai PTS</th>
-                                        <th className="border-b bg-[#F8FAFC] w-full"></th>
-                                    </>
-                                )}
-
-                                {activeTab === 'pas_pat' && (
-                                    <>
-                                        <th className="py-4 px-4 w-32 text-center border-b bg-purple-50 text-purple-700 border-l border-purple-100">Nilai PAS (Ganjil)</th>
-                                        <th className="py-4 px-4 w-32 text-center border-b bg-rose-50 text-rose-700 border-l border-rose-100">Nilai PAT (Genap)</th>
-                                        <th className="border-b bg-[#F8FAFC] w-full"></th>
-                                    </>
-                                )}
-
-                                {activeTab === 'rapor' && (
-                                    <>
-                                        <th className="py-4 px-4 w-32 text-center border-b bg-slate-50 text-slate-600">Rerata Ulangan</th>
-                                        <th className="py-4 px-2 w-24 text-center border-b bg-amber-50 text-amber-700 border border-amber-100">PTS</th>
-                                        <th className="py-4 px-2 w-24 text-center border-b bg-purple-50 text-purple-700 border border-purple-100">PAS/PAT</th>
-                                        <th className="py-4 px-4 w-32 text-center border-b bg-emerald-50 text-emerald-700 border border-emerald-100">Nilai Akhir</th>
-                                        <th className="py-4 px-4 w-20 text-center border-b bg-[#F8FAFC]">Predikat</th>
-                                        <th className="py-4 px-6 min-w-[300px] border-b bg-[#F8FAFC]">Deskripsi Capaian Kompetensi</th>
-                                    </>
-                                )}
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {filteredGrades.map((grade, idx) => (
-                                <tr key={grade.studentId} className="hover:bg-slate-50/80 transition-colors group">
-                                    <td className="py-3 px-6 text-center text-slate-400 font-medium">{idx + 1}</td>
-                                    <td className="py-3 px-6 font-medium text-slate-700">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-bold border border-slate-200">
-                                                {grade.studentName.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <div className="group-hover:text-blue-600 transition-colors">{grade.studentName}</div>
-                                                <div className="text-xs text-slate-400 font-normal">{grade.studentNis}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-
-                                    {activeTab === 'sumatif' && (
-                                        <>
-                                            {/* INPUTS SUMATIF DYNAMIC */}
-                                            {Array.from({ length: tpCount }).map((_, i) => {
-                                                const tpKey = `tp${i + 1}`;
-                                                return (
-                                                    <td key={tpKey} className="p-2 text-center">
-                                                        <input
-                                                            type="number"
-                                                            min="0" max="100"
-                                                            value={grade[tpKey] || ''}
-                                                            onChange={(e) => handleInputChange(grade.studentId, tpKey as keyof GradeRow, e.target.value)}
-                                                            placeholder="0"
-                                                            className={`w-16 h-10 text-center border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all font-bold ${getScoreColor(Number(grade[tpKey]))}`}
-                                                        />
-                                                    </td>
-                                                );
-                                            })}
-                                            {/* Spacer for the + button column */}
-                                            <td></td>
-
-                                            <td className="p-2 text-center bg-blue-50/30 border-l border-r border-blue-50">
-                                                <span className={`font-bold text-lg ${getScoreColor(grade.avgSumatif)}`}>
-                                                    {grade.avgSumatif || '-'}
-                                                </span>
-                                            </td>
-                                            <td></td>
-                                        </>
-                                    )}
-
-                                    {activeTab === 'pts' && (
-                                        <>
-                                            <td className="p-2 text-center bg-amber-50/20">
-                                                <input
-                                                    type="number"
-                                                    min="0" max="100"
-                                                    value={grade.pts || ''}
-                                                    onChange={(e) => handleInputChange(grade.studentId, 'pts', e.target.value)}
-                                                    className={`w-28 h-10 text-center border-2 border-amber-100 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all font-bold text-amber-700 bg-white shadow-sm`}
-                                                />
-                                            </td>
-                                            <td></td>
-                                        </>
-                                    )}
-
-                                    {activeTab === 'pas_pat' && (
-                                        <>
-                                            <td className="p-2 text-center bg-purple-50/20">
-                                                <input
-                                                    type="number"
-                                                    min="0" max="100"
-                                                    value={grade.pas || ''}
-                                                    onChange={(e) => handleInputChange(grade.studentId, 'pas', e.target.value)}
-                                                    placeholder="PAS"
-                                                    className={`w-24 h-10 text-center border-2 border-purple-100 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none transition-all font-bold text-purple-700 bg-white shadow-sm`}
-                                                />
-                                            </td>
-                                            <td className="p-2 text-center bg-rose-50/20">
-                                                <input
-                                                    type="number"
-                                                    min="0" max="100"
-                                                    value={grade.pat || ''}
-                                                    onChange={(e) => handleInputChange(grade.studentId, 'pat', e.target.value)}
-                                                    placeholder="PAT"
-                                                    className={`w-24 h-10 text-center border-2 border-rose-100 rounded-lg focus:ring-2 focus:ring-rose-400 focus:border-rose-400 outline-none transition-all font-bold text-rose-700 bg-white shadow-sm`}
-                                                />
-                                            </td>
-
-                                            <td></td>
-                                        </>
-                                    )}
-
-                                    {activeTab === 'rapor' && (
-                                        <>
-                                            {/* READ ONLY SUMMARY */}
-                                            <td className="p-2 text-center text-slate-500 font-bold bg-slate-50/50">
-                                                {grade.avgSumatif}
-                                            </td>
-                                            <td className="p-2 text-center text-amber-600 font-bold bg-amber-50/30">
-                                                {grade.pts}
-                                            </td>
-                                            <td className="p-2 text-center text-purple-600 font-bold bg-purple-50/30">
-                                                {Math.max(grade.pas, grade.pat, grade.ujisn, grade.sas)}
-                                            </td>
-
-                                            {/* FINAL SCORE */}
-                                            <td className="p-2 text-center bg-emerald-50/20 border-l border-emerald-50">
-                                                <div className="flex flex-col items-center justify-center">
-                                                    <span className={`font-extrabold text-lg ${grade.finalScore >= 75 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                                        {grade.finalScore}
-                                                    </span>
-                                                    {grade.finalScore > 0 && (
-                                                        <span className="text-[10px] uppercase font-bold text-slate-400">
-                                                            {grade.finalScore >= 75 ? 'Tuntas' : 'Remedial'}
-                                                        </span>
-                                                    )}
+                                        {activeTab === 'rapor' && (
+                                            <>
+                                                <th className="py-4 px-4 w-32 text-center border-b bg-slate-50 text-slate-600">Rerata Ulangan</th>
+                                                <th className="py-4 px-2 w-24 text-center border-b bg-amber-50 text-amber-700 border border-amber-100">PTS</th>
+                                                <th className="py-4 px-2 w-24 text-center border-b bg-purple-50 text-purple-700 border border-purple-100">PAS/PAT</th>
+                                                <th className="py-4 px-4 w-32 text-center border-b bg-emerald-50 text-emerald-700 border border-emerald-100">Nilai Akhir</th>
+                                                <th className="py-4 px-4 w-20 text-center border-b bg-[#F8FAFC]">Predikat</th>
+                                                <th className="py-4 px-6 min-w-[300px] border-b bg-[#F8FAFC]">Deskripsi Capaian Kompetensi</th>
+                                            </>
+                                        )}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {filteredGrades.map((grade, idx) => (
+                                        <tr key={grade.studentId} className="hover:bg-slate-50/80 transition-colors group">
+                                            <td className="py-3 px-6 text-center text-slate-400 font-medium">{idx + 1}</td>
+                                            <td className="py-3 px-6 font-medium text-slate-700">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-bold border border-slate-200">
+                                                        {grade.studentName.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <div className="group-hover:text-blue-600 transition-colors">{grade.studentName}</div>
+                                                        <div className="text-xs text-slate-400 font-normal">{grade.studentNis}</div>
+                                                    </div>
                                                 </div>
                                             </td>
 
-                                            <td className="p-2 text-center">
-                                                <span className={`inline-block w-8 h-8 leading-8 rounded-lg font-bold ${grade.predicate === 'A' ? 'bg-emerald-100 text-emerald-700' :
-                                                    grade.predicate === 'B' ? 'bg-blue-100 text-blue-700' :
-                                                        grade.predicate === 'C' ? 'bg-amber-100 text-amber-700' :
-                                                            'bg-slate-100 text-slate-500'
-                                                    }`}>
-                                                    {grade.predicate}
-                                                </span>
-                                            </td>
+                                            {activeTab === 'sumatif' && (
+                                                <>
+                                                    {/* INPUTS SUMATIF DYNAMIC */}
+                                                    {Array.from({ length: tpCount }).map((_, i) => {
+                                                        const tpKey = `tp${i + 1}`;
+                                                        return (
+                                                            <td key={tpKey} className="p-2 text-center">
+                                                                {readOnly ? (
+                                                                    <span className={`font-bold ${getScoreColor(Number(grade[tpKey]))}`}>
+                                                                        {grade[tpKey] || '0'}
+                                                                    </span>
+                                                                ) : (
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0" max="100"
+                                                                        value={grade[tpKey] || ''}
+                                                                        onChange={(e) => handleInputChange(grade.studentId, tpKey as keyof GradeRow, e.target.value)}
+                                                                        placeholder="0"
+                                                                        className={`w-16 h-10 text-center border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all font-bold ${getScoreColor(Number(grade[tpKey]))}`}
+                                                                    />
+                                                                )}
+                                                            </td>
+                                                        );
+                                                    })}
+                                                    {/* Spacer - ONLY FOR EDITORS */}
+                                                    {!readOnly && <td></td>}
 
-                                            <td className="p-2">
-                                                <textarea
-                                                    value={grade.description}
-                                                    onChange={(e) => handleDescriptionChange(grade.studentId, e.target.value)}
-                                                    placeholder="Deskripsi otomatis..."
-                                                    className="w-full p-2 text-xs border border-slate-200 rounded-lg focus:border-blue-400 outline-none resize-none h-16 bg-white"
-                                                />
+                                                    <td className="p-2 text-center bg-blue-50/30 border-l border-r border-blue-50">
+                                                        <span className={`font-bold text-lg ${getScoreColor(grade.avgSumatif)}`}>
+                                                            {grade.avgSumatif || '-'}
+                                                        </span>
+                                                    </td>
+                                                    <td></td>
+                                                </>
+                                            )}
+
+                                            {activeTab === 'pts' && (
+                                                <>
+                                                    <td className="p-2 text-center bg-amber-50/20">
+                                                        {readOnly ? (
+                                                            <span className="font-extrabold text-amber-700 text-lg">
+                                                                {grade.pts || '0'}
+                                                            </span>
+                                                        ) : (
+                                                            <input
+                                                                type="number"
+                                                                min="0" max="100"
+                                                                value={grade.pts || ''}
+                                                                onChange={(e) => handleInputChange(grade.studentId, 'pts', e.target.value)}
+                                                                className={`w-28 h-10 text-center border-2 border-amber-100 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all font-bold text-amber-700 bg-white shadow-sm`}
+                                                            />
+                                                        )}
+                                                    </td>
+                                                    <td></td>
+                                                </>
+                                            )}
+
+                                            {activeTab === 'pas_pat' && (
+                                                <>
+                                                    <td className="p-2 text-center bg-purple-50/20">
+                                                        {readOnly ? (
+                                                            <span className="font-extrabold text-purple-700 text-lg">
+                                                                {grade.pas || '0'}
+                                                            </span>
+                                                        ) : (
+                                                            <input
+                                                                type="number"
+                                                                min="0" max="100"
+                                                                value={grade.pas || ''}
+                                                                onChange={(e) => handleInputChange(grade.studentId, 'pas', e.target.value)}
+                                                                placeholder="PAS"
+                                                                className={`w-24 h-10 text-center border-2 border-purple-100 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none transition-all font-bold text-purple-700 bg-white shadow-sm`}
+                                                            />
+                                                        )}
+                                                    </td>
+                                                    <td className="p-2 text-center bg-rose-50/20">
+                                                        {readOnly ? (
+                                                            <span className="font-extrabold text-rose-700 text-lg">
+                                                                {grade.pat || '0'}
+                                                            </span>
+                                                        ) : (
+                                                            <input
+                                                                type="number"
+                                                                min="0" max="100"
+                                                                value={grade.pat || ''}
+                                                                onChange={(e) => handleInputChange(grade.studentId, 'pat', e.target.value)}
+                                                                placeholder="PAT"
+                                                                className={`w-24 h-10 text-center border-2 border-rose-100 rounded-lg focus:ring-2 focus:ring-rose-400 focus:border-rose-400 outline-none transition-all font-bold text-rose-700 bg-white shadow-sm`}
+                                                            />
+                                                        )}
+                                                    </td>
+
+                                                    <td></td>
+                                                </>
+                                            )}
+
+                                            {activeTab === 'rapor' && (
+                                                <>
+                                                    {/* READ ONLY SUMMARY */}
+                                                    <td className="p-2 text-center text-slate-500 font-bold bg-slate-50/50">
+                                                        {grade.avgSumatif}
+                                                    </td>
+                                                    <td className="p-2 text-center text-amber-600 font-bold bg-amber-50/30">
+                                                        {grade.pts}
+                                                    </td>
+                                                    <td className="p-2 text-center text-purple-600 font-bold bg-purple-50/30">
+                                                        {Math.max(grade.pas, grade.pat, grade.ujisn, grade.sas)}
+                                                    </td>
+
+                                                    {/* FINAL SCORE */}
+                                                    <td className="p-2 text-center bg-emerald-50/20 border-l border-emerald-50">
+                                                        <div className="flex flex-col items-center justify-center">
+                                                            <span className={`font-extrabold text-lg ${grade.finalScore >= 75 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                                                {grade.finalScore}
+                                                            </span>
+                                                            {grade.finalScore > 0 && (
+                                                                <span className="text-[10px] uppercase font-bold text-slate-400">
+                                                                    {grade.finalScore >= 75 ? 'Tuntas' : 'Remedial'}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+
+                                                    <td className="p-2 text-center">
+                                                        <span className={`inline-block w-8 h-8 leading-8 rounded-lg font-bold ${grade.predicate === 'A' ? 'bg-emerald-100 text-emerald-700' :
+                                                            grade.predicate === 'B' ? 'bg-blue-100 text-blue-700' :
+                                                                grade.predicate === 'C' ? 'bg-amber-100 text-amber-700' :
+                                                                    'bg-slate-100 text-slate-500'
+                                                            }`}>
+                                                            {grade.predicate}
+                                                        </span>
+                                                    </td>
+
+                                                    <td className="p-2">
+                                                        <textarea
+                                                            value={grade.description}
+                                                            onChange={(e) => handleDescriptionChange(grade.studentId, e.target.value)}
+                                                            placeholder="Deskripsi otomatis..."
+                                                            className="w-full p-2 text-xs border border-slate-200 rounded-lg focus:border-blue-400 outline-none resize-none h-16 bg-white"
+                                                        />
+                                                    </td>
+                                                </>
+                                            )}
+                                        </tr>
+                                    ))}
+                                    {filteredGrades.length === 0 && (
+                                        <tr>
+                                            <td colSpan={10} className="py-12 text-center text-slate-400 italic">
+                                                Tidak ada data siswa ditemukan.
                                             </td>
-                                        </>
+                                        </tr>
                                     )}
-                                </tr>
-                            ))}
-                            {filteredGrades.length === 0 && (
-                                <tr>
-                                    <td colSpan={10} className="py-12 text-center text-slate-400 italic">
-                                        Tidak ada data siswa ditemukan.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
+                )}
 
-                {/* FOOTER LEGEND */}
-                <div className="bg-slate-50 p-4 border-t border-slate-200 text-xs text-slate-500 flex gap-6">
-                    <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-white border border-slate-300 rounded"></div>
-                        <span>Input Aktif</span>
+                {/* FOOTER LEGEND - ONLY FOR EDITORS */}
+                {!readOnly && selectedSubject && (
+                    <div className="bg-slate-50 p-4 border-t border-slate-200 text-xs text-slate-500 flex gap-6">
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-white border border-slate-300 rounded"></div>
+                            <span>Input Aktif</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-rose-50 border border-slate-300 rounded"></div>
+                            <span>Nilai {'<'} 75 (Perlu Remedial)</span>
+                        </div>
+                        <div className="flex items-center gap-2 ml-auto">
+                            <CheckCircle size={14} className="text-emerald-500" />
+                            <span>Semua perubahan tersimpan otomatis di perangkat lokal sementara.</span>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-rose-50 border border-slate-300 rounded"></div>
-                        <span>Nilai {'<'} 75 (Perlu Remedial)</span>
-                    </div>
-                    <div className="flex items-center gap-2 ml-auto">
-                        <CheckCircle size={14} className="text-emerald-500" />
-                        <span>Semua perubahan tersimpan otomatis di perangkat lokal sementara.</span>
-                    </div>
-                </div>
+                )}
             </div>
         </div >
     );

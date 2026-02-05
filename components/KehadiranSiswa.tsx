@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronRight, Calendar, CheckCircle, XCircle, AlertCircle, Clock } from 'lucide-react';
 import { attendanceDataGlobal } from '../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
+import logger from '../src/utils/logger';
 
 interface KehadiranSiswaProps {
     onBack: () => void;
@@ -56,7 +57,7 @@ const KehadiranSiswa: React.FC<KehadiranSiswaProps> = ({ onBack, user }) => {
                     setMyAttendance(myRecords.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()));
                 }
             } catch (err) {
-                console.error("Failed to fetch attendance from cloud", err);
+                logger.error("Failed to fetch attendance from cloud", err);
             }
         };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Camera, LogOut, Save, MapPin, Calendar, Edit2, UserCheck, ArrowLeft } from 'lucide-react';
 import { studentsDataGlobal } from '../data/sharedData';
+import logger from '../src/utils/logger';
 
 interface ProfilAkunProps {
     user: any;
@@ -19,7 +20,7 @@ const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
                 try {
                     const students = JSON.parse(saved);
                     foundStudent = students.find((s: any) => s.nama === user?.studentName || s.nis === user?.studentNis);
-                } catch (e) { console.error("Error parsing students data", e); }
+                } catch (e) { logger.error("Error parsing students data", e); }
             }
         }
         // 2. Fallback to Global Data
@@ -68,24 +69,24 @@ const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
 
     // Real-time Sync: Update state when studentData or user changes
     useEffect(() => {
-        console.log('🔄 ProfilAkun useEffect triggered');
-        console.log('User:', user);
-        console.log('Student Name:', user?.studentName);
+        logger.debug('🔄 ProfilAkun useEffect triggered');
+        logger.debug('User:', user);
+        logger.debug('Student Name:', user?.studentName);
 
         const currentStudent = getStudentData();
-        console.log('Current Student Data:', currentStudent);
+        logger.debug('Current Student Data:', currentStudent);
 
         // Sync Mother's Name
         if (currentStudent?.ibu) {
-            console.log('✅ Syncing Nama Ibu:', currentStudent.ibu);
+            logger.debug('✅ Syncing Nama Ibu:', currentStudent.ibu);
             setNamaIbu(currentStudent.ibu);
         } else {
-            console.warn('⚠️ No ibu data found in student data');
+            logger.warn('⚠️ No ibu data found in student data');
         }
 
         // Sync Birth Place
         if (currentStudent?.ttl) {
-            console.log('✅ Syncing TTL:', currentStudent.ttl);
+            logger.debug('✅ Syncing TTL:', currentStudent.ttl);
             const birthPlace = currentStudent.ttl.split(',')[0].trim();
             setTempatLahir(birthPlace);
 
@@ -93,7 +94,7 @@ const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
             const parts = currentStudent.ttl.split(',');
             if (parts.length > 1) {
                 const datePart = parts[1].trim();
-                console.log('Parsing date:', datePart);
+                logger.debug('Parsing date:', datePart);
                 // Try to parse DD/MM/YYYY or DD-MM-YYYY format
                 const dmy = datePart.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
                 // Try to parse YYYY-MM-DD
@@ -102,40 +103,40 @@ const ProfilAkun: React.FC<ProfilAkunProps> = ({ user, onLogout, onBack }) => {
                 if (dmy) {
                     // Convert to YYYY-MM-DD for input[type="date"]
                     const formattedDate = `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
-                    console.log('✅ Formatted date (DMY):', formattedDate);
+                    logger.debug('✅ Formatted date (DMY):', formattedDate);
                     setTanggalLahir(formattedDate);
                 } else if (ymd) {
-                    console.log('✅ Date (YMD):', datePart);
+                    logger.debug('✅ Date (YMD):', datePart);
                     setTanggalLahir(datePart);
                 } else {
-                    console.warn('⚠️ Date format not matched:', datePart);
+                    logger.warn('⚠️ Date format not matched:', datePart);
                 }
             }
         } else {
-            console.warn('⚠️ No ttl data found in student data');
+            logger.warn('⚠️ No ttl data found in student data');
         }
 
         // Sync Student Name
         if (user?.studentName) {
-            console.log('✅ Syncing Student Name:', user.studentName);
+            logger.debug('✅ Syncing Student Name:', user.studentName);
             setNamaAnak(user.studentName);
         }
 
         // Sync Father's Name
         if (user?.nama || user?.namaAyah) {
             const fatherName = user.nama || user.namaAyah;
-            console.log('✅ Syncing Father Name:', fatherName);
+            logger.debug('✅ Syncing Father Name:', fatherName);
             setNamaAyah(fatherName);
         }
 
-        console.log('✅ ProfilAkun sync completed');
+        logger.debug('✅ ProfilAkun sync completed');
     }, [user, user?.studentName, refreshTrigger]); // Added refreshTrigger
 
     // Listen for localStorage changes (when data is updated in other tabs or by admin)
     useEffect(() => {
         const handleStorageChange = (e: StorageEvent) => {
             if (e.key === 'students_data_v10') {
-                console.log('📦 localStorage students_data_v10 changed, refreshing...');
+                logger.debug('📦 localStorage students_data_v10 changed, refreshing...');
                 setRefreshTrigger(prev => prev + 1);
             }
         };

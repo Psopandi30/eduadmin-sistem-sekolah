@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { initialFinanceDataGlobal, schoolSettingsGlobal } from '../../../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
 import { toast } from 'react-hot-toast';
+import logger from '../../../src/utils/logger';
 
 export interface CashAccount {
     id: number;
@@ -143,7 +144,7 @@ export const useFinance = () => {
             }
             setIsInitialFetched(true);
         } catch (err) {
-            console.error("Error fetching finance data:", err);
+            logger.error("Error fetching finance data:", err);
             toast.error("Gagal memuat data keuangan", { id: 'error-fetch-finance' });
         } finally {
             setLoading(false);
@@ -164,7 +165,7 @@ export const useFinance = () => {
             ]);
             toast.success("Data keuangan berhasil disinkronkan ke cloud!");
         } catch (err) {
-            console.error("Error syncing finance", err);
+            logger.error("Error syncing finance", err);
             toast.error("Gagal sinkron keuangan ke cloud.");
         }
     };

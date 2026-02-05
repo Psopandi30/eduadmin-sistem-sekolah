@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { studentsDataGlobal } from '../../../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
 import { toast } from 'react-hot-toast';
+import logger from '../../../src/utils/logger';
 
 export interface Student {
     id: string | number;
@@ -90,7 +91,7 @@ export const useStudents = () => {
                 updated_at: new Date().toISOString()
             });
         } catch (err) {
-            console.error('Error fetching students:', err);
+            logger.error('Error fetching students:', err);
             toast.error('Gagal memuat data siswa', { id: 'error-fetch-students' });
         } finally {
             setLoading(false);
@@ -149,7 +150,7 @@ export const useStudents = () => {
                     return createdStudent;
                 }
             } catch (err: any) {
-                console.error('Error adding student to Supabase:', err);
+                logger.error('Error adding student to Supabase:', err);
                 toast.error(`Gagal menyimpan: ${err.message}`);
                 // Fallback local
                 setStudents(prev => [...prev, student]);
@@ -187,7 +188,7 @@ export const useStudents = () => {
                 setStudents(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
                 toast.success("Data siswa diperbarui");
             } catch (err: any) {
-                console.error('Error updating student in Supabase:', err);
+                logger.error('Error updating student in Supabase:', err);
                 toast.error(`Gagal update: ${err.message}`);
             }
         } else {
@@ -257,7 +258,7 @@ export const useStudents = () => {
                     setStudents(prev => prev.filter(s => s.id !== id));
                     toast.success("Data siswa dihapus");
                 } catch (err: any) {
-                    console.error('Error deleting student from Supabase:', err);
+                    logger.error('Error deleting student from Supabase:', err);
                     toast.error(`Gagal menghapus: ${err.message}`);
                     // Fallback local delete if error (optional, but maybe better not to desync)
                 }
@@ -365,7 +366,7 @@ export const useStudents = () => {
                     toast.success(`${importedStudents.length} data siswa berhasil diimpor (Lokal)`);
                     toast("Klik 'Simpan' untuk menyimpan permanen ke database.", { icon: 'ℹ️' });
                 } catch (err) {
-                    console.error("Error parsing file:", err);
+                    logger.error("Error parsing file:", err);
                     toast.error("Gagal membaca file");
                 }
             };

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronRight, Wallet, ArrowUpCircle, ArrowDownCircle, History, Filter } from 'lucide-react';
 import { savingsDataGlobal, savingsTransactionsGlobal } from '../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
+import logger from '../src/utils/logger';
 
 interface TabunganSiswaProps {
     onBack: () => void;
@@ -26,7 +27,7 @@ const TabunganSiswa: React.FC<TabunganSiswaProps> = ({ onBack, user }) => {
                 const studentId = user?.studentId || user?.id;
 
                 // 1. Load Savings Data (Balance) from Cloud
-                const { data: dataRes } = await supabase.from('app_settings').select('value').eq('key', 'savings_data_v10').single();
+                const { data: dataRes } = await supabase.from('app_settings').select('value').eq('key', 'savings_data_v10').maybeSingle();
                 if (dataRes?.value) {
                     const allSavings = typeof dataRes.value === 'string' ? JSON.parse(dataRes.value) : dataRes.value;
                     const foundSaver = allSavings.find((s: any) => s.nama === sName || String(s.id) === String(studentId));
@@ -34,7 +35,7 @@ const TabunganSiswa: React.FC<TabunganSiswaProps> = ({ onBack, user }) => {
                 }
 
                 // 2. Load Transactions from Cloud
-                const { data: trxRes } = await supabase.from('app_settings').select('value').eq('key', 'savings_transactions_v10').single();
+                const { data: trxRes } = await supabase.from('app_settings').select('value').eq('key', 'savings_transactions_v10').maybeSingle();
                 if (trxRes?.value) {
                     const allTrx = typeof trxRes.value === 'string' ? JSON.parse(trxRes.value) : trxRes.value;
                     const foundTrx = allTrx.filter((t: any) =>
@@ -44,7 +45,7 @@ const TabunganSiswa: React.FC<TabunganSiswaProps> = ({ onBack, user }) => {
                     setMyTransactions(foundTrx);
                 }
             } catch (err) {
-                console.error("Failed to fetch savings from cloud", err);
+                logger.error("Failed to fetch savings from cloud", err);
             } finally {
                 setLoading(false);
             }

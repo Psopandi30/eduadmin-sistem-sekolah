@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Printer, User, ArrowLeft } from 'lucide-react';
 import { studentsDataGlobal, classesDataGlobal, schoolSettingsGlobal, teachersDataGlobal } from '../../../../data/sharedData';
+import { logger } from '../../../../src/utils/logger';
 
 // Types for the Report Card Data
 interface RaporData {
@@ -37,7 +38,7 @@ const ERapor: React.FC<RaporViewProps> = ({ setActiveView }) => {
                         const latest = data[data.length - 1];
                         return type === 'k' ? latest.knowledge : latest.skill;
                     }
-                } catch (e) { console.error('Error parsing mock_descriptions', e); }
+                } catch (e) { logger.error('Error parsing mock_descriptions', e); }
             }
         }
         return defaultVal;
@@ -68,7 +69,7 @@ const ERapor: React.FC<RaporViewProps> = ({ setActiveView }) => {
                         desc = record.description || '-';
                     }
                 } catch (e) {
-                    console.error("Error building report for " + sub.name, e);
+                    logger.error("Error building report for " + sub.name, e);
                 }
             }
 

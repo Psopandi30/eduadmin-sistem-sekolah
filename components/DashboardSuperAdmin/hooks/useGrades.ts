@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
 import { toast } from 'react-hot-toast';
+import logger from '../../../src/utils/logger';
 
 export const useGrades = (classId?: string, mapel?: string, semester?: string) => {
     const [gradesData, setGradesData] = useState<any[]>([]);
@@ -26,7 +27,7 @@ export const useGrades = (classId?: string, mapel?: string, semester?: string) =
                 return parsed;
             }
         } catch (err) {
-            console.warn('No cloud grades found for', c, m, s);
+            logger.warn('No cloud grades found for', c, m, s);
         } finally {
             setLoading(false);
         }
@@ -52,7 +53,7 @@ export const useGrades = (classId?: string, mapel?: string, semester?: string) =
             if (error) throw error;
             toast.success('Nilai berhasil disinkronkan ke cloud!');
         } catch (err: any) {
-            console.error('Failed to sync grades:', err.message);
+            logger.error('Failed to sync grades:', err.message);
             toast.error('Gagal simpan ke cloud, data tetap tersimpan lokal.');
         }
     };

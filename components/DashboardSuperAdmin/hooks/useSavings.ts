@@ -9,6 +9,7 @@ import {
 } from '../../../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
 import { toast } from 'react-hot-toast';
+import logger from '../../../src/utils/logger';
 
 export type { SavingsData, SavingsTransaction };
 
@@ -54,7 +55,7 @@ export const useSavings = () => {
                 localStorage.setItem('savings_transactions_v10', JSON.stringify(parsed));
             }
         } catch (err) {
-            console.warn('No cloud savings data found');
+            logger.warn('No cloud savings data found');
         } finally {
             setLoading(false);
         }
@@ -84,7 +85,7 @@ export const useSavings = () => {
             ]);
             toast.success("Data tabungan berhasil disinkronkan ke cloud!");
         } catch (err) {
-            console.error("Error syncing savings", err);
+            logger.error("Error syncing savings", err);
             toast.error("Gagal sinkron ke cloud.");
         }
     };

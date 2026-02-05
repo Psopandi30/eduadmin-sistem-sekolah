@@ -36,9 +36,17 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                 });
 
                 if (authError) {
-                    // If auth fails (user not found, wrong password, etc.), try legacy/fallback
-                    // Error 400 is normal if user doesn't exist in Supabase Auth yet
-                    logger.debug("Supabase auth failed (this is normal if user doesn't exist yet), falling back to localStorage:", authError.message);
+                    // In production, we don't fall back to legacy if Supabase is available
+                    // except for specific non-auth errors if any
+                    if (import.meta.env.PROD) {
+                        logger.error("❌ Supabase authentication failed:", authError.message);
+                        setError("Email atau password salah.");
+                        setIsLoading(false);
+                        return;
+                    }
+
+                    // In development, we can still fall back to legacy
+                    logger.debug("Supabase auth failed, falling back to legacy login (DEV ONLY):", authError.message);
                     handleLegacyLogin();
                     return;
                 }
@@ -51,7 +59,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                         .eq('id', data.user.id)
                         .single();
 
-                    if (profileError) throw profileError;
+                    if (profileError) {
+                        logger.error("❌ Profile fetch error:", profileError.message);
+                        setError("Gagal mengambil data profil.");
+                        setIsLoading(false);
+                        return;
+                    }
 
                     onLogin(profile.role, {
                         id: data.user.id,
@@ -64,13 +77,23 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                     return;
                 }
             } catch (err: any) {
-                logger.warn("⚠️ Supabase auth failed, falling back to legacy login:", err.message);
-                // Fallback to legacy login if Supabase fails
+                logger.warn("⚠️ Authentication error:", err.message);
+                if (import.meta.env.PROD) {
+                    setError("Terjadi kesalahan sistem saat login.");
+                    setIsLoading(false);
+                    return;
+                }
                 handleLegacyLogin();
                 return;
             }
         } else {
-            // IF NOT CONFIGURED, USE LEGACY
+            // IF NOT CONFIGURED
+            if (import.meta.env.PROD) {
+                setError("Sistem autentikasi cloud belum dikonfigurasi.");
+                setIsLoading(false);
+                return;
+            }
+            // In dev, use legacy
             handleLegacyLogin();
         }
     };
@@ -93,7 +116,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                             studentSourceLabel = 'localStorage';
                         }
                     } catch (e) {
-                        console.error("Error parsing local students:", e);
+                        logger.error("Error parsing local students:", e);
                     }
                 }
 
@@ -167,7 +190,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                             teacherSourceLabel = 'localStorage';
                         }
                     } catch (e) {
-                        console.error("Error parsing local teachers:", e);
+                        logger.error("Error parsing local teachers:", e);
                     }
                 }
 
@@ -211,7 +234,10 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                     if (role === 'Wali Kelas' || role === 'Guru Kelas') roleCode = 'wk';
                     else if (role === 'Guru Bimbingan Belajar' || role === 'Guru Bimbel') roleCode = 'gb';
                     else if (role === 'Kepala Sekolah') roleCode = 'ks';
-                    else if (['Wakil Kurikulum', 'Staff Tata Usaha', 'Operator Data', 'Admin'].includes(role)) roleCode = 'admin';
+                    else if (role === 'Wakil Kurikulum') roleCode = 'wakil_kurikulum';
+                    else if (role === 'Staff Tata Usaha') roleCode = 'staff_tu';
+                    else if (role === 'Operator Data') roleCode = 'operator_data';
+                    else if (['Admin', 'Super Admin'].includes(role)) roleCode = 'admin';
 
                     onLogin(roleCode, {
                         id: teacherAccount.id,
@@ -227,24 +253,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                     return;
                 }
 
-                // 3. Super Admin - Only via Supabase Auth (no hardcoded credentials)
-                // If Supabase is configured, admin must use proper authentication
-
-                // --- ADMIN DARURAT / FALLBACK ---
-                // Mengizinkan login admin lokal jika Supabase gagal/belum disetup user-nya
-                if (username === 'admin' && (password === 'admin123' || password === 'admin')) {
-                    logger.warn("⚠️ Using Hardcoded Admin Login (Fallback)");
-                    onLogin('admin', {
-                        id: 'admin-hardcoded-fallback',
-                        nama: 'Super Admin (Local)',
-                        role: 'admin',
-                        email: 'admin@sekolah.id',
-                        roleDisplay: 'Administrator',
-                        avatar: 'https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff'
-                    });
-                    setIsLoading(false);
-                    return;
-                }
+                // 3. Super Admin - Only via Supabase Auth
+                // Hardcoded admin credentials removed for production security
+                // Admin must be created via Supabase Auth before deployment
 
                 // Jika tidak ada yang cocok
                 if (username && password) {

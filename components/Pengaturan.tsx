@@ -26,6 +26,7 @@ import {
     AlertCircle
 } from 'lucide-react';
 import { schoolSettingsGlobal } from '../data/sharedData';
+import logger from '../src/utils/logger';
 
 interface PengaturanProps {
     schoolSettings: any;
@@ -223,7 +224,7 @@ const Pengaturan: React.FC<PengaturanProps> = ({ schoolSettings, setSchoolSettin
                                                         setSchoolProfile({ ...schoolProfile, logo: compressed });
                                                         toast.success('Logo berhasil diupload!');
                                                     } catch (error) {
-                                                        console.error("Compression failed", error);
+                                                        logger.error("Compression failed", error);
                                                         // Fallback to Base64 instead of Blob URL
                                                         const reader = new FileReader();
                                                         reader.readAsDataURL(file);
@@ -260,7 +261,7 @@ const Pengaturan: React.FC<PengaturanProps> = ({ schoolSettings, setSchoolSettin
                                                         setSchoolProfile({ ...schoolProfile, icon: compressed });
                                                         toast.success('Ikon berhasil diupload!');
                                                     } catch (error) {
-                                                        console.error("Compression failed", error);
+                                                        logger.error("Compression failed", error);
                                                         // Fallback to Base64 instead of Blob URL
                                                         const reader = new FileReader();
                                                         reader.readAsDataURL(file);

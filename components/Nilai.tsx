@@ -15,6 +15,7 @@ import {
     Download,
     Upload
 } from 'lucide-react';
+import logger from '../src/utils/logger';
 
 interface Student {
     no: number;
@@ -388,7 +389,7 @@ const Nilai: React.FC<NilaiProps> = ({
     };
 
     const handleSave = () => {
-        console.log('Saving grades:', { key: storageKey, grades: currentGrades });
+        logger.log('Saving grades:', { key: storageKey, grades: currentGrades });
         setIsSaved(true);
         // Here you would typically make an API call to save data
     };

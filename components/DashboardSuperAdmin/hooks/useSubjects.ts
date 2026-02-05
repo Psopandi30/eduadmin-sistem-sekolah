@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { subjectsDataGlobal } from '../../../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
+import logger from '../../../src/utils/logger';
 
 export interface SubjectGroup {
     id: string | number;
@@ -73,7 +74,7 @@ export const useSubjects = () => {
             }
             setIsInitialFetched(true);
         } catch (err) {
-            console.error('Error fetching subjects:', err);
+            logger.error('Error fetching subjects:', err);
         } finally {
             setLoading(false);
             setIsInitialFetched(true);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Clock, ChevronLeft, CheckCircle, Megaphone, Info, AlertCircle, BookOpen, DollarSign } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
+import logger from '../src/utils/logger';
 
 interface NotifikasiProps {
     onBack: () => void;
@@ -52,7 +53,7 @@ const NotifikasiSiswa: React.FC<NotifikasiProps> = ({ onBack, user }) => {
                     setNotifications(filtered);
                 }
             } catch (err) {
-                console.error("Failed to load notifications from cloud", err);
+                logger.error("Failed to load notifications from cloud", err);
             } finally {
                 setLoading(false);
             }

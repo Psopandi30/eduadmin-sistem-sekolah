@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
 import { toast } from 'react-hot-toast';
+import logger from '../../../src/utils/logger';
 
 export interface AttendanceRecord {
     id: string;
@@ -61,7 +62,7 @@ export const useAttendance = () => {
                 localStorage.setItem('attendance_data_v2', JSON.stringify([...attendanceData, ...mappedData]));
             }
         } catch (err) {
-            console.error('Error fetching attendance:', err);
+            logger.error('Error fetching attendance:', err);
         } finally {
             setLoading(false);
         }
@@ -95,7 +96,7 @@ export const useAttendance = () => {
             if (error) throw error;
             toast.success('Data absensi berhasil disinkronkan ke cloud!');
         } catch (err: any) {
-            console.error('Failed to sync attendance:', err.message);
+            logger.error('Failed to sync attendance:', err.message);
             toast.error('Gagal simpan ke cloud, data tetap tersimpan lokal.');
         }
     };

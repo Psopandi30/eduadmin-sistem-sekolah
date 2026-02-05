@@ -4,6 +4,7 @@ import { ArrowLeft, UserCheck, Search, CheckCircle, XCircle, AlertCircle, CheckC
 import { attendanceDataGlobal, updateAttendanceDataGlobal } from '../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 import { toast } from 'react-hot-toast';
+import logger from '../src/utils/logger';
 
 interface KehadiranSiswaGuruProps {
     onBack: () => void;
@@ -125,7 +126,7 @@ const KehadiranSiswaGuru: React.FC<KehadiranSiswaGuruProps> = ({ onBack, user })
                 if (error) throw error;
                 toast.success('Absensi berhasil disimpan & disinkronkan ke Cloud!');
             } catch (err: any) {
-                console.error("Cloud sync failed:", err);
+                logger.error("Cloud sync failed:", err);
                 toast.error('Gagal sinkron ke Cloud, data tersimpan secara lokal.');
             }
         } else {

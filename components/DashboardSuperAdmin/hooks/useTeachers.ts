@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { teachersDataGlobal } from '../../../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
 import { toast } from 'react-hot-toast';
+import logger from '../../../src/utils/logger';
 
 export interface Teacher {
     id: string | number;
@@ -87,7 +88,7 @@ export const useTeachers = () => {
             }
             setIsInitialFetched(true);
         } catch (err) {
-            console.error('Error fetching teachers:', err);
+            logger.error('Error fetching teachers:', err);
         } finally {
             setLoading(false);
             setIsInitialFetched(true);
@@ -164,7 +165,7 @@ export const useTeachers = () => {
                 }
             );
         } else {
-            console.warn("Supabase not configured, saving locally only");
+            logger.warn("Supabase not configured, saving locally only");
             setTeachers(prev => [newTeacher, ...prev]);
         }
     };
@@ -287,7 +288,7 @@ export const useTeachers = () => {
                     toast.success(`${importedTeachers.length} data guru diimpor (Lokal)`);
                     toast("Klik 'Simpan' untuk menyelaraskan ke database.", { icon: 'ℹ️' });
                 } catch (err) {
-                    console.error("Error parsing file:", err);
+                    logger.error("Error parsing file:", err);
                     toast.error("Gagal membaca file");
                 }
             };

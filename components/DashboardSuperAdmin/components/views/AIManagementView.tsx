@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Key, Settings, Eye, EyeOff, CheckCircle, XCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { supabase, isSupabaseConfigured, getSupabaseConfigError } from '../../../../src/lib/supabase';
+import { logger } from '../../../../src/utils/logger';
 
 interface AIProvider {
   id: string;
@@ -76,7 +77,7 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
       setProviders(providersRes.data || []);
       setApiKeys(keysRes.data || []);
     } catch (error) {
-      console.error('Error loading AI data:', error);
+      logger.error('Error loading AI data:', error);
     } finally {
       setLoading(false);
     }
@@ -95,7 +96,7 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
       setShowAddProvider(false);
       resetProviderForm();
     } catch (error) {
-      console.error('Error adding provider:', error);
+      logger.error('Error adding provider:', error);
     }
   };
 
@@ -115,7 +116,7 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
       setEditingProvider(null);
       resetProviderForm();
     } catch (error) {
-      console.error('Error updating provider:', error);
+      logger.error('Error updating provider:', error);
     }
   };
 
@@ -132,7 +133,7 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
         p.id === providerId ? { ...p, is_active: !isActive } : p
       ));
     } catch (error) {
-      console.error('Error toggling provider:', error);
+      logger.error('Error toggling provider:', error);
     }
   };
 
@@ -153,7 +154,7 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
       setShowAddKey(false);
       resetKeyForm();
     } catch (error) {
-      console.error('Error adding API key:', error);
+      logger.error('Error adding API key:', error);
     }
   };
 
@@ -170,7 +171,7 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
         k.id === keyId ? { ...k, is_active: !isActive } : k
       ));
     } catch (error) {
-      console.error('Error toggling API key:', error);
+      logger.error('Error toggling API key:', error);
     }
   };
 
@@ -187,7 +188,7 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
 
       setApiKeys(apiKeys.filter(k => k.id !== keyId));
     } catch (error) {
-      console.error('Error deleting API key:', error);
+      logger.error('Error deleting API key:', error);
     }
   };
 
@@ -277,8 +278,8 @@ const AIManagementView: React.FC<AIManagementViewProps> = ({ onBack }) => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               <tab.icon className="w-4 h-4" />

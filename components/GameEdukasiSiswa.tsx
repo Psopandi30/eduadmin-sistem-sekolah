@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, RotateCcw, ArrowRight, ArrowLeft, ArrowUp, X, Trophy, Heart, Brain, Gamepad2, Globe } from 'lucide-react';
+import logger from '../src/utils/logger';
 
 interface GameProps {
     onBack: () => void;
@@ -109,7 +110,7 @@ const GameEdukasiSiswa: React.FC<GameProps> = ({ onBack, userGender = 'L' }) => 
                 prepareAnswers(data.results[0]);
             }
         } catch (e) {
-            console.error("Quiz Fetch Error", e);
+            logger.error("Quiz Fetch Error", e);
         } finally {
             setQuizLoading(false);
         }

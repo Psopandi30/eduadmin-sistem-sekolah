@@ -1,23 +1,8 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
-import Dashboard from './components/Dashboard';
-import DataSiswa from './components/DataSiswa';
-import TambahKelas from './components/TambahKelas';
-import UploadSiswa from './components/UploadSiswa';
-import UploadPerkelas from './components/UploadPerkelas';
-import UploadSiswaBaru from './components/UploadSiswaBaru';
+import React, { useState, useEffect } from 'react';
 import DataGuruStaff from './components/DataGuruStaff';
 import KelasWali from './components/KelasWali';
-import MataPelajaran from './components/MataPelajaran';
-import Jadwal from './components/Jadwal';
-import Absen from './components/Absen';
-import Nilai from './components/Nilai';
-import Rapot from './components/Rapot';
-import Keuangan from './components/Keuangan';
 import Tabungan from './components/Tabungan';
-import NaikKelas from './components/NaikKelas';
 import BimbinganBelajar from './components/BimbinganBelajar';
 import Pengumuman from './components/Pengumuman';
 import Laporan from './components/Laporan';
@@ -29,15 +14,17 @@ import DashboardWaliKelas from './components/DashboardWaliKelas';
 import DashboardGuruBimbel from './components/DashboardGuruBimbel';
 import DashboardSuperAdmin from './components/DashboardSuperAdmin';
 import DashboardKepalaSekolah from './components/DashboardKepalaSekolah';
-
-import { schoolSettingsGlobal, updateAnnouncementsGlobal } from './data/sharedData';
+import DashboardWakilKurikulum from './components/DashboardWakilKurikulum';
+import DashboardStaffTU from './components/DashboardStaffTU';
+import DashboardOperatorData from './components/DashboardOperatorData';
+import { schoolSettingsGlobal } from './data/sharedData';
 import { DataProvider, useDataContext } from './components/DashboardSuperAdmin/contexts/DataContext';
 import { supabase, isSupabaseConfigured } from './src/lib/supabase';
+import ErrorBoundary from './components/ErrorBoundary';
+import logger from './src/utils/logger';
+import { Bot } from 'lucide-react';
 
 const App: React.FC = () => {
-  // --- CORE UI STATE ---
-  const [activeTab, setActiveTab] = useState('beranda');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -75,7 +62,7 @@ const App: React.FC = () => {
         link.href = schoolSettings.icon;
       }
     } catch (error) {
-      console.error("Failed to save settings to localStorage:", error);
+      logger.error("Failed to save settings to localStorage:", error);
     }
   }, [schoolSettings]);
 
@@ -103,7 +90,7 @@ const App: React.FC = () => {
             }
           }
         } catch (e) {
-          console.error("Auth Session Check Error:", e);
+          logger.error("Auth Session Check Error:", e);
         }
       }
 
@@ -117,7 +104,7 @@ const App: React.FC = () => {
           setIsLoggedIn(true);
         }
       } catch (e) {
-        console.error("Mock Session Check Error:", e);
+        logger.error("Mock Session Check Error:", e);
       } finally {
         setIsCheckingSession(false);
       }
@@ -139,18 +126,16 @@ const App: React.FC = () => {
       try {
         await supabase.auth.signOut();
       } catch (e) {
-        console.error("Sign out error:", e);
+        logger.error("Sign out error:", e);
       }
     }
     setIsLoggedIn(false);
     setUserRole('');
     setCurrentUser(null);
-    setActiveTab('beranda');
     localStorage.removeItem('supabase.auth.token');
     localStorage.removeItem('mock_session_v1');
   };
 
-  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   // --- RENDER ROUTER ---
   if (isCheckingSession) {
@@ -162,45 +147,39 @@ const App: React.FC = () => {
     );
   }
 
-  if (!isLoggedIn) {
-    return (
-      <Login
-        onLogin={handleLogin}
-        schoolName={schoolSettings.name}
-        bannerImage={schoolSettings.bannerImage}
-        logo={schoolSettings.logo}
-      />
-    );
-  }
-
-  // If Logged in, wrap with DataProvider and render the Data-Heavy authenticated view
   return (
-    <DataProvider>
-      <AuthenticatedApp
-        currentUser={currentUser}
-        userRole={userRole}
-        handleLogout={handleLogout}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        isSidebarOpen={isSidebarOpen}
-        toggleSidebar={toggleSidebar}
-        schoolSettings={schoolSettings}
-        setSchoolSettings={setSchoolSettings}
-      />
-    </DataProvider>
+    <ErrorBoundary>
+      {!isLoggedIn ? (
+        <Login
+          onLogin={handleLogin}
+          schoolName={schoolSettings.name}
+          bannerImage={schoolSettings.bannerImage}
+          logo={schoolSettings.logo}
+        />
+      ) : (
+        <DataProvider>
+          <AuthenticatedApp
+            currentUser={currentUser}
+            userRole={userRole}
+            handleLogout={handleLogout}
+            schoolSettings={schoolSettings}
+            setSchoolSettings={setSchoolSettings}
+          />
+        </DataProvider>
+      )}
+    </ErrorBoundary>
   );
 };
 
 // --- AUTHENTICATED APP (Separated for Performance & Logic Isolation) ---
 const AuthenticatedApp: React.FC<any> = ({
-  currentUser, userRole, handleLogout, activeTab, setActiveTab,
-  isSidebarOpen, toggleSidebar, schoolSettings, setSchoolSettings
+  currentUser, userRole, handleLogout, schoolSettings, setSchoolSettings
 }) => {
   // 1. Use DataContext for centralized data management
-  const { 
-    kelasData, 
-    stafList, 
-    mapelData, 
+  const {
+    kelasData,
+    stafList,
+    mapelData,
     studentsDataByClass,
     setClasses,
     setTeachers,
@@ -227,44 +206,26 @@ const AuthenticatedApp: React.FC<any> = ({
   if (userRole === 'gm') return <DashboardGuruMapel user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;
   if (userRole === 'admin') return <DashboardSuperAdmin user={currentUser} onLogout={handleLogout} schoolSettings={schoolSettings} setSchoolSettings={setSchoolSettings} />;
   if (userRole === 'ks') return <DashboardKepalaSekolah user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;
+  if (userRole === 'wakil_kurikulum') return <DashboardWakilKurikulum user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;
+  if (userRole === 'staff_tu') return <DashboardStaffTU user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;
+  if (userRole === 'operator_data') return <DashboardOperatorData user={currentUser} onLogout={handleLogout} schoolName={schoolSettings.name} />;
 
-  // 5. Default Super Admin / Admin Layout (Legacy Multi-Tab View)
+  // 5. Default Fallback if role is not found
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} schoolSettings={schoolSettings} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header toggleSidebar={toggleSidebar} user={currentUser} onLogout={handleLogout} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          <div className="max-w-7xl mx-auto">
-            {activeTab === 'beranda' && <Dashboard />}
-            {activeTab === 'data-siswa' && <DataSiswa onTambahKelas={() => setActiveTab('tambah-kelas')} onUploadSiswa={() => setActiveTab('upload-siswa')} onUploadPerkelas={() => setActiveTab('upload-perkelas')} onUploadSiswaBaru={() => setActiveTab('upload-siswa-baru')} />}
-            {activeTab === 'data-guru' && <DataGuruStaff mapelList={mapelData} setMapelList={setSubjects as any} stafList={stafList} setStafList={setTeachers as any} kelasData={kelasData} setKelasData={setClasses as any} />}
-            {activeTab === 'kelas-wali' && <KelasWali kelasData={kelasData} studentsData={studentsDataByClass} />}
-            {activeTab === 'mata-pelajaran' && <MataPelajaran kelasData={kelasData} mapelList={mapelData} stafList={stafList} />}
-            {activeTab === 'tambah-kelas' && <TambahKelas onBack={() => setActiveTab('data-siswa')} kelasData={kelasData} setKelasData={setClasses as any} />}
-            {activeTab === 'upload-siswa' && <UploadSiswa onBack={() => setActiveTab('data-siswa')} />}
-            {activeTab === 'upload-perkelas' && <UploadPerkelas onBack={() => setActiveTab('data-siswa')} />}
-            {activeTab === 'upload-siswa-baru' && <UploadSiswaBaru onBack={() => setActiveTab('data-siswa')} />}
-            {activeTab === 'jadwal' && <Jadwal kelasData={kelasData} mapelData={mapelData} />}
-            {activeTab === 'absen' && <Absen kelasData={kelasData} studentsData={studentsDataByClass} attendanceData={attendanceData} setAttendanceData={setAttendanceData} />}
-            {activeTab === 'nilai' && <Nilai kelasData={kelasData} studentsData={studentsDataByClass} mapelData={mapelData} gradesData={gradesData} setGradesData={setGradesData} customColumnsData={customColumnsData} setCustomColumnsData={setCustomColumnsData} />}
-            {activeTab === 'rapot' && <Rapot studentsData={studentsDataByClass} gradesData={gradesData} attendanceData={attendanceData} schoolSettings={schoolSettings} />}
-            {activeTab === 'keuangan' && <Keuangan />}
-            {activeTab === 'tabungan' && <Tabungan />}
-            {activeTab === 'naik-kelas' && <NaikKelas />}
-            {activeTab === 'bimbingan' && <BimbinganBelajar />}
-            {activeTab === 'pengumuman' && <Pengumuman />}
-            {activeTab === 'laporan' && <Laporan />}
-            {activeTab === 'pengaturan' && <Pengaturan schoolSettings={schoolSettings} setSchoolSettings={setSchoolSettings} />}
-            {!['beranda', 'data-siswa', 'data-guru', 'kelas-wali', 'mata-pelajaran', 'tambah-kelas', 'upload-siswa', 'upload-perkelas', 'upload-siswa-baru', 'jadwal', 'absen', 'nilai', 'rapot', 'keuangan', 'tabungan', 'naik-kelas', 'bimbingan', 'pengumuman', 'laporan', 'pengaturan'].includes(activeTab) && (
-              <div className="flex flex-col items-center justify-center h-64 bg-white rounded-3xl shadow-sm border border-slate-200">
-                <h2 className="text-2xl font-bold text-slate-800 capitalize">{activeTab.replace(/-/g, ' ')}</h2>
-                <p className="text-slate-500 mt-2">Halaman ini sedang dalam pengembangan.</p>
-              </div>
-            )}
-          </div>
-        </main>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 text-center">
+      <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6">
+        <Bot size={40} />
       </div>
+      <h1 className="text-2xl font-bold text-slate-800 mb-2">Akses Terbatas</h1>
+      <p className="text-slate-600 max-w-md mb-8">
+        Maaf, akun Anda tidak memiliki role yang valid untuk mengakses sistem ini atau role Anda belum dikonfigurasi.
+      </p>
+      <button
+        onClick={handleLogout}
+        className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+      >
+        Keluar & Masuk Kembali
+      </button>
     </div>
   );
 };

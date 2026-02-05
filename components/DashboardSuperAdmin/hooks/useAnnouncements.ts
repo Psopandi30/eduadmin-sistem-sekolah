@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { announcementDataGlobal, updateAnnouncementsGlobal, Announcement } from '../../../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
 import { toast } from 'react-hot-toast';
+import logger from '../../../src/utils/logger';
 
 export const useAnnouncements = () => {
     const [announcements, setAnnouncements] = useState<Announcement[]>(() => {
@@ -11,7 +12,7 @@ export const useAnnouncements = () => {
                 try {
                     return JSON.parse(saved);
                 } catch (e) {
-                    console.error("Failed to parse announcements", e);
+                    logger.error("Failed to parse announcements", e);
                 }
             }
         }
@@ -32,7 +33,7 @@ export const useAnnouncements = () => {
                 localStorage.setItem('announcements_data_v10', JSON.stringify(parsed));
             }
         } catch (err) {
-            console.warn("No cloud announcements found");
+            logger.warn("No cloud announcements found");
         } finally {
             setLoading(false);
         }
@@ -58,7 +59,7 @@ export const useAnnouncements = () => {
             });
             toast.success("Pengumuman berhasil disinkronkan!");
         } catch (err) {
-            console.error("Error syncing announcements", err);
+            logger.error("Error syncing announcements", err);
             toast.error("Gagal sinkron pengumuman.");
         }
     };

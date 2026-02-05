@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronRight, CreditCard, History, Receipt, Calendar, CheckCircle, Clock, FileText, Printer, X, Search } from 'lucide-react';
 import { paymentHistoryGlobal } from '../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
+import logger from '../src/utils/logger';
 
 interface PembayaranSiswaProps {
     onBack: () => void;
@@ -61,7 +62,7 @@ const PembayaranSiswa: React.FC<PembayaranSiswaProps> = ({ onBack, user }) => {
                     setLoading(false);
                     return;
                 } catch (err) {
-                    console.error("Cloud sync failed, falling back to local", err);
+                    logger.error("Cloud sync failed, falling back to local", err);
                 }
             }
 
@@ -97,7 +98,7 @@ const PembayaranSiswa: React.FC<PembayaranSiswaProps> = ({ onBack, user }) => {
                     setHistoryData(myHistory);
                 }
             } catch (err) {
-                console.error("Local data load failed", err);
+                logger.error("Local data load failed", err);
             } finally {
                 setLoading(false);
             }

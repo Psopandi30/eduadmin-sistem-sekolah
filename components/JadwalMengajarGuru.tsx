@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Calendar, Clock, MapPin, ChevronLeft } from 'lucide-react';
 import { schedulesDataGlobal, subjectsDataGlobal, schedulePeriodsGlobal } from '../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
+import logger from '../src/utils/logger';
 
 interface JadwalMengajarGuruProps {
     onBack: () => void;
@@ -48,7 +49,7 @@ const JadwalMengajarGuru: React.FC<JadwalMengajarGuruProps> = ({ onBack, user })
                     setTeacherAssignments(typeof plottingData.value === 'string' ? JSON.parse(plottingData.value) : plottingData.value);
                 }
             } catch (err) {
-                console.error("Error fetching teaching schedule:", err);
+                logger.error("Error fetching teaching schedule:", err);
             } finally {
                 setLoading(false);
             }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight, Search, PlayCircle, PauseCircle, ArrowLeft, BookOpen, AlertCircle } from 'lucide-react';
 import { quranSurahsGlobal } from './data/quranStaticData';
+import logger from '../src/utils/logger';
 
 interface AlQuranSiswaProps {
     onBack: () => void;
@@ -62,14 +63,14 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
                     const cacheAge = Date.now() - parsed.timestamp;
                     // Cache valid for 7 days
                     if (cacheAge < 7 * 24 * 60 * 60 * 1000) {
-                        console.log(`✓ Loading Surah ${surah.number} from cache`);
+                        logger.log(`✓ Loading Surah ${surah.number} from cache`);
                         setAyahs(parsed.data);
                         setLoading(false);
                         return;
                     }
                 }
             } catch (e) {
-                console.warn('Cache read error:', e);
+                logger.warn('Cache read error:', e);
             }
         }
 
@@ -213,7 +214,7 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
         for (let i = 0; i < apis.length; i++) {
             const api = apis[i];
             try {
-                console.log(`🔄 Trying ${api.name}...`);
+                logger.log(`🔄 Trying ${api.name}...`);
                 const ayahsData = await api.fetch();
 
                 // Success! Cache the data for offline use
@@ -223,22 +224,22 @@ const AlQuranSiswa: React.FC<AlQuranSiswaProps> = ({ onBack }) => {
                         timestamp: Date.now()
                     }));
                 } catch (e) {
-                    console.warn('Cache write error:', e);
+                    logger.warn('Cache write error:', e);
                 }
 
                 setAyahs(ayahsData);
                 setLoading(false);
-                console.log(`✅ Successfully loaded from ${api.name}`);
+                logger.log(`✅ Successfully loaded from ${api.name}`);
                 return;
             } catch (err) {
-                console.error(`❌ ${api.name} failed:`, err);
+                logger.error(`❌ ${api.name} failed:`, err);
                 // Continue to next API
             }
         }
 
         // All APIs failed - retry once more after delay
         if (retryCount < 1) {
-            console.log('⏳ All APIs failed, retrying in 2 seconds...');
+            logger.log('⏳ All APIs failed, retrying in 2 seconds...');
             setTimeout(() => handleSelectSurah(surah, retryCount + 1), 2000);
         } else {
             setError('Tidak dapat memuat data Al-Qur\'an. Silakan periksa koneksi internet Anda dan coba lagi.');

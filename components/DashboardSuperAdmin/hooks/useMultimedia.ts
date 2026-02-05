@@ -8,6 +8,7 @@ import {
 } from '../../../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
 import { toast } from 'react-hot-toast';
+import logger from '../../../src/utils/logger';
 
 export const useMultimedia = () => {
     const [broadcasts, setBroadcasts] = useState<Broadcast[]>(broadcastsDataGlobal);
@@ -36,7 +37,7 @@ export const useMultimedia = () => {
                 localStorage.setItem('multimedia_settings_v10', JSON.stringify(parsed));
             }
         } catch (err) {
-            console.warn("No cloud multimedia data found");
+            logger.warn("No cloud multimedia data found");
         } finally {
             setLoading(false);
         }
@@ -68,7 +69,7 @@ export const useMultimedia = () => {
             });
             toast.success("Multimedia berhasil disinkronkan ke cloud!");
         } catch (err) {
-            console.error("Error syncing multimedia", err);
+            logger.error("Error syncing multimedia", err);
             toast.error("Gagal sinkron multimedia.");
         }
     };

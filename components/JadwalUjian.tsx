@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { examsDataGlobal, classesDataGlobal } from '../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
+import logger from '../src/utils/logger';
 
 interface JadwalUjianProps {
     onBack: () => void;
@@ -36,7 +37,7 @@ const JadwalUjian: React.FC<JadwalUjianProps> = ({ onBack, user }) => {
                     setMasterExam(published);
                 }
             } catch (err) {
-                console.error("Failed to fetch exams from cloud", err);
+                logger.error("Failed to fetch exams from cloud", err);
             } finally {
                 setLoading(false);
             }

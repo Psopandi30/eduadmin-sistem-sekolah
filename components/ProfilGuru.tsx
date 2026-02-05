@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ChevronLeft, Camera, LogOut, Save, User, BookOpen, Hash, MapPin } from 'lucide-react';
 import { teachersDataGlobal } from '../data/sharedData';
+import logger from '../src/utils/logger';
 
 interface ProfilGuruProps {
     user: any;
@@ -19,7 +20,7 @@ const ProfilGuru: React.FC<ProfilGuruProps> = ({ user, onBack, onLogout }) => {
                 try {
                     const teachers = JSON.parse(saved);
                     foundTeacher = teachers.find((t: any) => t.nama === user?.nama);
-                } catch (e) { console.error("Error parsing teachers data", e); }
+                } catch (e) { logger.error("Error parsing teachers data", e); }
             }
         }
         // ... (rest of the file)

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { classesDataGlobal } from '../../../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../../../src/lib/supabase';
 import { toast } from 'react-hot-toast';
+import logger from '../../../src/utils/logger';
 
 export interface Class {
     id: string | number;
@@ -51,7 +52,7 @@ export const useClasses = () => {
             }
             setIsInitialFetched(true);
         } catch (err) {
-            console.error('Error fetching classes:', err);
+            logger.error('Error fetching classes:', err);
         } finally {
             setLoading(false);
             setIsInitialFetched(true);
@@ -110,7 +111,7 @@ export const useClasses = () => {
                         }]);
                     }
                 } catch (err) {
-                    console.error('Error adding class to Supabase:', err);
+                    logger.error('Error adding class to Supabase:', err);
                     setClasses(prev => [...prev, newClass]);
                 }
             } else {
@@ -136,7 +137,7 @@ export const useClasses = () => {
                 if (error) throw error;
                 setClasses(prev => prev.filter(c => c.id !== id));
             } catch (err) {
-                console.error('Error deleting class from Supabase:', err);
+                logger.error('Error deleting class from Supabase:', err);
             }
         } else {
             setClasses(prev => prev.filter(c => c.id !== id));

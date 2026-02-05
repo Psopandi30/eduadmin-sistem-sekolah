@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { supabase } from '../src/lib/supabase';
+import logger from '../src/utils/logger';
 
 // Cache untuk API key dan client
 let geminiClient: GoogleGenAI | null = null;
@@ -42,7 +43,7 @@ async function getActiveApiKey(providerType: string = 'gemini'): Promise<string>
     return cachedApiKey || '';
 
   } catch (error) {
-    console.error('Error getting API key:', error);
+    logger.error('Error getting API key:', error);
     throw new Error('Gagal mendapatkan API key dari database');
   }
 }
@@ -55,7 +56,7 @@ async function updateApiKeyUsage() {
   try {
     await supabase.rpc('increment_api_key_usage', { key_val: cachedApiKey });
   } catch (err) {
-    console.warn('Failed to update usage count');
+    logger.warn('Failed to update usage count');
   }
 }
 
@@ -88,7 +89,7 @@ export async function saveChatSession(userId: string, message: string, response:
       .single();
 
     if (sessionError) {
-      console.warn('Failed to create chat session:', sessionError);
+      logger.warn('Failed to create chat session:', sessionError);
       return;
     }
 
@@ -109,7 +110,7 @@ export async function saveChatSession(userId: string, message: string, response:
     });
 
   } catch (error) {
-    console.warn('Failed to save chat session:', error);
+    logger.warn('Failed to save chat session:', error);
   }
 }
 
@@ -190,7 +191,7 @@ export async function sendToGemini(message: string, history: GeminiMessage[] = [
     return text;
 
   } catch (error) {
-    console.error('Error calling Gemini API:', error);
+    logger.error('Error calling Gemini API:', error);
 
     // Handle berbagai jenis error
     if (error instanceof Error) {

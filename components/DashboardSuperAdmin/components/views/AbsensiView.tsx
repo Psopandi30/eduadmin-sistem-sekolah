@@ -1,16 +1,20 @@
 import React from 'react';
-import { CirclePlus, UserCog, ChevronLeft, ChevronRight, CheckSquare, Search, Save } from 'lucide-react';
+import {
+    CirclePlus, UserCog, ChevronLeft, ChevronRight, CheckSquare,
+    Search, Save, BarChart3, PieChart, Users, FileText, LayoutDashboard,
+    ArrowRight
+} from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 interface AttendanceRecord {
     id: string;
-    studentId: number;
+    studentId: string | number;
     studentName: string;
     classId: string;
     date: string;
     status: 'H' | 'S' | 'I' | 'A';
     note: string;
-    checked: boolean;
+    checked?: boolean;
 }
 
 interface AbsensiViewProps {
@@ -154,118 +158,254 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
                     </div>
 
                     {/* Mode Switch */}
-                    <div className="flex bg-slate-200 p-1 rounded-lg self-end ml-auto">
+                    <div className="flex bg-slate-200 p-1 rounded-xl self-end ml-auto">
                         <button
                             onClick={() => {
                                 setAbsenMode('today');
                                 setAbsenDate(new Date());
                             }}
-                            className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${absenMode === 'today' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${absenMode === 'today' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                         >
-                            Hari Ini
+                            <LayoutDashboard size={14} /> Hari Ini
                         </button>
                         <button
                             onClick={() => setAbsenMode('history')}
-                            className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${absenMode === 'history' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${absenMode === 'history' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                         >
-                            Histori
+                            <BarChart3 size={14} /> Hasil / Rekap
                         </button>
                     </div>
                 </div>
 
-                {/* Actions Bar */}
-                <div className="flex flex-wrap justify-between items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <select
-                            onChange={(e) => {
-                                if (e.target.value) {
+                {/* --- STATS SUMMARY (VISIBLE IN RESULTS/HISTORY MODE) --- */}
+                {absenMode === 'history' && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 animate-in slide-in-from-top-4 duration-500">
+                        {(() => {
+                            const dateStr = absenDate.toISOString().split('T')[0];
+                            const dayRecords = attendanceData.filter(d => d.classId === absenClass && d.date === dateStr);
+                            const total = students.filter(s => s.kelas === absenClass).length;
+                            const h = dayRecords.filter(r => r.status === 'H').length;
+                            const s = dayRecords.filter(r => r.status === 'S').length;
+                            const i = dayRecords.filter(r => r.status === 'I').length;
+                            const a = dayRecords.filter(r => r.status === 'A').length;
+                            const presentPercent = total > 0 ? Math.round((h / total) * 100) : 0;
+
+                            return (
+                                <>
+                                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-3xl shadow-lg shadow-blue-100 text-white relative overflow-hidden">
+                                        <div className="relative z-10">
+                                            <p className="text-blue-100 text-[10px] font-bold uppercase tracking-widest mb-1">Kehadiran</p>
+                                            <h3 className="text-3xl font-bold">{presentPercent}%</h3>
+                                            <div className="mt-2 w-full bg-white/20 h-1.5 rounded-full overflow-hidden">
+                                                <div className="bg-white h-full rounded-full transition-all duration-1000" style={{ width: `${presentPercent}%` }}></div>
+                                            </div>
+                                        </div>
+                                        <Users className="absolute -right-4 -bottom-4 text-white/10 w-24 h-24 rotate-12" />
+                                    </div>
+
+                                    <div className="bg-emerald-50 p-5 rounded-3xl border border-emerald-100 text-emerald-700">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-emerald-500 text-[10px] font-bold uppercase tracking-widest mb-1">Terisi (H)</p>
+                                                <h3 className="text-3xl font-bold">{h} <span className="text-sm font-medium opacity-60">Siswa</span></h3>
+                                            </div>
+                                            <div className="w-10 h-10 bg-emerald-100 rounded-2xl flex items-center justify-center">
+                                                <CheckSquare size={20} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-amber-50 p-5 rounded-3xl border border-amber-100 text-amber-700">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-amber-500 text-[10px] font-bold uppercase tracking-widest mb-1">Izin / Sakit</p>
+                                                <h3 className="text-3xl font-bold">{i + s} <span className="text-sm font-medium opacity-60">Siswa</span></h3>
+                                            </div>
+                                            <div className="w-10 h-10 bg-amber-100 rounded-2xl flex items-center justify-center">
+                                                <PieChart size={20} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-rose-50 p-5 rounded-3xl border border-rose-100 text-rose-700">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-rose-500 text-[10px] font-bold uppercase tracking-widest mb-1">Tanpa Ket (A)</p>
+                                                <h3 className="text-3xl font-bold">{a} <span className="text-sm font-medium opacity-60">Siswa</span></h3>
+                                            </div>
+                                            <div className="w-10 h-10 bg-rose-100 rounded-2xl flex items-center justify-center">
+                                                <Users size={20} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            );
+                        })()}
+                    </div>
+                )}
+
+                {/* --- BAR CHART VISUALIZATION (monitoring) --- */}
+                {absenMode === 'history' && (
+                    <div className="bg-white p-6 rounded-[2rem] border border-slate-200 mb-6 flex flex-col md:flex-row gap-8 items-center">
+                        <div className="flex-1 w-full">
+                            <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                <BarChart3 size={18} className="text-blue-600" /> Grafik Kehadiran Kelas {absenClass}
+                            </h4>
+                            <div className="space-y-4">
+                                {(() => {
+                                    const dateStr = absenDate.toISOString().split('T')[0];
+                                    const dayRecords = attendanceData.filter(d => d.classId === absenClass && d.date === dateStr);
+                                    const total = students.filter(s => s.kelas === absenClass).length || 1;
+                                    const stats = [
+                                        { label: 'Hadir', count: dayRecords.filter(r => r.status === 'H').length, color: 'bg-emerald-500' },
+                                        { label: 'Sakit', count: dayRecords.filter(r => r.status === 'S').length, color: 'bg-blue-500' },
+                                        { label: 'Izin', count: dayRecords.filter(r => r.status === 'I').length, color: 'bg-amber-500' },
+                                        { label: 'Alfa', count: dayRecords.filter(r => r.status === 'A').length, color: 'bg-rose-500' },
+                                    ];
+
+                                    return stats.map(s => {
+                                        const count = s.count || 0;
+                                        const percent = Math.round((count / total) * 100);
+                                        return (
+                                            <div key={s.label} className="space-y-1">
+                                                <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+                                                    <span className="text-slate-500">{s.label} ({count})</span>
+                                                    <span className="text-slate-700">{percent}%</span>
+                                                </div>
+                                                <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200/50">
+                                                    <div
+                                                        className={`${s.color} h-full rounded-full transition-all duration-1000`}
+                                                        style={{ width: `${percent}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        );
+                                    });
+                                })()}
+                            </div>
+                        </div>
+                        <div className="w-full md:w-64 bg-slate-50 p-6 rounded-3xl border border-slate-200 flex flex-col items-center justify-center text-center">
+                            <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-white mb-3 shadow-lg shadow-blue-200">
+                                <FileText size={32} />
+                            </div>
+                            <h5 className="font-bold text-slate-800">Laporan Digital</h5>
+                            <p className="text-[10px] text-slate-500 mt-1">Data ini disinkronkan secara real-time dari input guru kelas/mapel.</p>
+                            <button className="mt-4 w-full py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-bold text-blue-600 hover:bg-blue-50 transition-all">CETAK REKAP</button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Actions Bar - ONLY SHOW IN TODAY/INPUT MODE */}
+                {absenMode === 'today' && (
+                    <div className="flex flex-wrap justify-between items-center gap-4 animate-in fade-in duration-300">
+                        <div className="flex items-center gap-2">
+                            <select
+                                onChange={(e) => {
+                                    if (e.target.value) {
+                                        const currentDateStr = absenDate.toISOString().split('T')[0];
+                                        const filteredStudents = students.filter(s => s.kelas === absenClass);
+                                        const newAttendanceData = [...attendanceData];
+
+                                        filteredStudents.forEach(student => {
+                                            const existingIndex = newAttendanceData.findIndex(d => d.studentId === student.id && d.date === currentDateStr);
+                                            if (existingIndex >= 0) {
+                                                newAttendanceData[existingIndex] = { ...newAttendanceData[existingIndex], status: e.target.value as any };
+                                            } else {
+                                                // Create new properly typed record
+                                                newAttendanceData.push({
+                                                    id: `att-${Date.now()}-${student.id}`,
+                                                    studentId: student.id,
+                                                    studentName: student.nama,
+                                                    classId: student.kelas,
+                                                    date: currentDateStr,
+                                                    status: e.target.value as any,
+                                                    note: '',
+                                                    checked: false
+                                                });
+                                            }
+                                        });
+                                        setAttendanceData(newAttendanceData);
+                                        e.target.value = ''; // Reset select
+                                    }
+                                }}
+                                className="h-10 px-3 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 outline-none focus:border-blue-500 bg-white min-w-[140px]"
+                            >
+                                <option value="">Status Cepat...</option>
+                                <option value="H">Hadir (H)</option>
+                                <option value="S">Sakit (S)</option>
+                                <option value="I">Izin (I)</option>
+                                <option value="A">Alfa (A)</option>
+                            </select>
+
+
+                            <button
+                                onClick={() => {
                                     const currentDateStr = absenDate.toISOString().split('T')[0];
                                     const filteredStudents = students.filter(s => s.kelas === absenClass);
+                                    // Find if all displayed students are checked FOR THIS DATE
+                                    const allChecked = filteredStudents.every(s => ((attendanceData.find(d => d.studentId === s.id && d.date === currentDateStr) as any)?.checked));
+
                                     const newAttendanceData = [...attendanceData];
 
                                     filteredStudents.forEach(student => {
                                         const existingIndex = newAttendanceData.findIndex(d => d.studentId === student.id && d.date === currentDateStr);
                                         if (existingIndex >= 0) {
-                                            newAttendanceData[existingIndex] = { ...newAttendanceData[existingIndex], status: e.target.value as any };
+                                            newAttendanceData[existingIndex] = { ...newAttendanceData[existingIndex], checked: !allChecked } as any;
                                         } else {
-                                            // Create new properly typed record
+                                            // Initialize if strictly checking before data exists
                                             newAttendanceData.push({
                                                 id: `att-${Date.now()}-${student.id}`,
                                                 studentId: student.id,
                                                 studentName: student.nama,
                                                 classId: student.kelas,
                                                 date: currentDateStr,
-                                                status: e.target.value as any,
+                                                status: 'H',
                                                 note: '',
-                                                checked: false
+                                                checked: !allChecked
                                             });
                                         }
                                     });
                                     setAttendanceData(newAttendanceData);
-                                    e.target.value = ''; // Reset select
-                                }
-                            }}
-                            className="h-10 px-3 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 outline-none focus:border-blue-500 bg-white min-w-[140px]"
-                        >
-                            <option value="">Status Cepat...</option>
-                            <option value="H">Hadir (H)</option>
-                            <option value="S">Sakit (S)</option>
-                            <option value="I">Izin (I)</option>
-                            <option value="A">Alfa (A)</option>
-                        </select>
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg font-bold text-sm hover:bg-blue-100 border border-blue-100 h-10"
+                            >
+                                <CheckSquare size={16} /> <span className="hidden md:inline">Centang Semua</span>
+                            </button>
+                        </div>
 
-
-                        <button
-                            onClick={() => {
-                                const currentDateStr = absenDate.toISOString().split('T')[0];
-                                const filteredStudents = students.filter(s => s.kelas === absenClass);
-                                // Find if all displayed students are checked FOR THIS DATE
-                                const allChecked = filteredStudents.every(s => ((attendanceData.find(d => d.studentId === s.id && d.date === currentDateStr) as any)?.checked));
-
-                                const newAttendanceData = [...attendanceData];
-
-                                filteredStudents.forEach(student => {
-                                    const existingIndex = newAttendanceData.findIndex(d => d.studentId === student.id && d.date === currentDateStr);
-                                    if (existingIndex >= 0) {
-                                        newAttendanceData[existingIndex] = { ...newAttendanceData[existingIndex], checked: !allChecked } as any;
-                                    } else {
-                                        // Initialize if strictly checking before data exists
-                                        newAttendanceData.push({
-                                            id: `att-${Date.now()}-${student.id}`,
-                                            studentId: student.id,
-                                            studentName: student.nama,
-                                            classId: student.kelas,
-                                            date: currentDateStr,
-                                            status: 'H',
-                                            note: '',
-                                            checked: !allChecked
-                                        });
-                                    }
-                                });
-                                setAttendanceData(newAttendanceData);
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg font-bold text-sm hover:bg-blue-100 border border-blue-100 h-10"
-                        >
-                            <CheckSquare size={16} /> <span className="hidden md:inline">Centang Semua</span>
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Cari Siswa..."
+                                    value={absenSearchQuery}
+                                    onChange={(e) => setAbsenSearchQuery(e.target.value)}
+                                    className="h-10 pl-9 pr-4 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-500 w-48 md:w-64"
+                                />
+                            </div>
+                            <button onClick={() => saveAttendance(attendanceData)} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all h-10">
+                                <Save size={18} /> Simpan
+                            </button>
+                        </div>
                     </div>
+                )}
 
-                    <div className="flex items-center gap-3">
+                {/* Search Bar only in History Mode */}
+                {absenMode === 'history' && (
+                    <div className="flex justify-end mb-4 animate-in fade-in">
                         <div className="relative">
                             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                             <input
                                 type="text"
-                                placeholder="Cari Siswa..."
+                                placeholder="Cari Nama Siswa..."
                                 value={absenSearchQuery}
                                 onChange={(e) => setAbsenSearchQuery(e.target.value)}
-                                className="h-10 pl-9 pr-4 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-500 w-48 md:w-64"
+                                className="h-10 pl-9 pr-4 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-500 w-64"
                             />
                         </div>
-                        <button onClick={() => saveAttendance(attendanceData)} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all h-10">
-                            <Save size={18} /> Simpan
-                        </button>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Table */}
@@ -278,7 +418,7 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
                             <th className="p-1.5 border-r border-slate-200 text-center w-48 text-[14px]">Kehadiran</th>
 
                             <th className="p-1.5 border-r border-slate-200 min-w-[200px] text-[14px]">Catatan</th>
-                            <th className="p-1.5 text-center w-12"><CheckSquare size={16} className="mx-auto text-slate-400" /></th>
+                            {absenMode === 'today' && <th className="p-1.5 text-center w-12"><CheckSquare size={16} className="mx-auto text-slate-400" /></th>}
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
@@ -312,41 +452,57 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
                                     <td className="p-1.5 text-center text-slate-500 font-medium group-hover:text-blue-600 text-[14px]">{i + 1}</td>
                                     <td className="p-1.5 font-bold text-slate-700 text-[14px]">{student.nama}</td>
                                     <td className="p-1.5 text-center">
-                                        <div className="inline-flex bg-slate-100 rounded-lg p-1 gap-1.5 border border-slate-200">
-                                            {['H', 'S', 'I', 'A'].map((status) => (
-                                                <button
-                                                    key={status}
-                                                    onClick={() => updateStudentData('status', status)}
-                                                    className={`w-8 h-8 rounded-md font-bold text-[14px] transition-all ${data.status === status
-                                                        ? (status === 'H' ? 'bg-white text-green-600 shadow-sm ring-1 ring-green-100' :
-                                                            status === 'S' ? 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-100' :
-                                                                status === 'I' ? 'bg-white text-orange-600 shadow-sm ring-1 ring-orange-100' :
-                                                                    'bg-white text-red-600 shadow-sm ring-1 ring-red-100')
-                                                        : 'text-slate-400 hover:bg-white hover:text-slate-600'}`}
-                                                >
-                                                    {status}
-                                                </button>
-                                            ))}
-                                        </div>
+                                        {absenMode === 'today' ? (
+                                            <div className="inline-flex bg-slate-100 rounded-lg p-1 gap-1.5 border border-slate-200">
+                                                {['H', 'S', 'I', 'A'].map((status) => (
+                                                    <button
+                                                        key={status}
+                                                        onClick={() => updateStudentData('status', status)}
+                                                        className={`w-8 h-8 rounded-md font-bold text-[14px] transition-all ${data.status === status
+                                                            ? (status === 'H' ? 'bg-white text-green-600 shadow-sm ring-1 ring-green-100' :
+                                                                status === 'S' ? 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-100' :
+                                                                    status === 'I' ? 'bg-white text-orange-600 shadow-sm ring-1 ring-orange-100' :
+                                                                        'bg-white text-red-600 shadow-sm ring-1 ring-red-100')
+                                                            : 'text-slate-400 hover:bg-white hover:text-slate-600'}`}
+                                                    >
+                                                        {status}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <span className={`px-4 py-1.5 rounded-full text-[12px] font-extrabold shadow-sm border ${data.status === 'H' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                                                data.status === 'S' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                                                    data.status === 'I' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                                                        'bg-rose-50 text-rose-600 border-rose-200'
+                                                }`}>
+                                                {data.status === 'H' ? 'HADIR' : data.status === 'S' ? 'SAKIT' : data.status === 'I' ? 'IZIN' : 'ALFA'}
+                                            </span>
+                                        )}
                                     </td>
 
                                     <td className="p-1.5">
-                                        <input
-                                            type="text"
-                                            value={data.note}
-                                            onChange={(e) => updateStudentData('note', e.target.value)}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-2 text-[14px] outline-none focus:bg-white focus:border-blue-400 transition-colors"
-                                            placeholder="Catatan..."
-                                        />
+                                        {absenMode === 'today' ? (
+                                            <input
+                                                type="text"
+                                                value={data.note}
+                                                onChange={(e) => updateStudentData('note', e.target.value)}
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-2 text-[14px] outline-none focus:bg-white focus:border-blue-400 transition-colors"
+                                                placeholder="Catatan..."
+                                            />
+                                        ) : (
+                                            <span className="text-slate-500 text-[13px] italic">{data.note || '-'}</span>
+                                        )}
                                     </td>
-                                    <td className="p-1.5 text-center">
-                                        <input
-                                            type="checkbox"
-                                            checked={data.checked}
-                                            onChange={(e) => updateStudentData('checked', e.target.checked)}
-                                            className="w-[14px] h-[14px] rounded text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
-                                        />
-                                    </td>
+                                    {absenMode === 'today' && (
+                                        <td className="p-1.5 text-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={data.checked}
+                                                onChange={(e) => updateStudentData('checked', e.target.checked)}
+                                                className="w-[14px] h-[14px] rounded text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                                            />
+                                        </td>
+                                    )}
                                 </tr>
                             );
                         })}

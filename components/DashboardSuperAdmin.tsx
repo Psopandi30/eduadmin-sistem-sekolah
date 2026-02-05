@@ -13,6 +13,7 @@ import {
 import { studentsDataGlobal, teachersDataGlobal, classesDataGlobal, schedulesDataGlobal, updateSchedulesDataGlobal, examsDataGlobal, updateExamsDataGlobal, MasterExamSchedule, ExamScheduleItem, attendanceDataGlobal, updateAttendanceDataGlobal, AttendanceRecord, gradesDataGlobal, updateGradesDataGlobal, GradeRecord, tutoringSubjectsGlobal, updateTutoringSubjectsGlobal, tutoringTeachersGlobal, updateTutoringTeachersGlobal, schedulePeriodsGlobal } from '../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 import { toast, Toaster } from 'react-hot-toast';
+import logger from '../src/utils/logger';
 import Sidebar from './DashboardSuperAdmin/components/Sidebar';
 import { ScheduleItem, Period, MasterSchedule, DailyScheduleInfo, DAYS } from './DashboardSuperAdmin/types';
 import DashboardHome from './DashboardSuperAdmin/components/views/DashboardHome';
@@ -58,6 +59,11 @@ import { useAttendance } from './DashboardSuperAdmin/hooks/useAttendance';
 import { useExams } from './DashboardSuperAdmin/hooks/useExams';
 import { useFinance } from './DashboardSuperAdmin/hooks/useFinance';
 import { useAnnouncements } from './DashboardSuperAdmin/hooks/useAnnouncements';
+import JadwalUjianView from './DashboardSuperAdmin/components/views/JadwalUjianView';
+import NaikKelasView from './DashboardSuperAdmin/components/views/NaikKelasView';
+import RaporDashboardView from './DashboardSuperAdmin/components/views/RaporDashboardView';
+import TabunganView from './DashboardSuperAdmin/components/views/TabunganView';
+
 import { useMultimedia } from './DashboardSuperAdmin/hooks/useMultimedia';
 import { useTutoring } from './DashboardSuperAdmin/hooks/useTutoring';
 import { useDataContext } from './DashboardSuperAdmin/contexts/DataContext';
@@ -87,11 +93,11 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     }
                 });
                 localStorage.setItem(resetKey, 'true');
-                console.log("Force reset triggered, reloading...");
+                logger.log("Force reset triggered, reloading...");
                 window.location.reload();
             }
         } catch (e) {
-            console.error("Local storage error during reset:", e);
+            logger.error("Local storage error during reset:", e);
         }
     }, []);
     */
@@ -470,39 +476,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     };
 
 
-
-    // --- PROMOTION STATE ---
-    const [promotionActiveTab, setPromotionActiveTab] = useState('dashboard'); // dashboard, persiapan, proses, lulus, riwayat
-
-    const [promotionYear, setPromotionYear] = useState(() => {
-        const saved = localStorage.getItem('promotion_year_v10');
-        return saved ? JSON.parse(saved) : { current: '2025/2026', next: '2026/2027' };
-    });
-
-    useEffect(() => {
-        localStorage.setItem('promotion_year_v1', JSON.stringify(promotionYear));
-    }, [promotionYear]);
-
-    const [promotionChecklist, setPromotionChecklist] = useState({ year: true, classes: true, report: false, distinct: true });
-
-    // Initial data with explicit fallback
-    const [promotionHistory, setPromotionHistory] = useState<any[]>(() => {
-        const saved = localStorage.getItem('promotion_history_v10');
-        return saved ? JSON.parse(saved) : [];
-    });
-
-    useEffect(() => {
-        localStorage.setItem('promotion_history_v10', JSON.stringify(promotionHistory));
-    }, [promotionHistory]);
-
-
-
-
-
-    // --- KEUANGAN ---
-    // Moved to specific view
-
-
+    // --- BIMBINGAN BELAJAR (TUTORING) STATE ---
     // --- GLOBAL HANDLERS ---
     const handleLogout = () => {
         setConfirmModal({
@@ -515,152 +489,6 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         });
     };
 
-
-    // --- PROMOTION HANDLERS ---
-    const [promotionStudents, setPromotionStudents] = useState<any[]>([]);
-    const [selectedPromotionClass, setSelectedPromotionClass] = useState('');
-    const [targetPromotionClass, setTargetPromotionClass] = useState('');
-
-
-    // Checklist
-
-    const handleCheckPreparation = () => {
-        // Simulasi cek
-        toast.loading("Memeriksa kelengkapan data...", { duration: 1500 });
-        setTimeout(() => {
-            setPromotionChecklist({
-                year: true,
-                classes: true,
-                report: true,
-                distinct: true
-            });
-            toast.success("Semua persiapan kenaikan kelas lengkap!");
-        }, 1500);
-    };
-
-    const handleLoadPromotionStudents = (className: string) => {
-        setSelectedPromotionClass(className);
-        const level = parseInt(className.match(/\d+/)?.[0] || '0');
-        const parallel = className.replace(/\d+/, '');
-        if (level > 0 && level < 6) {
-            setTargetPromotionClass(`${level + 1}${parallel}`);
-        } else {
-            setTargetPromotionClass('');
-        }
-
-        const classStudents = students.filter(s => s.kelas === className);
-
-        // Sync with Teacher's Decision Pipeline
-        const semesterKey = '2 (Genap)'; // Promotion usually based on Semester 2
-
-        const mappedStudents = classStudents.map(s => {
-            const suppKey = `rapor_supp_${className}_${s.id}_${semesterKey}`;
-            const savedSupp = localStorage.getItem(suppKey);
-            let decision = 'Naik'; // Default
-
-            if (savedSupp) {
-                const parsed = JSON.parse(savedSupp);
-                const d = parsed.decision;
-                if (d === 'Naik Ke Kelas') decision = 'Naik';
-                else if (d === 'Tinggal Di Kelas') decision = 'Tinggal';
-                else if (d === 'Lulus') decision = 'Lulus';
-                else if (d === 'Tidak Lulus') decision = 'Tidak Lulus';
-            }
-
-            return { ...s, promoStatus: decision };
-        });
-
-        setPromotionStudents(mappedStudents);
-    };
-
-    const handleExecutePromotion = () => {
-        if (!selectedPromotionClass || !targetPromotionClass) return;
-
-        // Verify preparation
-        // if (!promotionChecklist.report) {
-        //     toast.error("Rapor belum selesai! Harap selesaikan validasi persiapan terlebih dahulu.");
-        //     return;
-        // }
-
-        const toPromote = promotionStudents.filter(s => s.promoStatus === 'Naik');
-        const count = toPromote.length;
-        if (count === 0) return;
-
-        setConfirmModal({
-            show: true,
-            message: `Yakin ingin memproses kenaikan kelas untuk ${count} siswa dari ${selectedPromotionClass} ke ${targetPromotionClass}?`,
-            onConfirm: () => {
-                setConfirmModal({ show: false, message: '', onConfirm: () => { } });
-                // Update Students Data
-                const updatedStudents = toPromote.map(s => ({
-                    ...s,
-                    kelas: targetPromotionClass,
-                    tingkat: (s.tingkat || 1) + 1,
-                }));
-
-                // Call bulk update
-                updateStudents(updatedStudents);
-                handleSaveData();
-
-                // Log History
-                const newHistory = toPromote.map((s, idx) => ({
-                    id: Date.now() + idx,
-                    date: new Date().toISOString().split('T')[0],
-                    student: s.nama,
-                    from: selectedPromotionClass,
-                    to: targetPromotionClass,
-                    type: 'Naik Kelas',
-                    officer: 'Admin'
-                }));
-
-                setPromotionHistory([...newHistory, ...promotionHistory]);
-                setPromotionStudents([]);
-                setSelectedPromotionClass('');
-                toast.success("Proses Kenaikan Kelas Berhasil! Data siswa telah diperbarui.");
-            }
-        });
-    };
-
-    const handleExecuteGraduation = () => {
-        const toGraduate = promotionStudents.filter(s => s.promoStatus === 'Lulus');
-        const count = toGraduate.length;
-        if (count === 0) return;
-
-        setConfirmModal({
-            show: true,
-            message: `Yakin ingin meluluskan ${count} siswa dari kelas ${selectedPromotionClass}? Siswa akan dipindahkan ke data Alumni.`,
-            onConfirm: () => {
-                setConfirmModal({ show: false, message: '', onConfirm: () => { } });
-                // Update Students Data (Move to Alumni)
-                const updatedStudents = toGraduate.map(s => ({
-                    ...s,
-                    kelas: 'Alumni',
-                    tingkat: 7, // 7 for Alumni/Lulus
-                }));
-
-                updateStudents(updatedStudents);
-                handleSaveData();
-
-                // Log History
-                const newHistory = toGraduate.map((s, idx) => ({
-                    id: Date.now() + idx,
-                    date: new Date().toISOString().split('T')[0],
-                    student: s.nama,
-                    from: selectedPromotionClass,
-                    to: 'Alumni',
-                    type: 'Lulus',
-                    officer: 'Admin'
-                }));
-
-                setPromotionHistory([...newHistory, ...promotionHistory]);
-                setPromotionStudents([]);
-                setSelectedPromotionClass('');
-                toast.success("Proses Kelulusan Berhasil! Siswa telah dipindahkan ke Alumni.");
-            }
-        });
-    };
-
-    // --- BIMBINGAN BELAJAR (TUTORING) STATE ---
     // --- BIMBINGAN BELAJAR (TUTORING) STATE ---
     const [tutoringActiveTab, setTutoringActiveTab] = useState('dashboard'); // dashboard, mapel, guru, materi
 
@@ -778,7 +606,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                 })));
             }
         } catch (err) {
-            console.error('Error fetching tutoring data:', err);
+            logger.error('Error fetching tutoring data:', err);
         }
     };
 
@@ -894,13 +722,13 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                 const { error: enrollError } = await supabase
                     .from('tutoring_enrollments')
                     .upsert(enrollmentsToSave, { onConflict: 'teacher_id,student_id' });
-                if (enrollError) console.warn("Enrollment sync warned:", enrollError);
+                if (enrollError) logger.warn("Enrollment sync warned:", enrollError);
             }
 
             toast.success("Data Bimbel Berhasil Disinkronkan!", { id: loadingToast });
             fetchTutoringDataMain();
         } catch (err: any) {
-            console.error('Save error:', err);
+            logger.error('Save error:', err);
             toast.error("Gagal sinkron: " + err.message, { id: loadingToast });
         }
     };
@@ -1538,8 +1366,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     {/* --- VIEW: TAMBAH MATA PELAJARAN & KELOLA MAPEL (Refactored) --- */}
                     {(uiState.activeView === 'mapel' || uiState.activeView === 'tambah_mapel_view') && (
                         <MataPelajaranView
-                        mapelViewMode={uiState.mapelViewMode}
-                        setMapelViewMode={setMapelViewMode}
+                            mapelViewMode={uiState.mapelViewMode}
+                            setMapelViewMode={setMapelViewMode}
                             teacherAssignments={teacherAssignments}
                             setTeacherAssignments={setTeacherAssignments}
                             teachers={teachers}
@@ -1705,496 +1533,30 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     }
 
                     {/* --- VIEW: JADWAL UJIAN --- */}
-                    {
-                        uiState.activeView === 'ujian' && (
-                            <div className="bg-white rounded-[2.5rem] p-4 h-full shadow-sm animate-in fade-in flex flex-col overflow-hidden">
-                                {/* Header & Toolbar */}
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-0 gap-1">
-                                    <div className="flex items-center gap-3">
-                                        <ClipboardList size={28} className="text-blue-600" />
-                                        <div>
-                                            <h2 className="text-xl font-bold text-[#1E1B4B]">Jadwal Ujian</h2>
-                                            <p className="text-slate-500 text-sm">Kelola jadwal pelaksanaan ujian sekolah.</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => {
-                                            if (!activeExamId) return;
-                                            saveExams(examSchedules);
-                                        }} className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
-                                            <Save size={16} /> Simpan
-                                        </button>
-                                        <button onClick={() => {
-                                            if (!activeExamId) return;
-                                            const updated = examSchedules.map(ex => ex.id === activeExamId ? { ...ex, status: 'published' } : ex);
-                                            saveExams(updated);
-                                        }} className="flex items-center gap-2 px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200">
-                                            <Zap size={16} /> Publikasi
-                                        </button>
-                                        <button onClick={() => {
-                                            setConfirmModal({
-                                                show: true,
-                                                message: 'Apakah anda yakin ingin mereset/menghapus semua jadwal ujian?',
-                                                onConfirm: () => {
-                                                    setExamSchedules([]);
-                                                    toast.success("Jadwal ujian berhasil direset.");
-                                                    setConfirmModal({ show: false, message: '', onConfirm: () => { } });
-                                                }
-                                            });
-                                        }} className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors border border-red-100">
-                                            <RotateCcw size={14} /> Reset
-                                        </button>
-                                        <button onClick={() => setShowExamModal(true)} className="flex items-center gap-2 px-4 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-900 transition-colors shadow-lg">
-                                            <FolderPlus size={16} /> Tambah Jenis
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Active Exam Selector & Info */}
-                                <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 mb-2 flex flex-wrap gap-3 items-center">
-                                    <div className="flex-1 min-w-[150px]">
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Pilih Jadwal Ujian</label>
-                                        <select
-                                            value={activeExamId || ''}
-                                            onChange={(e) => setActiveExamId(Number(e.target.value))}
-                                            className="w-full p-2 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 text-sm outline-none focus:border-blue-500"
-                                        >
-                                            {examSchedules.length === 0 ? <option value="">Belum ada jadwal ujian</option> : null}
-                                            {examSchedules.map(exam => (
-                                                <option key={exam.id} value={exam.id}>{exam.type} - {exam.semester} {exam.year}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="flex-1 min-w-[150px]">
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Semester</label>
-                                        <div className="p-2 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 text-sm">
-                                            {activeExamId ? examSchedules.find(e => e.id === activeExamId)?.semester : '-'}
-                                        </div>
-                                    </div>
-                                    <div className="flex-1 min-w-[150px]">
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Tahun Ajaran</label>
-                                        <div className="p-2 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 text-sm">
-                                            {activeExamId ? examSchedules.find(e => e.id === activeExamId)?.year : '-'}
-                                        </div>
-                                    </div>
-                                    <div className="flex-1 min-w-[120px]">
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Status</label>
-                                        <div className="flex items-center gap-2 h-9">
-                                            {activeExamId ? (
-                                                examSchedules.find(e => e.id === activeExamId)?.status === 'published' ? (
-                                                    <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold flex items-center gap-1 border border-emerald-200">
-                                                        <CheckCircle size={12} /> TERBIT
-                                                    </span>
-                                                ) : (
-                                                    <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-bold flex items-center gap-1 border border-amber-200">
-                                                        <Edit size={12} /> DRAFT
-                                                    </span>
-                                                )
-                                            ) : '-'}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Schedule Grid - Tabel Jadwal Ujian */}
-                                <div className="flex-1 flex flex-col gap-2 overflow-hidden">
-                                    {/* Filter Section */}
-                                    <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-3 shrink-0">
-                                        <div className="flex items-center gap-2">
-                                            <label className="text-[10px] font-bold text-slate-600 whitespace-nowrap">TINGKAT:</label>
-                                            <select
-                                                value={selectedExamTingkat}
-                                                onChange={(e) => setSelectedExamTingkat(e.target.value)}
-                                                className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-md text-xs font-bold text-[#004AAD] focus:outline-none focus:ring-2 focus:ring-[#004AAD]"
-                                            >
-                                                {['1', '2', '3', '4', '5', '6'].map(t => (
-                                                    <option key={t} value={t}>{t}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <label className="text-[10px] font-bold text-slate-600 whitespace-nowrap">KELAS:</label>
-                                            <select
-                                                value={selectedExamClass}
-                                                onChange={(e) => setSelectedExamClass(e.target.value)}
-                                                className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-md text-xs font-bold text-[#004AAD] focus:outline-none focus:ring-2 focus:ring-[#004AAD]"
-                                            >
-                                                {derivedClasses.filter(c => c.tingkat?.toString() === selectedExamTingkat).map(c => (
-                                                    <option key={c.id} value={c.nama}>{c.nama}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    {/* Main Table Area */}
-                                    {activeExamId ? (
-                                        <div className="flex-1 flex gap-3 overflow-hidden">
-                                            {/* Left Sidebar - Mata Pelajaran */}
-                                            <div className="w-64 bg-white rounded-xl border border-slate-200 shadow-sm p-3 flex flex-col shrink-0">
-                                                <h3 className="text-xs font-bold text-slate-700 mb-3 flex items-center gap-2">
-                                                    <GripVertical size={14} className="text-slate-400" />
-                                                    Daftar Mata Pelajaran
-                                                </h3>
-                                                <div className="space-y-2 overflow-y-auto flex-1 pr-1">
-                                                    {subjects.map((subj) => {
-                                                        const colorClasses = [
-                                                            'bg-blue-100 border-blue-200 text-blue-700',
-                                                            'bg-emerald-100 border-emerald-200 text-emerald-700',
-                                                            'bg-violet-100 border-violet-200 text-violet-700',
-                                                            'bg-orange-100 border-orange-200 text-orange-700',
-                                                            'bg-lime-100 border-lime-200 text-lime-700',
-                                                        ];
-                                                        const color = colorClasses[subj.id % colorClasses.length];
-                                                        return (
-                                                            <div
-                                                                key={subj.id}
-                                                                draggable
-                                                                onDragStart={() => setExamDraggedItem({ subject: subj.name, teacher: '-', color })}
-                                                                className={`p-2 rounded-lg border cursor-grab active:cursor-grabbing hover:shadow-md transition-all select-none ${color} bg-opacity-50`}
-                                                            >
-                                                                <div className="font-bold text-xs">{subj.name}</div>
-                                                                <div className="text-[10px] opacity-80 truncate">-</div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-
-                                            {/* Right Area - Schedule Grid */}
-                                            <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
-                                                <div className="overflow-auto flex-1 relative">
-                                                    <table className="w-full text-left border-collapse relative">
-                                                        <thead className="bg-[#f8fafc] sticky top-0 z-20 shadow-sm">
-                                                            <tr>
-                                                                <th className="p-2 border-r border-b border-slate-200 min-w-[100px] w-[100px] bg-slate-50 bg-opacity-95 backdrop-blur-sm z-30 sticky left-0 text-center relative group">
-                                                                    <span className="text-xs font-bold text-slate-500 block mb-1">Waktu Ujian</span>
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setNewExamTime({ start: '', end: '' });
-                                                                            setShowExamTimeModal(true);
-                                                                        }}
-                                                                        className="mx-auto w-6 h-6 flex items-center justify-center rounded-full bg-green-100 text-green-600 hover:bg-green-500 hover:text-white transition-all shadow-sm border border-green-200"
-                                                                        title="Tambah Waktu Ujian Manual"
-                                                                    >
-                                                                        <Plus size={14} />
-                                                                    </button>
-                                                                </th>
-                                                                {DAYS.map(day => (
-                                                                    <th key={day} className="px-4 py-8 h-28 border-r border-b border-slate-200 min-w-[180px] bg-[#f8fafc] text-center group">
-                                                                        <div className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-2">{day}</div>
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                setSelectedDayForExamUniform(day);
-                                                                                setTempExamUniform(examDailyUniforms[day] || '');
-                                                                                setShowExamUniformModal(true);
-                                                                            }}
-                                                                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${examDailyUniforms[day] ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-slate-100 text-slate-400 border border-transparent hover:bg-slate-200'}`}
-                                                                        >
-                                                                            <Shirt size={12} />
-                                                                            <span className="truncate max-w-[120px]">{examDailyUniforms[day] || 'Seragam?'}</span>
-                                                                        </button>
-                                                                    </th>
-                                                                ))}
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="divide-y divide-slate-100">
-                                                            {examTimeSlots.map((slot) => (
-                                                                <tr key={slot.id}>
-                                                                    <td className="p-2 border-r border-b border-slate-100 bg-slate-50 sticky left-0 z-10 text-center group/time relative">
-                                                                        <div className="text-xs font-bold text-slate-700">{slot.start} - {slot.end}</div>
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                setConfirmModal({
-                                                                                    show: true,
-                                                                                    message: "Hapus sesi waktu ujian ini? Seluruh jadwal pada jam ini untuk semua kelas akan terhapus.",
-                                                                                    onConfirm: () => {
-                                                                                        setExamTimeSlots(prev => prev.filter(t => t.id !== slot.id));
-                                                                                        setConfirmModal({ show: false, message: '', onConfirm: () => { } });
-                                                                                        toast.success("Sesi waktu ujian dihapus");
-                                                                                    }
-                                                                                });
-                                                                            }}
-                                                                            className="absolute top-1 left-1 p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all opacity-0 group-hover/time:opacity-100"
-                                                                            title="Hapus Sesi Ini"
-                                                                        >
-                                                                            <X size={16} />
-                                                                        </button>
-                                                                    </td>
-                                                                    {DAYS.map((day) => {
-                                                                        const slotKey = `${day}-${slot.id}`;
-                                                                        const scheduleItem = examScheduleItems[slotKey];
-                                                                        return (
-                                                                            <td
-                                                                                key={slotKey}
-                                                                                onDragOver={(e) => e.preventDefault()}
-                                                                                onDrop={() => {
-                                                                                    if (examDraggedItem) {
-                                                                                        setExamScheduleItems(prev => ({
-                                                                                            ...prev,
-                                                                                            [slotKey]: examDraggedItem
-                                                                                        }));
-                                                                                        setExamDraggedItem(null);
-                                                                                    }
-                                                                                }}
-                                                                                className={`p-1 border-r border-b border-slate-100 h-36 relative transition-colors ${scheduleItem ? '' : 'hover:bg-blue-50'}`}
-                                                                            >
-                                                                                {scheduleItem ? (
-                                                                                    <div className={`w-full h-full p-2.5 rounded-xl border flex flex-col justify-center relative group ${scheduleItem.color}`}>
-                                                                                        <button
-                                                                                            onClick={(e) => {
-                                                                                                e.stopPropagation();
-                                                                                                const newItems = { ...examScheduleItems };
-                                                                                                delete newItems[slotKey];
-                                                                                                setExamScheduleItems(newItems);
-                                                                                            }}
-                                                                                            className="absolute top-1 right-1 p-1 rounded-full bg-white/60 hover:bg-rose-500 hover:text-white text-rose-500 transition-all z-10"
-                                                                                            title="Hapus"
-                                                                                        >
-                                                                                            <X size={16} />
-                                                                                        </button>
-                                                                                        <span className="font-bold text-sm leading-tight text-center">{scheduleItem.subject}</span>
-                                                                                        {scheduleItem.teacher !== '-' && (
-                                                                                            <span className="text-[10px] text-center mt-1.5 opacity-80 leading-tight line-clamp-2">{scheduleItem.teacher}</span>
-                                                                                        )}
-                                                                                    </div>
-                                                                                ) : (
-                                                                                    <div className="w-full h-full flex items-center justify-center opacity-0 hover:opacity-100 pointer-events-none">
-                                                                                        <div className="text-[10px] text-slate-400 font-medium">Drop disini</div>
-                                                                                    </div>
-                                                                                )}
-                                                                            </td>
-                                                                        );
-                                                                    })}
-                                                                </tr>
-                                                            ))}
-                                                            {/* Add Time Slot Row */}
-                                                            <tr>
-                                                                <td className="p-2 border-r border-slate-100 bg-slate-50 sticky left-0 z-10 text-center">
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setNewExamTime({ start: '', end: '' });
-                                                                            setShowExamTimeModal(true);
-                                                                        }}
-                                                                        className="w-full py-2 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-[#004AAD] hover:bg-blue-50 rounded-lg transition-all border border-dashed border-slate-300 hover:border-blue-300"
-                                                                    >
-                                                                        <Plus size={16} />
-                                                                        <span className="text-[10px] font-bold">Tambah Sesi</span>
-                                                                    </button>
-                                                                </td>
-                                                                <td colSpan={6} className="bg-slate-50/30"></td>
-                                                            </tr>
-                                                            {/* CATATAN Row */}
-                                                            <tr>
-                                                                <td className="p-2 border-r border-slate-100 bg-slate-50 sticky left-0 z-10 text-center">
-                                                                    <div className="text-xs font-bold text-slate-700 flex items-center justify-center gap-1">
-                                                                        <FileText size={14} />
-                                                                        <span>CATATAN</span>
-                                                                    </div>
-                                                                </td>
-                                                                {DAYS.map((day) => (
-                                                                    <td key={day} className="p-2 border-r border-slate-100">
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                setSelectedDayForExamNote(day);
-                                                                                setTempExamNote(examDailyNotes[day] || '');
-                                                                                setShowExamNoteModal(true);
-                                                                            }}
-                                                                            className="w-full p-2 text-left text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg border border-transparent hover:border-slate-200 transition-all min-h-[60px]"
-                                                                        >
-                                                                            {examDailyNotes[day] ? (
-                                                                                <span className="line-clamp-3">{examDailyNotes[day]}</span>
-                                                                            ) : (
-                                                                                <span className="text-slate-400 italic">Catatan Harian...</span>
-                                                                            )}
-                                                                        </button>
-                                                                    </td>
-                                                                ))}
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                                            <FolderPlus size={64} className="mb-4 text-slate-300" />
-                                            <h3 className="text-lg font-bold text-slate-500">Belum ada Jadwal Ujian</h3>
-                                            <p className="text-sm text-center max-w-sm mt-2">Silakan buat jadwal ujian baru dengan menekan tombol "Tambah Jenis Ujian" di atas.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )
-                    }
+                    {uiState.activeView === 'ujian' && (
+                        <JadwalUjianView
+                            subjects={subjects}
+                            classes={classes}
+                            examSchedules={examSchedules}
+                            saveExams={saveExams}
+                            setExamSchedules={setExamSchedules}
+                            setConfirmModal={setConfirmModal}
+                        />
+                    )}
 
 
 
                     {/* --- VIEW: RAPOT --- */}
                     {
                         uiState.activeView === 'rapot' && (
-                            <div className="bg-white rounded-[2.5rem] p-6 h-full shadow-sm animate-in fade-in flex flex-col overflow-y-auto custom-scrollbar">
-                                {/* Header: Info Aktif & Filters */}
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600">
-                                            <Book size={28} />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-[#1E1B4B]">Dashboard E-Rapor</h2>
-                                            <p className="text-slate-500 text-sm">Tahun Ajaran 2025/2026 • Semester Ganjil</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-3">
-                                        <button onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'rapot_settings' })} className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm" title="Pengaturan Rapor">
-                                            <Settings size={20} />
-                                        </button>
-                                        <select className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 cursor-pointer">
-                                            <option>2025/2026 Ganjil</option>
-                                            <option>2025/2026 Genap</option>
-                                        </select>
-                                        <select className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 cursor-pointer">
-                                            <option value="">Semua Kelas</option>
-                                            {classes.map(c => <option key={c.id} value={c.nama}>{c.nama}</option>)}
-                                        </select>
-                                        <select className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 cursor-pointer">
-                                            <option>Rapor Resmi (Diknas)</option>
-                                            <option>Rapor Yayasan</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                {/* Summary Cards */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-                                    {[
-                                        { label: 'Total Siswa', value: students.length, icon: <Users size={20} />, color: 'bg-blue-100 text-blue-600', sub: 'Siswa Aktif' },
-                                        { label: 'Rapor Terisi', value: '0%', icon: <Edit size={20} />, color: 'bg-amber-100 text-amber-600', sub: 'Dalam Proses' },
-                                        { label: 'Belum Lengkap', value: '0', icon: <FileText size={20} />, color: 'bg-rose-100 text-rose-600', sub: 'Siswa' },
-                                        { label: 'Rapor Terkunci', value: '0', icon: <Archive size={20} />, color: 'bg-purple-100 text-purple-600', sub: 'Sudah Final' },
-                                        { label: 'Siap Cetak', value: '0', icon: <Printer size={20} />, color: 'bg-emerald-100 text-emerald-600', sub: 'Rapor Final' },
-                                    ].map((card, idx) => (
-                                        <div key={idx} className="bg-slate-50 border border-slate-100 p-4 rounded-2xl hover:shadow-md transition-shadow group">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${card.color} group-hover:scale-110 transition-transform`}>
-                                                    {card.icon}
-                                                </div>
-                                                {idx === 1 && <span className="text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-bold">Progress</span>}
-                                            </div>
-                                            <div className="mt-2">
-                                                <h3 className="text-2xl font-bold text-slate-800">{card.value}</h3>
-                                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{card.label}</p>
-                                                <p className="text-[10px] text-slate-400 mt-1">{card.sub}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                                    {/* Progress Rapor per Kelas */}
-                                    <div className="lg:col-span-2 bg-slate-50 rounded-3xl border border-slate-200 p-6 flex flex-col">
-                                        <div className="flex justify-between items-center mb-6">
-                                            <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                                <TrendingUp size={20} className="text-emerald-500" /> Progress Input Nilai
-                                            </h3>
-                                            <button onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'rapot_print' })} className="text-xs font-bold text-emerald-600 hover:text-emerald-800">Cetak Rapor</button>
-                                        </div>
-                                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
-                                            {derivedClasses.length === 0 ? (
-                                                <p className="text-slate-400 text-center italic py-10">Belum ada kelas</p>
-                                            ) : derivedClasses.map((cls, idx) => {
-                                                // Reset dynamic progress to 0 for now
-                                                const progress = 0;
-                                                const color = 'bg-slate-300';
-
-                                                return (
-                                                    <div key={cls.id} className="bg-white p-4 rounded-2xl border border-slate-100 hover:border-blue-200 transition-colors cursor-pointer group" onClick={() => { setSelectedClass(cls.nama); setActiveView('rapot_print'); }}>
-                                                        <div className="flex justify-between items-center mb-2">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                                                                    {cls.nama}
-                                                                </div>
-                                                                <div>
-                                                                    <h4 className="font-bold text-slate-700 leading-tight">Kelas {cls.nama}</h4>
-                                                                    <p className="text-xs text-slate-400">{cls.siswa} Siswa • Wali: {cls.wali.split(',')[0]}</p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <span className="font-bold text-lg text-slate-800">{progress}%</span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                                                            <div className={`h-full rounded-full ${color} transition-all duration-1000`} style={{ width: `${progress}%` }}></div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* Charts & Notifications */}
-                                    <div className="flex flex-col gap-6">
-                                        {/* Simple Chart */}
-                                        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex-1">
-                                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                                <PieChart size={18} className="text-purple-500" /> Tipe Rapor
-                                            </h3>
-                                            <div className="flex items-center justify-center py-4">
-                                                {/* CSS Conic Gradient Pie Chart (Empty) */}
-                                                <div className="w-40 h-40 rounded-full relative" style={{ background: 'conic-gradient(#e2e8f0 0% 100%)' }}>
-                                                    <div className="absolute inset-4 bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
-                                                        <span className="text-2xl font-bold text-slate-700">0</span>
-                                                        <span className="text-xs text-slate-400">Rapor Siswa</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-center gap-6 mt-2">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-3 h-3 rounded-full bg-slate-300"></span>
-                                                    <span className="text-xs font-bold text-slate-600">0% Resmi</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-3 h-3 rounded-full bg-slate-300"></span>
-                                                    <span className="text-xs font-bold text-slate-600">0% Yayasan</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Notifications / Status */}
-                                        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex-1 overflow-hidden">
-                                            <div className="flex justify-between items-center mb-4">
-                                                <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                                    <Bell size={18} className="text-slate-400" /> Pemberitahuan
-                                                    <span className="flex items-center justify-center bg-slate-200 text-slate-600 text-[10px] w-5 h-5 rounded-full shadow-sm">0</span>
-                                                </h3>
-                                            </div>
-                                            <div className="space-y-3 h-32 flex flex-col items-center justify-center text-slate-400">
-                                                <Bell size={32} className="mb-2 opacity-50" />
-                                                <p className="text-xs">Belum ada pemberitahuan</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Quick Action Buttons */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <button onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'nilai' })} className="flex items-center justify-center gap-3 p-4 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-all font-bold shadow-lg shadow-emerald-200 group">
-                                        <div className="bg-white/20 p-2 rounded-lg group-hover:scale-110 transition-transform"><Plus size={20} /></div>
-                                        <span>Input Nilai</span>
-                                    </button>
-                                    <button onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'rapot_print' })} className="flex items-center justify-center gap-3 p-4 bg-white border-2 border-slate-200 text-slate-700 rounded-2xl hover:border-emerald-500 hover:text-emerald-600 transition-all font-bold group">
-                                        <div className="bg-slate-100 p-2 rounded-lg group-hover:bg-emerald-50 transition-colors"><Printer size={20} /></div>
-                                        <span>Cetak Rapor</span>
-                                    </button>
-
-                                    <button onClick={() => toast("Mengunci Nilai...", { icon: '🔒' })} className="flex items-center justify-center gap-3 p-4 bg-white border-2 border-slate-200 text-slate-700 rounded-2xl hover:border-purple-500 hover:text-purple-600 transition-all font-bold group">
-                                        <div className="bg-slate-100 p-2 rounded-lg group-hover:bg-purple-50 transition-colors"><Lock size={20} /></div>
-                                        <span>Kunci Nilai</span>
-                                    </button>
-                                    <button onClick={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'rapot_print' })} className="flex items-center justify-center gap-3 p-4 bg-white border-2 border-slate-200 text-slate-700 rounded-2xl hover:border-blue-500 hover:text-blue-600 transition-all font-bold group">
-                                        <div className="bg-slate-100 p-2 rounded-lg group-hover:bg-blue-50 transition-colors"><div className="rotate-90"><Archive size={20} /></div></div>
-                                        <span>Cetak Massal</span>
-                                    </button>
-                                </div>
-                            </div>
+                            <RaporDashboardView
+                                students={students}
+                                classes={classes}
+                                derivedClasses={derivedClasses}
+                                setActiveView={setActiveView}
+                                setSelectedClass={setSelectedClass}
+                                toast={toast}
+                            />
                         )
                     }
 
@@ -2225,697 +1587,21 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     )}
 
                     {/* --- VIEW: TABUNGAN --- */}
-                    {
-                        uiState.activeView === 'tabungan' && (
-                            <div className="h-full overflow-y-auto custom-scrollbar animate-in fade-in space-y-6 pr-2 pb-6">
-                                {/* Header & Tabs */}
-                                <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 relative overflow-hidden">
-                                    <div className="relative z-10">
-                                        <div className="flex items-center gap-4 mb-8">
-                                            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center border border-emerald-100">
-                                                <Wallet size={24} className="text-emerald-600" />
-                                            </div>
-                                            <div>
-                                                <h2 className="text-2xl font-bold text-slate-800">Tabungan Sekolah</h2>
-                                                <p className="text-slate-500 text-sm font-medium">Kelola simpanan dan tabungan siswa.</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-2">
-                                            {[
-                                                { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
-                                                { id: 'data', label: 'Data Tabungan', icon: <Users size={16} /> },
-                                                { id: 'setor', label: 'Setoran', icon: <ArrowUpCircle size={16} /> },
-                                                { id: 'tarik', label: 'Penarikan', icon: <TrendingDown size={16} /> },
-                                                { id: 'riwayat', label: 'Riwayat', icon: <History size={16} /> },
-                                                { id: 'rekap', label: 'Rekapitulasi', icon: <FileText size={16} /> },
-                                            ].map(tab => {
-                                                if (tab.id === 'data') {
-                                                    return (
-                                                        <React.Fragment key="special-item-nasabah">
-                                                            <button
-                                                                onClick={() => setShowAddSaverModal(true)}
-                                                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100 transition-all shadow-sm mr-2"
-                                                            >
-                                                                <Plus size={16} />
-                                                                Tambah Nasabah
-                                                            </button>
-                                                            <button
-                                                                key={tab.id}
-                                                                onClick={() => setSavingsActiveTab(tab.id)}
-                                                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${savingsActiveTab === tab.id
-                                                                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200'
-                                                                    : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-100'
-                                                                    }`}
-                                                            >
-                                                                {tab.icon}
-                                                                <span>{tab.label}</span>
-                                                            </button>
-                                                        </React.Fragment>
-                                                    );
-                                                }
-                                                return (
-                                                    <button
-                                                        key={tab.id}
-                                                        onClick={() => setSavingsActiveTab(tab.id)}
-                                                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${savingsActiveTab === tab.id
-                                                            ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200'
-                                                            : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-100'
-                                                            }`}
-                                                    >
-                                                        {tab.icon}
-                                                        <span>{tab.label}</span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* 1. DASHBOARD RINGKASAN */}
-                                {savingsActiveTab === 'dashboard' && (
-                                    <div className="space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                            <div className="bg-emerald-500 text-white p-5 rounded-3xl shadow-lg shadow-emerald-200 relative overflow-hidden group">
-                                                <div className="relative z-10">
-                                                    <p className="text-emerald-100 text-xs font-bold uppercase tracking-wider mb-1">Total Saldo Siswa</p>
-                                                    <h3 className="text-3xl font-bold mb-2">Rp {savingsData.reduce((acc, curr) => acc + curr.saldo, 0).toLocaleString('id-ID')}</h3>
-                                                    <div className="flex items-center gap-1 text-xs bg-white/20 w-fit px-2 py-1 rounded-lg">
-                                                        <Users size={12} /> {savingsData.length} Siswa Menabung
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="bg-blue-500 text-white p-5 rounded-3xl shadow-lg shadow-blue-200 relative overflow-hidden group">
-                                                <div className="relative z-10">
-                                                    <p className="text-blue-100 text-xs font-bold uppercase tracking-wider mb-1">Setoran Hari Ini</p>
-                                                    <h3 className="text-3xl font-bold mb-2">Rp {savingsTransactions.filter(t => t.type === 'Setor' && t.date === new Date().toISOString().split('T')[0]).reduce((acc, curr) => acc + curr.amount, 0).toLocaleString('id-ID')}</h3>
-                                                </div>
-                                            </div>
-                                            <div className="bg-amber-500 text-white p-5 rounded-3xl shadow-lg shadow-amber-200 relative overflow-hidden group">
-                                                <div className="relative z-10">
-                                                    <p className="text-amber-100 text-xs font-bold uppercase tracking-wider mb-1">Penarikan Hari Ini</p>
-                                                    <h3 className="text-3xl font-bold mb-2">Rp {savingsTransactions.filter(t => t.type === 'Tarik' && t.date === new Date().toISOString().split('T')[0]).reduce((acc, curr) => acc + curr.amount, 0).toLocaleString('id-ID')}</h3>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* 2. DATA TABUNGAN */}
-                                {savingsActiveTab === 'data' && (
-                                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                                        <div className="p-5 border-b border-slate-100 flex justify-between items-center">
-                                            <h3 className="font-bold text-slate-800">Data Tabungan Siswa</h3>
-                                            <div className="relative">
-                                                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                                <input placeholder="Cari Siswa..." className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500" />
-                                            </div>
-                                        </div>
-                                        <table className="w-full text-left border-collapse">
-                                            <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
-                                                <tr>
-                                                    <th className="p-4 border-b">Siswa</th>
-                                                    <th className="p-4 border-b">Kelas</th>
-                                                    <th className="p-4 border-b text-right">Saldo Saat Ini</th>
-                                                    <th className="p-4 border-b text-center">Status</th>
-                                                    <th className="p-4 border-b text-center">Aksi</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-100 text-sm">
-                                                {savingsData.map(s => (
-                                                    <tr key={s.id} className="hover:bg-slate-50 transition-colors">
-                                                        <td className="p-4 font-bold text-slate-700">
-                                                            <div>{s.nama}</div>
-                                                            <div className="text-xs text-slate-400 font-normal">{s.nis}</div>
-                                                        </td>
-                                                        <td className="p-4 text-slate-600">{s.kelas}</td>
-                                                        <td className="p-4 text-right font-bold text-emerald-600">Rp {s.saldo.toLocaleString('id-ID')}</td>
-                                                        <td className="p-4 text-center">
-                                                            <span className={`px-2 py-1 rounded-md text-xs font-bold ${s.status === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{s.status}</span>
-                                                        </td>
-                                                        <td className="p-4 text-center">
-                                                            <div className="flex justify-center gap-2">
-                                                                <button
-                                                                    onClick={() => toast('Fitur Preview/Cetak Buku untuk ' + s.nama + ' akan muncul di sini.', { icon: '🖨️' })}
-                                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-xs font-bold transition-colors"
-                                                                    title="Cetak Buku Tabungan"
-                                                                >
-                                                                    <Printer size={14} /> Cetak Buku
-                                                                </button>
-                                                                <button className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-500 hover:text-slate-700 rounded-lg text-xs font-bold transition-colors">
-                                                                    <List size={14} /> Detail
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
-
-                                {/* 3. SETORAN & PENARIKAN */}
-                                {(savingsActiveTab === 'setor' || savingsActiveTab === 'tarik') && (
-                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                        <div className="lg:col-span-2 space-y-6">
-
-                                            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                                                <h3 className="font-bold text-xl text-slate-800 mb-6 flex items-center gap-2">
-                                                    {savingsActiveTab === 'setor' ? <ArrowUpCircle className="text-emerald-500" /> : <TrendingDown className="text-amber-500" />}
-                                                    {savingsActiveTab === 'setor' ? 'Input Setoran Baru' : 'Input Penarikan Dana'}
-                                                </h3>
-
-                                                <div className="space-y-6">
-                                                    <div>
-                                                        <label className="block text-sm font-bold text-slate-700 mb-2">Cari Siswa</label>
-                                                        <div className="relative">
-                                                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                                                            <input
-                                                                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-bold"
-                                                                placeholder="Ketik Nama / NIS..."
-                                                                value={searchSavingsStudent}
-                                                                onChange={(e) => {
-                                                                    setSearchSavingsStudent(e.target.value);
-                                                                    if (!e.target.value) setSelectedSavingsStudent(null);
-                                                                }}
-                                                            />
-                                                        </div>
-                                                        {/* Search Results Dropdown */}
-                                                        {searchSavingsStudent && !selectedSavingsStudent && (
-                                                            <div className="mt-2 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden z-10">
-                                                                {savingsData.filter(s => s.nama.toLowerCase().includes(searchSavingsStudent.toLowerCase())).map(s => (
-                                                                    <div key={s.id} onClick={() => setSelectedSavingsStudent(s)} className="p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0 flex justify-between items-center">
-                                                                        <div>
-                                                                            <p className="font-bold text-slate-800">{s.nama}</p>
-                                                                            <p className="text-xs text-slate-500">{s.kelas} • NIS: {s.nis}</p>
-                                                                        </div>
-                                                                        <div className="text-right">
-                                                                            <p className="text-xs text-slate-400">Saldo</p>
-                                                                            <p className="font-bold text-emerald-600 text-sm">Rp {s.saldo.toLocaleString('id-ID')}</p>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {selectedSavingsStudent && (
-                                                        <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-center justify-between animate-in fade-in">
-                                                            <div>
-                                                                <p className="text-xs text-blue-600 font-bold uppercase opacity-70">Siswa Terpilih</p>
-                                                                <p className="font-bold text-slate-800 text-lg">{selectedSavingsStudent.nama}</p>
-                                                                <p className="text-sm text-slate-600">Kelas {selectedSavingsStudent.kelas} • Saldo: Rp {selectedSavingsStudent.saldo.toLocaleString('id-ID')}</p>
-                                                            </div>
-                                                            <button onClick={() => { setSelectedSavingsStudent(null); setSearchSavingsStudent(''); }} className="p-2 bg-white rounded-full text-slate-400 hover:text-red-500"><X size={16} /></button>
-                                                        </div>
-                                                    )}
-
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                        <div>
-                                                            <label className="block text-sm font-bold text-slate-700 mb-2">Tanggal</label>
-                                                            <input type="date" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-bold text-slate-700" defaultValue={new Date().toISOString().split('T')[0]} />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-sm font-bold text-slate-700 mb-2">Nominal (Rp)</label>
-                                                            <input
-                                                                type="number"
-                                                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-bold text-slate-700"
-                                                                placeholder="0"
-                                                                value={savingsAmount}
-                                                                onChange={(e) => setSavingsAmount(parseInt(e.target.value) || 0)}
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    <div>
-                                                        <label className="block text-sm font-bold text-slate-700 mb-2">Keterangan (Opsional)</label>
-                                                        <textarea
-                                                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 min-h-[100px]"
-                                                            placeholder="Catatan tambahan..."
-                                                            value={savingsNote}
-                                                            onChange={(e) => setSavingsNote(e.target.value)}
-                                                        ></textarea>
-                                                    </div>
-
-                                                    <button
-                                                        onClick={savingsActiveTab === 'setor' ? handleSavingsDeposit : handleSavingsWithdrawal}
-                                                        disabled={!selectedSavingsStudent || savingsAmount <= 0}
-                                                        className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all ${savingsActiveTab === 'setor' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200' : 'bg-amber-500 hover:bg-amber-600 shadow-amber-200'} disabled:opacity-50 disabled:cursor-not-allowed`}
-                                                    >
-                                                        {savingsActiveTab === 'setor' ? 'SIMPAN SETORAN' : 'PROSES PENARIKAN'}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Sidebar Info */}
-                                        <div className="space-y-6">
-                                            <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-                                                <h4 className="font-bold text-slate-700 mb-4">Informasi Penting</h4>
-                                                <ul className="space-y-3 text-sm text-slate-600">
-                                                    <li className="flex gap-2">
-                                                        <CheckCircle size={16} className="text-emerald-500 flex-shrink-0 mt-0.5" />
-                                                        <span>Saldo akan langsung {savingsActiveTab === 'setor' ? 'bertambah' : 'berkurang'} setelah disimpan.</span>
-                                                    </li>
-                                                    <li className="flex gap-2">
-                                                        <CheckCircle size={16} className="text-emerald-500 flex-shrink-0 mt-0.5" />
-                                                        <span>Transaksi tidak dapat dihapus, hanya bisa dikoreksi oleh Admin.</span>
-                                                    </li>
-                                                    {savingsActiveTab === 'tarik' && (
-                                                        <li className="flex gap-2">
-                                                            <CheckCircle size={16} className="text-emerald-500 flex-shrink-0 mt-0.5" />
-                                                            <span>Pastikan saldo siswa mencukupi sebelum penarikan.</span>
-                                                        </li>
-                                                    )}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* 4. RIWAYAT */}
-                                {savingsActiveTab === 'riwayat' && (
-                                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                                        <div className="p-5 border-b border-slate-100">
-                                            <h3 className="font-bold text-slate-800">Riwayat Transaksi Tabungan</h3>
-                                        </div>
-                                        <table className="w-full text-left border-collapse">
-                                            <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
-                                                <tr>
-                                                    <th className="p-4 border-b">Tanggal</th>
-                                                    <th className="p-4 border-b">ID TRX</th>
-                                                    <th className="p-4 border-b">Siswa</th>
-                                                    <th className="p-4 border-b text-center">Jenis</th>
-                                                    <th className="p-4 border-b text-right">Nominal</th>
-                                                    <th className="p-4 border-b text-center">Petugas</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-100 text-sm">
-                                                {savingsTransactions.map(t => (
-                                                    <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                                                        <td className="p-4 text-slate-600">{t.date}</td>
-                                                        <td className="p-4 font-mono text-xs text-slate-500">{t.id}</td>
-                                                        <td className="p-4 font-bold text-slate-700">{t.studentName}</td>
-                                                        <td className="p-4 text-center">
-                                                            <span className={`px-2 py-1 rounded text-xs font-bold ${t.type === 'Setor' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{t.type}</span>
-                                                        </td>
-                                                        <td className="p-4 text-right font-bold text-slate-700">Rp {t.amount.toLocaleString('id-ID')}</td>
-                                                        <td className="p-4 text-center text-slate-500">{t.officer}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
-
-                                {/* 5. REKAPITULASI (REKAP) */}
-                                {savingsActiveTab === 'rekap' && (
-                                    <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden p-8">
-                                        <div className="flex justify-between items-center mb-6">
-                                            <div>
-                                                <h3 className="font-bold text-xl text-slate-800">Laporan Rekapitulasi Harian</h3>
-                                                <p className="text-slate-500 text-sm">Ringkasan transaksi setoran dan penarikan per hari.</p>
-                                            </div>
-                                            <button className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-xl hover:bg-blue-100 transition-colors">
-                                                <Download size={16} /> Unduh Excel / PDF
-                                            </button>
-                                        </div>
-
-                                        <table className="w-full text-left border-collapse">
-                                            <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
-                                                <tr>
-                                                    <th className="p-4 border-b">Tanggal</th>
-                                                    <th className="p-4 border-b text-right text-emerald-600">Total Setoran</th>
-                                                    <th className="p-4 border-b text-right text-amber-600">Total Penarikan</th>
-                                                    <th className="p-4 border-b text-right">Selisih (Net)</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-100 text-sm">
-                                                {/* Calculate summaries */}
-                                                {(() => {
-                                                    const summary = savingsTransactions.reduce((acc, curr) => {
-                                                        if (!acc[curr.date]) acc[curr.date] = { setor: 0, tarik: 0 };
-                                                        if (curr.type === 'Setor') acc[curr.date].setor += curr.amount;
-                                                        if (curr.type === 'Tarik') acc[curr.date].tarik += curr.amount;
-                                                        return acc;
-                                                    }, {} as any);
-
-                                                    return Object.keys(summary).sort().reverse().map(date => (
-                                                        <tr key={date} className="hover:bg-slate-50 transition-colors">
-                                                            <td className="p-4 font-bold text-slate-700">{date}</td>
-                                                            <td className="p-4 text-right font-bold text-emerald-600">Rp {summary[date].setor.toLocaleString('id-ID')}</td>
-                                                            <td className="p-4 text-right font-bold text-amber-600">Rp {summary[date].tarik.toLocaleString('id-ID')}</td>
-                                                            <td className="p-4 text-right font-bold text-slate-800">Rp {(summary[date].setor - summary[date].tarik).toLocaleString('id-ID')}</td>
-                                                        </tr>
-                                                    ));
-                                                })()}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
-                            </div>
-                        )
-                    }
+                    {uiState.activeView === 'tabungan' && (
+                        <TabunganView />
+                    )}
 
 
-                    {/* --- VIEW: NAIK KELAS --- */}
                     {
                         uiState.activeView === 'naik_kelas' && (
                             <div className="bg-[#F4F7FE] p-6 h-full overflow-y-auto">
-                                <div className="animate-in fade-in space-y-6">
-                                    {/* Header & Tabs */}
-                                    <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 relative overflow-hidden">
-                                        <div className="relative z-10">
-                                            <div className="flex items-center gap-4 mb-8">
-                                                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center border border-blue-100">
-                                                    <ArrowUpCircle size={24} className="text-blue-600" />
-                                                </div>
-                                                <div>
-                                                    <h2 className="text-2xl font-bold text-slate-800">Kenaikan Kelas & Kelulusan</h2>
-                                                    <p className="text-slate-500 text-sm font-medium">Proses kenaikan kelas tahunan dan kelulusan siswa.</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-2">
-                                                {[
-                                                    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
-                                                    { id: 'persiapan', label: 'Persiapan', icon: <CheckSquare size={16} /> },
-                                                    { id: 'proses', label: 'Proses Naik Kelas', icon: <ArrowUpCircle size={16} /> },
-                                                    { id: 'lulus', label: 'Kelulusan (Kls 6)', icon: <GraduationCap size={16} /> },
-                                                    { id: 'riwayat', label: 'Riwayat', icon: <History size={16} /> },
-                                                ].map(tab => (
-                                                    <button
-                                                        key={tab.id}
-                                                        onClick={() => setPromotionActiveTab(tab.id)}
-                                                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${promotionActiveTab === tab.id
-                                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-                                                            : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-100'
-                                                            }`}
-                                                    >
-                                                        {tab.icon}
-                                                        <span>{tab.label}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-6">
-                                        {promotionActiveTab === 'dashboard' && (
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                                                    <h3 className="font-bold text-slate-700 mb-2">Tahun Ajaran Aktif</h3>
-                                                    <p className="text-3xl font-bold text-blue-600">{promotionYear.current}</p>
-                                                    <div className="mt-4 flex items-center gap-2 text-sm text-slate-500 bg-slate-50 p-2 rounded-lg">
-                                                        <Calendar size={14} /> Menuju:
-                                                        <input
-                                                            type="text"
-                                                            value={promotionYear.next}
-                                                            onChange={(e) => setPromotionYear({ ...promotionYear, next: e.target.value })}
-                                                            className="font-bold text-slate-700 bg-transparent border-b border-slate-300 w-24 focus:outline-none focus:border-blue-500"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                                                    <h3 className="font-bold text-slate-700 mb-2">Total Siswa Aktif</h3>
-                                                    <p className="text-3xl font-bold text-emerald-600">{studentsDataGlobal.length} Siswa</p>
-                                                    <div className="mt-4 flex items-center gap-2 text-sm text-slate-500 bg-slate-50 p-2 rounded-lg">
-                                                        <Users size={14} /> Tersebar di {classes.length} Kelas
-                                                    </div>
-                                                </div>
-                                                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                                                    <h3 className="font-bold text-slate-700 mb-2">Status Proses</h3>
-                                                    <p className="text-3xl font-bold text-amber-500">Belum Selesai</p>
-                                                    <button onClick={() => setPromotionActiveTab('persiapan')} className="mt-4 w-full py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors">
-                                                        Mulai Persiapan
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* 2. PERSIAPAN */}
-                                        {promotionActiveTab === 'persiapan' && (
-                                            <div className="space-y-6">
-                                                <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                                                    <div className="flex justify-between items-start mb-6">
-                                                        <div>
-                                                            <h3 className="font-bold text-xl text-slate-800">Validasi Persiapan Sistem</h3>
-                                                            <p className="text-slate-500 text-sm mt-1">Pastikan semua checklist terpenuhi sebelum memproses kenaikan kelas.</p>
-                                                        </div>
-                                                        <button onClick={handleCheckPreparation} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 font-bold rounded-xl hover:bg-indigo-100 transition-colors">
-                                                            <RotateCcw size={16} /> Cek Ulang
-                                                        </button>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        {[
-                                                            { label: 'Tahun Ajaran Baru Tersedia', key: 'year', desc: 'Sistem telah mendeteksi tahun ajaran berikutnya.' },
-                                                            { label: 'Kelas Tujuan Tersedia', key: 'classes', desc: 'Struktur kelas untuk tingkat selanjutnya sudah siap.' },
-                                                            { label: 'Rapor Semester Genap Selesai', key: 'report', desc: 'Seluruh nilai sudah diinput dan rapor terkunci.' },
-                                                            { label: 'Tidak Ada Data Ganda', key: 'distinct', desc: 'Validasi integritas database siswa berhasil.' },
-                                                        ].map((item, idx) => (
-                                                            <div key={idx} className={`p-4 rounded-2xl border ${promotionChecklist[item.key as keyof typeof promotionChecklist] ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'} flex items-start gap-3`}>
-                                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${promotionChecklist[item.key as keyof typeof promotionChecklist] ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-                                                                    {promotionChecklist[item.key as keyof typeof promotionChecklist] ? <CheckCircle size={18} /> : <X size={18} />}
-                                                                </div>
-                                                                <div>
-                                                                    <h4 className={`font-bold ${promotionChecklist[item.key as keyof typeof promotionChecklist] ? 'text-emerald-800' : 'text-red-800'}`}>{item.label}</h4>
-                                                                    <p className="text-xs text-slate-500 mt-1">{item.desc}</p>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-
-                                                    <div className="mt-8 flex justify-end">
-                                                        <button
-                                                            onClick={() => setPromotionActiveTab('proses')}
-                                                            disabled={!Object.values(promotionChecklist).every(v => v)}
-                                                            className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        >
-                                                            Lanjut ke Proses Kenaikan →
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* 3. PROSES NAIK KELAS */}
-                                        {promotionActiveTab === 'proses' && (
-                                            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-250px)]">
-                                                {/* Toolbar */}
-                                                <div className="p-6 border-b border-slate-100 bg-slate-50 flex flex-wrap gap-4 items-end">
-                                                    <div>
-                                                        <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Pilih Kelas Asal</label>
-                                                        <select
-                                                            className="h-10 px-3 rounded-lg border border-slate-200 font-bold text-slate-700 bg-white focus:border-blue-500 outline-none min-w-[150px]"
-                                                            value={selectedPromotionClass}
-                                                            onChange={(e) => handleLoadPromotionStudents(e.target.value)}
-                                                        >
-                                                            <option value="">-- Pilih --</option>
-                                                            {classes.filter(c => !c.nama.startsWith('6')).map(c => <option key={c.id} value={c.nama}>{c.nama}</option>)}
-                                                        </select>
-                                                    </div>
-                                                    <div className="flex items-center pb-2 text-slate-400"><ChevronRight size={20} /></div>
-                                                    <div>
-                                                        <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Target Kelas Tujuan</label>
-                                                        <select
-                                                            className="h-10 px-3 rounded-lg border border-slate-200 font-bold text-slate-700 bg-white focus:border-blue-500 outline-none min-w-[150px]"
-                                                            value={targetPromotionClass}
-                                                            onChange={(e) => setTargetPromotionClass(e.target.value)}
-                                                        >
-                                                            <option value="">-- Pilih --</option>
-                                                            {classes.map(c => <option key={c.id} value={c.nama}>{c.nama}</option>)}
-                                                        </select>
-                                                    </div>
-                                                    <div className="ml-auto">
-                                                        <button
-                                                            onClick={handleExecutePromotion}
-                                                            disabled={promotionStudents.length === 0 || !targetPromotionClass}
-                                                            className="px-6 py-2.5 bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                                        >
-                                                            <Save size={18} /> Proses Kenaikan ({promotionStudents.length})
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                {/* Table */}
-                                                <div className="flex-1 overflow-auto custom-scrollbar p-6">
-                                                    {promotionStudents.length > 0 ? (
-                                                        <table className="w-full text-left border-collapse">
-                                                            <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase sticky top-0 z-10">
-                                                                <tr>
-                                                                    <th className="p-4 border-b">Nama Siswa / NIS</th>
-                                                                    <th className="p-4 border-b text-center">Rata-rata Nilai</th>
-                                                                    <th className="p-4 border-b text-center">Kehadiran</th>
-                                                                    <th className="p-4 border-b text-center">Status Naik</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody className="divide-y divide-slate-100 text-sm">
-                                                                {promotionStudents.map((s, idx) => (
-                                                                    <tr key={s.id} className="hover:bg-slate-50 transition-colors">
-                                                                        <td className="p-4 font-bold text-slate-700">
-                                                                            {s.nama}
-                                                                            <div className="text-xs text-slate-400 font-normal">{s.nis}</div>
-                                                                        </td>
-                                                                        <td className="p-4 text-center text-slate-600 font-mono font-bold">85.5</td>
-                                                                        <td className="p-4 text-center text-slate-600">98%</td>
-                                                                        <td className="p-4 text-center">
-                                                                            <div className="flex justify-center gap-2">
-                                                                                <button
-                                                                                    onClick={() => {
-                                                                                        const updated = [...promotionStudents];
-                                                                                        updated[idx].promoStatus = 'Naik';
-                                                                                        setPromotionStudents(updated);
-                                                                                    }}
-                                                                                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${s.promoStatus === 'Naik' ? 'bg-emerald-100 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-400 hover:border-emerald-300'}`}
-                                                                                >NAIK</button>
-                                                                                <button
-                                                                                    onClick={() => {
-                                                                                        const updated = [...promotionStudents];
-                                                                                        updated[idx].promoStatus = 'Tinggal';
-                                                                                        setPromotionStudents(updated);
-                                                                                    }}
-                                                                                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${s.promoStatus === 'Tinggal' ? 'bg-red-100 border-red-200 text-red-700' : 'bg-white border-slate-200 text-slate-400 hover:border-red-300'}`}
-                                                                                >TINGGAL</button>
-                                                                            </div>
-                                                                        </td>
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                        </table>
-                                                    ) : (
-                                                        <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                                                            <Users size={48} className="mb-4 opacity-20" />
-                                                            <p>Pilih kelas asal untuk memuat data siswa.</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* 4. KELULUSAN (KELAS 6) */}
-                                        {promotionActiveTab === 'lulus' && (
-                                            <div className="space-y-6">
-                                                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[2.5rem] p-8 text-white relative overflow-hidden">
-                                                    <div className="relative z-10 flex justify-between items-center">
-                                                        <div>
-                                                            <h3 className="text-2xl font-bold mb-2">Kelulusan Siswa Tingkat Akhir</h3>
-                                                            <p className="text-blue-100 max-w-lg">Proses kelulusan siswa kelas 6 akan memindahkan data mereka ke arsip Alumni. Data nilai dan prestasi akan tersimpan permanen.</p>
-                                                        </div>
-                                                        <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-md">
-                                                            <GraduationCap size={48} className="text-white" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6">
-                                                    <div className="flex flex-wrap gap-4 items-center mb-6">
-                                                        <div>
-                                                            <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Pilih Kelas 6</label>
-                                                            <select
-                                                                className="h-10 px-3 rounded-lg border border-slate-200 font-bold text-slate-700 bg-white focus:border-blue-500 outline-none min-w-[150px]"
-                                                                value={selectedPromotionClass}
-                                                                onChange={(e) => handleLoadPromotionStudents(e.target.value)}
-                                                            >
-                                                                <option value="">-- Pilih --</option>
-                                                                {classes.filter(c => c.nama.startsWith('6')).map(c => <option key={c.id} value={c.nama}>{c.nama}</option>)}
-                                                            </select>
-                                                        </div>
-                                                        <div className="ml-auto">
-                                                            <button
-                                                                onClick={() => {
-                                                                    const updated = promotionStudents.map(s => ({ ...s, promoStatus: 'Lulus' }));
-                                                                    setPromotionStudents(updated);
-                                                                }}
-                                                                className="text-sm font-bold text-blue-600 hover:underline mr-4"
-                                                            >
-                                                                Tandai Semua Lulus
-                                                            </button>
-                                                            <button
-                                                                onClick={handleExecuteGraduation}
-                                                                disabled={promotionStudents.length === 0}
-                                                                className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                                            >
-                                                                Proses Kelulusan
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Graduation Table - Similar structure */}
-                                                    <div className="overflow-auto custom-scrollbar border rounded-2xl max-h-[400px]">
-                                                        <table className="w-full text-left border-collapse">
-                                                            <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase sticky top-0">
-                                                                <tr>
-                                                                    <th className="p-4 border-b">Nama Siswa</th>
-                                                                    <th className="p-4 border-b text-center">Status Kelulusan</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody className="divide-y divide-slate-100 text-sm">
-                                                                {promotionStudents.map((s, idx) => (
-                                                                    <tr key={s.id} className="hover:bg-slate-50 transition-colors">
-                                                                        <td className="p-4 font-bold text-slate-700">{s.nama}</td>
-                                                                        <td className="p-4 text-center">
-                                                                            <button
-                                                                                onClick={() => {
-                                                                                    const updated = [...promotionStudents];
-                                                                                    updated[idx].promoStatus = updated[idx].promoStatus === 'Lulus' ? 'Tunda' : 'Lulus';
-                                                                                    setPromotionStudents(updated);
-                                                                                }}
-                                                                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${s.promoStatus === 'Lulus' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}
-                                                                            >
-                                                                                {s.promoStatus === 'Lulus' ? 'LULUS' : 'DITUNDA'}
-                                                                            </button>
-                                                                        </td>
-                                                                    </tr>
-                                                                ))}
-                                                                {promotionStudents.length === 0 && (
-                                                                    <tr>
-                                                                        <td colSpan={2} className="p-8 text-center text-slate-400">Pilih kelas 6 terlebih dahulu.</td>
-                                                                    </tr>
-                                                                )}
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* 5. RIWAYAT */}
-                                        {promotionActiveTab === 'riwayat' && (
-                                            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                                                <div className="p-5 border-b border-slate-100">
-                                                    <h3 className="font-bold text-slate-800">Riwayat Kenaikan & Kelulusan</h3>
-                                                </div>
-                                                <table className="w-full text-left border-collapse">
-                                                    <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
-                                                        <tr>
-                                                            <th className="p-4 border-b">Tanggal</th>
-                                                            <th className="p-4 border-b">Siswa</th>
-                                                            <th className="p-4 border-b">Dari</th>
-                                                            <th className="p-4 border-b">Tujuan</th>
-                                                            <th className="p-4 border-b text-center">Tipe</th>
-                                                            <th className="p-4 border-b text-center">Oleh</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-slate-100 text-sm">
-                                                        {promotionHistory.map(h => (
-                                                            <tr key={h.id} className="hover:bg-slate-50 transition-colors">
-                                                                <td className="p-4 text-slate-600">{h.date}</td>
-                                                                <td className="p-4 font-bold text-slate-700">{h.student}</td>
-                                                                <td className="p-4 text-slate-600">{h.from}</td>
-                                                                <td className="p-4 text-slate-600">{h.to}</td>
-                                                                <td className="p-4 text-center">
-                                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${h.type === 'Naik Kelas' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{h.type}</span>
-                                                                </td>
-                                                                <td className="p-4 text-center text-slate-500">{h.officer}</td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
+                                <NaikKelasView
+                                    students={students}
+                                    classes={classes}
+                                    updateStudents={updateStudents}
+                                    handleSaveData={handleSaveData}
+                                    setConfirmModal={setConfirmModal}
+                                />
                             </div>
                         )
                     }
@@ -3148,11 +1834,13 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     {uiState.activeView === 'settings' && <SettingsView schoolSettings={schoolSettings} setSchoolSettings={setSchoolSettings} />}
 
                     {/* --- VIEW: AI MANAGEMENT --- */}
-                    {uiState.activeView === 'ai_management' && (
-                        <div className="bg-white rounded-[2.5rem] p-6 h-full shadow-sm animate-in fade-in overflow-hidden">
-                            <AIManagementView onBack={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'dashboard' })} />
-                        </div>
-                    )}
+                    {
+                        uiState.activeView === 'ai_management' && (
+                            <div className="bg-white rounded-[2.5rem] p-6 h-full shadow-sm animate-in fade-in overflow-hidden">
+                                <AIManagementView onBack={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'dashboard' })} />
+                            </div>
+                        )
+                    }
 
 
 
@@ -3873,115 +2561,121 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     }
 
                     {/* MODAL TAMBAH MAPEL BIMBEL */}
-                    {showAddTutoringSubject && (
-                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center animate-in fade-in backdrop-blur-sm p-4">
-                            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8">
-                                <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-                                    <h3 className="font-bold text-lg text-slate-800">Tambah Mata Pelajaran Bimbel</h3>
-                                    <button onClick={() => setShowAddTutoringSubject(false)}><X size={24} className="text-slate-400 hover:text-red-500" /></button>
-                                </div>
-                                <div className="space-y-4">
-                                    {/* Name */}
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Nama Mata Pelajaran</label>
-                                        <input
-                                            value={newTutoringSubject.name}
-                                            onChange={(e) => setNewTutoringSubject({ ...newTutoringSubject, name: e.target.value })}
-                                            className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors"
-                                            placeholder="Contoh: Matematika Dasar"
-                                        />
+                    {
+                        showAddTutoringSubject && (
+                            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center animate-in fade-in backdrop-blur-sm p-4">
+                                <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8">
+                                    <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                                        <h3 className="font-bold text-lg text-slate-800">Tambah Mata Pelajaran Bimbel</h3>
+                                        <button onClick={() => setShowAddTutoringSubject(false)}><X size={24} className="text-slate-400 hover:text-red-500" /></button>
                                     </div>
-                                    {/* Meetings */}
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Jumlah Pertemuan</label>
-                                        <input
-                                            type="number"
-                                            value={newTutoringSubject.meetings}
-                                            onChange={(e) => setNewTutoringSubject({ ...newTutoringSubject, meetings: parseInt(e.target.value) || 0 })}
-                                            className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors"
-                                        />
+                                    <div className="space-y-4">
+                                        {/* Name */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Nama Mata Pelajaran</label>
+                                            <input
+                                                value={newTutoringSubject.name}
+                                                onChange={(e) => setNewTutoringSubject({ ...newTutoringSubject, name: e.target.value })}
+                                                className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors"
+                                                placeholder="Contoh: Matematika Dasar"
+                                            />
+                                        </div>
+                                        {/* Meetings */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Jumlah Pertemuan</label>
+                                            <input
+                                                type="number"
+                                                value={newTutoringSubject.meetings}
+                                                onChange={(e) => setNewTutoringSubject({ ...newTutoringSubject, meetings: parseInt(e.target.value) || 0 })}
+                                                className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors"
+                                            />
+                                        </div>
+                                        <button onClick={handleAddTutoringSubject} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all mt-4">Simpan Mapel</button>
                                     </div>
-                                    <button onClick={handleAddTutoringSubject} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all mt-4">Simpan Mapel</button>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )
+                    }
 
                     {/* MODAL TAMBAH GURU BIMBEL */}
-                    {showAddTutoringTeacher && (
-                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center animate-in fade-in backdrop-blur-sm p-4">
-                            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg p-8 max-h-[90vh] overflow-y-auto">
-                                <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-                                    <h3 className="font-bold text-lg text-slate-800">{editingTutoringTeacherId ? 'Edit' : 'Tambah'} Guru Bimbel</h3>
-                                    <button onClick={() => setShowAddTutoringTeacher(false)}><X size={24} className="text-slate-400 hover:text-red-500" /></button>
-                                </div>
-                                <div className="space-y-4">
-                                    {/* Name */}
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Nama Guru</label>
-                                        <input
-                                            value={newTutoringTeacher.name}
-                                            onChange={(e) => setNewTutoringTeacher({ ...newTutoringTeacher, name: e.target.value })}
-                                            className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors"
-                                            placeholder="Nama Lengkap"
-                                        />
+                    {
+                        showAddTutoringTeacher && (
+                            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center animate-in fade-in backdrop-blur-sm p-4">
+                                <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg p-8 max-h-[90vh] overflow-y-auto">
+                                    <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                                        <h3 className="font-bold text-lg text-slate-800">{editingTutoringTeacherId ? 'Edit' : 'Tambah'} Guru Bimbel</h3>
+                                        <button onClick={() => setShowAddTutoringTeacher(false)}><X size={24} className="text-slate-400 hover:text-red-500" /></button>
                                     </div>
-                                    {/* Subject */}
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Mata Pelajaran</label>
-                                        <select
-                                            value={newTutoringTeacher.subjectId}
-                                            onChange={(e) => setNewTutoringTeacher({ ...newTutoringTeacher, subjectId: e.target.value })}
-                                            className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer"
-                                        >
-                                            <option value="">Pilih Mapel</option>
-                                            {tutoringSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                        </select>
-                                    </div>
-                                    {/* Class */}
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Kelas Bimbingan</label>
-                                        <input
-                                            value={newTutoringTeacher.classId}
-                                            onChange={(e) => setNewTutoringTeacher({ ...newTutoringTeacher, classId: e.target.value })}
-                                            className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors"
-                                            placeholder="Contoh: Kelas 6 Persiapan"
-                                        />
-                                    </div>
-                                    {/* Schedule */}
-                                    <div className="grid grid-cols-3 gap-3">
+                                    <div className="space-y-4">
+                                        {/* Name */}
                                         <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Hari</label>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Nama Guru</label>
+                                            <input
+                                                value={newTutoringTeacher.name}
+                                                onChange={(e) => setNewTutoringTeacher({ ...newTutoringTeacher, name: e.target.value })}
+                                                className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors"
+                                                placeholder="Nama Lengkap"
+                                            />
+                                        </div>
+                                        {/* Subject */}
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Mata Pelajaran</label>
                                             <select
-                                                value={newTutoringTeacher.scheduleDay}
-                                                onChange={(e) => setNewTutoringTeacher({ ...newTutoringTeacher, scheduleDay: e.target.value })}
-                                                className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer text-sm"
+                                                value={newTutoringTeacher.subjectId}
+                                                onChange={(e) => setNewTutoringTeacher({ ...newTutoringTeacher, subjectId: e.target.value })}
+                                                className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer"
                                             >
-                                                {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+                                                <option value="">Pilih Mapel</option>
+                                                {tutoringSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                             </select>
                                         </div>
+                                        {/* Class */}
                                         <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Mulai</label>
-                                            <input type="time" value={newTutoringTeacher.scheduleStart} onChange={(e) => setNewTutoringTeacher({ ...newTutoringTeacher, scheduleStart: e.target.value })} className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 text-sm" />
+                                            <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Kelas Bimbingan</label>
+                                            <input
+                                                value={newTutoringTeacher.classId}
+                                                onChange={(e) => setNewTutoringTeacher({ ...newTutoringTeacher, classId: e.target.value })}
+                                                className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors"
+                                                placeholder="Contoh: Kelas 6 Persiapan"
+                                            />
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Selesai</label>
-                                            <input type="time" value={newTutoringTeacher.scheduleEnd} onChange={(e) => setNewTutoringTeacher({ ...newTutoringTeacher, scheduleEnd: e.target.value })} className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 text-sm" />
+                                        {/* Schedule */}
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Hari</label>
+                                                <select
+                                                    value={newTutoringTeacher.scheduleDay}
+                                                    onChange={(e) => setNewTutoringTeacher({ ...newTutoringTeacher, scheduleDay: e.target.value })}
+                                                    className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer text-sm"
+                                                >
+                                                    {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Mulai</label>
+                                                <input type="time" value={newTutoringTeacher.scheduleStart} onChange={(e) => setNewTutoringTeacher({ ...newTutoringTeacher, scheduleStart: e.target.value })} className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 text-sm" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Selesai</label>
+                                                <input type="time" value={newTutoringTeacher.scheduleEnd} onChange={(e) => setNewTutoringTeacher({ ...newTutoringTeacher, scheduleEnd: e.target.value })} className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 text-sm" />
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <button onClick={handleAddTutoringTeacher} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all mt-4">Simpan Data Guru</button>
+                                        <button onClick={handleAddTutoringTeacher} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all mt-4">Simpan Data Guru</button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )
+                    }
 
                     {/* --- VIEW: AL QURAN --- */}
-                    {uiState.activeView === 'quran' && (
-                        <div className="bg-[#F4F7FE] p-6 h-full overflow-hidden">
-                            <AlQuranSiswa onBack={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'dashboard' })} />
-                        </div>
-                    )}
+                    {
+                        uiState.activeView === 'quran' && (
+                            <div className="bg-[#F4F7FE] p-6 h-full overflow-hidden">
+                                <AlQuranSiswa onBack={() => dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'dashboard' })} />
+                            </div>
+                        )
+                    }
 
                     {/* MODAL TAMBAH JADAWAL UJIAN */}
                     <AddExamModal
@@ -4020,37 +2714,39 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     />
 
                     {/* CONFIRMATION MODAL */}
-                    {confirmModal.show && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
-                            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 transform transition-all scale-100">
-                                <div className="text-center mb-6">
-                                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <Trash2 size={32} className="text-red-500" />
+                    {
+                        confirmModal.show && (
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
+                                <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 transform transition-all scale-100">
+                                    <div className="text-center mb-6">
+                                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <Trash2 size={32} className="text-red-500" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-slate-800 mb-2">Konfirmasi Tindakan</h3>
+                                        <p className="text-slate-500 text-sm">{confirmModal.message}</p>
                                     </div>
-                                    <h3 className="text-xl font-bold text-slate-800 mb-2">Konfirmasi Tindakan</h3>
-                                    <p className="text-slate-500 text-sm">{confirmModal.message}</p>
-                                </div>
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={() => setConfirmModal({ show: false, message: '', onConfirm: () => { } })}
-                                        className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors"
-                                    >
-                                        Batal
-                                    </button>
-                                    <button
-                                        onClick={confirmModal.onConfirm}
-                                        className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-200 transition-colors"
-                                    >
-                                        Ya, Lanjutkan
-                                    </button>
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setConfirmModal({ show: false, message: '', onConfirm: () => { } })}
+                                            className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                                        >
+                                            Batal
+                                        </button>
+                                        <button
+                                            onClick={confirmModal.onConfirm}
+                                            className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-200 transition-colors"
+                                        >
+                                            Ya, Lanjutkan
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )
+                    }
 
-                </main>
-            </div>
-        </div>
+                </main >
+            </div >
+        </div >
     );
 };
 

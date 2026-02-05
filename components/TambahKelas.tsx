@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { PlusCircle, SquarePen, Trash2, X, Save, ChevronDown, School, Info, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import logger from '../src/utils/logger';
 
 interface KelasItem {
   id: number;
@@ -31,7 +32,7 @@ const TambahKelas: React.FC<TambahKelasProps> = ({ onBack, kelasData, setKelasDa
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Data Kelas Baru:', formData);
+    logger.log('Data Kelas Baru:', formData);
     // Simulasi tambah data
     const newData = {
       id: kelasData.length + 1,

@@ -12,6 +12,7 @@ import {
     Info,
     Filter
 } from 'lucide-react';
+import logger from '../src/utils/logger';
 
 interface Student {
     no: number;
@@ -145,7 +146,7 @@ const Absen: React.FC<AbsenProps> = ({
             return acc;
         }, {} as Record<AttendanceStatus, number>);
 
-        console.log('Saving data:', { date: currentDate, class: selectedClassRaw, attendance });
+        logger.log('Saving data:', { date: currentDate, class: selectedClassRaw, attendance });
         setIsSaved(true);
     };
 

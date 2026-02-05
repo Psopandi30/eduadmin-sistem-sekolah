@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronRight, Send, Bot, User, RefreshCw, Clock, MessageSquare, Plus, Trash2, Sparkles, AlertCircle, ArrowLeft } from 'lucide-react';
 import { sendToGemini, generateChatTitle, type GeminiMessage } from '../utils/geminiService';
+import logger from '../src/utils/logger';
 
 interface BelajarAISiswaProps {
     onBack: () => void;
@@ -105,7 +106,7 @@ const BelajarAISiswa: React.FC<BelajarAISiswaProps> = ({
 
             setMessages(prev => [...prev, aiResponse]);
         } catch (error) {
-            console.error('Error in handleSend:', error);
+            logger.error('Error in handleSend:', error);
 
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),

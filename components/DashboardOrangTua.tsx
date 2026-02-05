@@ -43,6 +43,7 @@ interface DashboardOrangTuaProps {
 }
 
 import { announcementDataGlobal, teachersDataGlobal } from '../data/sharedData';
+import logger from '../src/utils/logger';
 
 // ... (imports)
 
@@ -79,7 +80,7 @@ const DashboardOrangTua: React.FC<DashboardOrangTuaProps> = ({ user, onLogout, s
                     setWaliKelasName(found.nama);
                 }
             } catch (e) {
-                console.error("Error finding wali kelas", e);
+                logger.error("Error finding wali kelas", e);
             }
         } else {
             setWaliKelasName(user.studentWali);
