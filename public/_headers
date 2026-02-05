@@ -3,8 +3,3 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.alquran.cloud https://equran.id https://api.quran.com https://verses.quran.com; font-src 'self' data:; img-src 'self' data: https:; media-src 'self' data: https:;
-  
-  Note: 'unsafe-inline' is required for Vite/React hydration and Tailwind CSS.
-  For better security, consider using nonce-based CSP in the future.
-  'unsafe-eval' has been removed for better security.
-*/
