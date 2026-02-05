@@ -113,6 +113,9 @@ const DashboardOperatorData: React.FC<DashboardOperatorDataProps> = ({ user, onL
         classId: '', scheduleDay: 'Senin', scheduleStart: '14:00', scheduleEnd: '15:30',
         username: '', password: '123', studentsCount: 0, status: 'Aktif'
     });
+    const [showEnrollStudentModal, setShowEnrollStudentModal] = useState(false);
+    const [selectedTutoringGroupId, setSelectedTutoringGroupId] = useState<number | null>(null);
+    const [searchStudentQuery, setSearchStudentQuery] = useState('');
 
     const [confirmModal, setConfirmModal] = useState({
         show: false,
@@ -138,6 +141,8 @@ const DashboardOperatorData: React.FC<DashboardOperatorDataProps> = ({ user, onL
 
     const isInitialLoadTutoring = React.useRef(true);
     const isSyncingFromServer = React.useRef(false);
+    const [editItem, setEditItem] = useState<any>(null);
+    const [editType, setEditType] = useState<'SubjectBimbel' | 'TeacherBimbel' | null>(null);
 
     // Auto-sync for Tutoring Data (Debounced)
     useEffect(() => {
@@ -668,8 +673,35 @@ const DashboardOperatorData: React.FC<DashboardOperatorDataProps> = ({ user, onL
                                                         </td>
                                                         <td className="p-4 text-center">
                                                             <div className="flex justify-center gap-3">
-                                                                <button className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"><SquarePen size={18} /></button>
-                                                                <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={18} /></button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setNewTutoringSubject({
+                                                                            name: s.name,
+                                                                            classes: s.classes,
+                                                                            meetings: s.meetings
+                                                                        });
+                                                                        setEditItem(s);
+                                                                        setEditType('SubjectBimbel');
+                                                                        setShowAddTutoringSubject(true);
+                                                                    }}
+                                                                    className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                                                >
+                                                                    <SquarePen size={18} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setConfirmModal({
+                                                                        show: true,
+                                                                        message: `Hapus mata pelajaran ${s.name}?`,
+                                                                        onConfirm: () => {
+                                                                            setTutoringSubjects(prev => prev.filter(item => item.id !== s.id));
+                                                                            toast.success("Mapel berhasil dihapus");
+                                                                            setConfirmModal(prev => ({ ...prev, show: false }));
+                                                                        }
+                                                                    })}
+                                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                                >
+                                                                    <Trash2 size={18} />
+                                                                </button>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -693,6 +725,7 @@ const DashboardOperatorData: React.FC<DashboardOperatorDataProps> = ({ user, onL
                                                     <th className="p-4 border-b">Nama Lengkap</th>
                                                     <th className="p-4 border-b">Kelas Bimbingan</th>
                                                     <th className="p-4 border-b">Username</th>
+                                                    <th className="p-4 border-b">Password</th>
                                                     <th className="p-4 border-b text-center">Aksi</th>
                                                 </tr>
                                             </thead>
@@ -705,10 +738,57 @@ const DashboardOperatorData: React.FC<DashboardOperatorDataProps> = ({ user, onL
                                                             <div className="text-xs text-slate-400">Kelas {t.classId}</div>
                                                         </td>
                                                         <td className="p-4 font-mono text-slate-600">{t.username || '-'}</td>
+                                                        <td className="p-4 font-mono text-slate-600">{t.password || '123'}</td>
                                                         <td className="p-4 text-center">
                                                             <div className="flex justify-center gap-3">
-                                                                <button className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"><SquarePen size={18} /></button>
-                                                                <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={18} /></button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedTutoringGroupId(t.id);
+                                                                        setShowEnrollStudentModal(true);
+                                                                    }}
+                                                                    className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                                                                    title="Tambah Siswa"
+                                                                >
+                                                                    <UserPlus size={18} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setNewTutoringTeacher({
+                                                                            name: t.name,
+                                                                            source: t.source || 'Internal',
+                                                                            subjectId: t.subjectId,
+                                                                            subjectName: t.subjectName,
+                                                                            classId: t.classId,
+                                                                            scheduleDay: t.scheduleDay,
+                                                                            scheduleStart: t.scheduleStart,
+                                                                            scheduleEnd: t.scheduleEnd,
+                                                                            username: t.username,
+                                                                            password: t.password,
+                                                                            studentsCount: t.studentsCount,
+                                                                            status: t.status
+                                                                        });
+                                                                        setEditItem(t);
+                                                                        setEditType('TeacherBimbel');
+                                                                        setShowAddTutoringTeacher(true);
+                                                                    }}
+                                                                    className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                                                >
+                                                                    <SquarePen size={18} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setConfirmModal({
+                                                                        show: true,
+                                                                        message: `Hapus guru ${t.name}?`,
+                                                                        onConfirm: () => {
+                                                                            setTutoringTeachers(prev => prev.filter(item => item.id !== t.id));
+                                                                            toast.success("Guru berhasil dihapus");
+                                                                            setConfirmModal(prev => ({ ...prev, show: false }));
+                                                                        }
+                                                                    })}
+                                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                                >
+                                                                    <Trash2 size={18} />
+                                                                </button>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -924,14 +1004,23 @@ const DashboardOperatorData: React.FC<DashboardOperatorDataProps> = ({ user, onL
                                                 toast.error("Nama mata pelajaran harus diisi!");
                                                 return;
                                             }
-                                            setTutoringSubjects([...tutoringSubjects, { ...newTutoringSubject, id: Date.now() + Math.random(), status: 'Aktif' }]);
+
+                                            if (editItem && editType === 'SubjectBimbel') {
+                                                setTutoringSubjects(prev => prev.map(s => s.id === editItem.id ? { ...newTutoringSubject, id: editItem.id, status: s.status } : s));
+                                                toast.success("Mata pelajaran bimbel berhasil diperbarui!");
+                                            } else {
+                                                setTutoringSubjects([...tutoringSubjects, { ...newTutoringSubject, id: Date.now() + Math.random(), status: 'Aktif' }]);
+                                                toast.success("Mata pelajaran bimbel berhasil ditambahkan!");
+                                            }
+
                                             setShowAddTutoringSubject(false);
+                                            setEditItem(null);
+                                            setEditType(null);
                                             setNewTutoringSubject({ name: '', classes: ['6'], meetings: 12 });
-                                            toast.success("Mata pelajaran bimbel berhasil ditambahkan!");
                                         }}
                                         className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all mt-4"
                                     >
-                                        Tambah Mata Pelajaran
+                                        {editItem && editType === 'SubjectBimbel' ? 'Update Mata Pelajaran' : 'Tambah Mata Pelajaran'}
                                     </button>
                                 </div>
                             </div>
@@ -1035,20 +1124,125 @@ const DashboardOperatorData: React.FC<DashboardOperatorDataProps> = ({ user, onL
                                                 toast.error("Nama dan Mapel harus diisi!");
                                                 return;
                                             }
-                                            setTutoringTeachers([...tutoringTeachers, { ...newTutoringTeacher, id: Date.now() + Math.random() }]);
+
+                                            if (editItem && editType === 'TeacherBimbel') {
+                                                setTutoringTeachers(prev => prev.map(t => t.id === editItem.id ? { ...newTutoringTeacher, id: editItem.id } : t));
+                                                toast.success("Data guru bimbel berhasil diperbarui!");
+                                            } else {
+                                                setTutoringTeachers([...tutoringTeachers, { ...newTutoringTeacher, id: Date.now() + Math.random() }]);
+                                                toast.success("Guru bimbel berhasil ditambahkan!");
+                                            }
+
                                             setShowAddTutoringTeacher(false);
+                                            setEditItem(null);
+                                            setEditType(null);
                                             setNewTutoringTeacher({
                                                 name: '', source: 'Internal', subjectId: '', subjectName: '',
                                                 classId: '', scheduleDay: 'Senin', scheduleStart: '14:00', scheduleEnd: '15:30',
                                                 username: '', password: '123', studentsCount: 0, status: 'Aktif'
                                             });
-                                            toast.success("Guru bimbel berhasil ditambahkan!");
                                         }}
                                         className="w-full py-4 bg-orange-600 text-white font-bold rounded-2xl hover:bg-orange-700 shadow-lg shadow-orange-200 transition-all mt-4"
                                     >
-                                        Simpan Data Guru
+                                        {editItem && editType === 'TeacherBimbel' ? 'Update Data Guru' : 'Simpan Data Guru'}
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ENROLL STUDENT MODAL */}
+                    {showEnrollStudentModal && (
+                        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center animate-in fade-in backdrop-blur-sm p-4">
+                            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto animate-in zoom-in duration-300">
+                                <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                                    <div>
+                                        <h3 className="font-bold text-xl text-slate-800">Tambah Siswa ke Kelompok</h3>
+                                        <p className="text-sm text-slate-500">
+                                            Guru: {tutoringTeachers.find(t => t.id === selectedTutoringGroupId)?.name} |
+                                            Mapel: {tutoringTeachers.find(t => t.id === selectedTutoringGroupId)?.subjectName}
+                                        </p>
+                                    </div>
+                                    <button onClick={() => setShowEnrollStudentModal(false)}><X size={24} className="text-slate-400 hover:text-red-500" /></button>
+                                </div>
+
+                                <div className="mb-6">
+                                    <div className="relative">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                        <input
+                                            type="text"
+                                            placeholder="Cari nama atau kelas siswa..."
+                                            value={searchStudentQuery}
+                                            onChange={(e) => setSearchStudentQuery(e.target.value)}
+                                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="p-1 space-y-2 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+                                    {students
+                                        .filter(s =>
+                                            s.nama.toLowerCase().includes(searchStudentQuery.toLowerCase()) ||
+                                            s.kelas?.toLowerCase().includes(searchStudentQuery.toLowerCase())
+                                        )
+                                        .filter(s => !tutoringEnrollments.some(e => e.studentId === s.id && e.groupId === selectedTutoringGroupId))
+                                        .map(s => (
+                                            <div key={s.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-200 transition-all group">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-slate-100 font-bold text-slate-400 group-hover:text-blue-500 group-hover:border-blue-200 transition-colors">
+                                                        {s.nama.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-slate-800 text-sm">{s.nama}</h4>
+                                                        <p className="text-[10px] text-slate-500 font-medium">Kelas {s.kelas} | NIS {s.nis}</p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        if (selectedTutoringGroupId) {
+                                                            setTutoringEnrollments([...tutoringEnrollments, { groupId: selectedTutoringGroupId, studentId: s.id }]);
+                                                            toast.success(`${s.nama} berhasil ditambahkan!`);
+                                                        }
+                                                    }}
+                                                    className="px-4 py-2 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                                                >
+                                                    Tambahkan
+                                                </button>
+                                            </div>
+                                        ))}
+                                </div>
+
+                                <div className="mt-8 border-t border-slate-100 pt-6">
+                                    <h4 className="font-bold text-slate-800 text-sm mb-4">Siswa Terdaftar di Kelompok Ini:</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {tutoringEnrollments
+                                            .filter(e => e.groupId === selectedTutoringGroupId)
+                                            .map(e => {
+                                                const s = students.find(stud => stud.id === e.studentId);
+                                                return (
+                                                    <div key={e.studentId} className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-[11px] font-bold border border-emerald-100">
+                                                        {s?.nama || 'Unknown'}
+                                                        <button
+                                                            onClick={() => setTutoringEnrollments(tutoringEnrollments.filter(item => item !== e))}
+                                                            className="hover:text-red-500"
+                                                        >
+                                                            <X size={12} />
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        {tutoringEnrollments.filter(e => e.groupId === selectedTutoringGroupId).length === 0 && (
+                                            <p className="text-xs text-slate-400 italic">Belum ada siswa yang ditambahkan.</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => setShowEnrollStudentModal(false)}
+                                    className="w-full py-4 bg-slate-800 text-white font-bold rounded-2xl hover:bg-slate-900 transition-all mt-8"
+                                >
+                                    Selesai
+                                </button>
                             </div>
                         </div>
                     )}

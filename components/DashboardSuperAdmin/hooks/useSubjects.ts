@@ -6,6 +6,7 @@ import logger from '../../../src/utils/logger';
 export interface SubjectGroup {
     id: string | number;
     name: string;
+    reportType: 'resmi' | 'yayasan';
 }
 
 export interface Subject {
@@ -18,9 +19,10 @@ export interface Subject {
 }
 
 const initialSubjectGroups: SubjectGroup[] = [
-    { id: 1, name: 'Wajib A' },
-    { id: 2, name: 'Wajib B' },
-    { id: 3, name: 'Muatan Lokal' }
+    { id: 1, name: 'Wajib A', reportType: 'resmi' },
+    { id: 2, name: 'Wajib B', reportType: 'resmi' },
+    { id: 3, name: 'Muatan Lokal', reportType: 'resmi' },
+    { id: 4, name: 'Tahfidz', reportType: 'yayasan' }
 ];
 
 export const useSubjects = () => {
@@ -53,9 +55,10 @@ export const useSubjects = () => {
             ]);
 
             if (groupsRes.data && groupsRes.data.length > 0) {
-                const mappedGroups = groupsRes.data.map(g => ({
+                const mappedGroups: SubjectGroup[] = groupsRes.data.map(g => ({
                     id: g.id,
-                    name: g.name
+                    name: g.name,
+                    reportType: (g.report_type as 'resmi' | 'yayasan') || 'resmi'
                 }));
                 setSubjectGroups(mappedGroups);
                 localStorage.setItem('subject_groups_v10', JSON.stringify(mappedGroups));

@@ -42,6 +42,7 @@ const Pengaturan: React.FC<PengaturanProps> = ({ schoolSettings, setSchoolSettin
         address: schoolSettings?.address || '',
         accreditation: schoolSettings?.accreditation || 'A',
         principal: schoolSettings?.principal || '',
+        nipPrincipal: schoolSettings?.nipPrincipal || '', // Added NIP
         academicYear: schoolSettings?.academicYear || '2025/2026',
         status: 'Swasta',
         logo: schoolSettings?.logo || null as string | null,
@@ -83,6 +84,7 @@ const Pengaturan: React.FC<PengaturanProps> = ({ schoolSettings, setSchoolSettin
             address: schoolProfile.address,
             accreditation: schoolProfile.accreditation,
             principal: schoolProfile.principal,
+            nipPrincipal: schoolProfile.nipPrincipal,
             academicYear: schoolProfile.academicYear,
             logo: schoolProfile.logo,
             icon: schoolProfile.icon
@@ -93,6 +95,7 @@ const Pengaturan: React.FC<PengaturanProps> = ({ schoolSettings, setSchoolSettin
             name: schoolProfile.name,
             address: schoolProfile.address,
             principal: schoolProfile.principal,
+            nipPrincipal: schoolProfile.nipPrincipal,
             academicYear: schoolProfile.academicYear,
         });
 
@@ -332,6 +335,16 @@ const Pengaturan: React.FC<PengaturanProps> = ({ schoolSettings, setSchoolSettin
                                         value={schoolProfile.principal}
                                         onChange={(e) => setSchoolProfile({ ...schoolProfile, principal: e.target.value })}
                                         className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-medium"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">NIP Kepala Sekolah</label>
+                                    <input
+                                        type="text"
+                                        value={schoolProfile.nipPrincipal}
+                                        onChange={(e) => setSchoolProfile({ ...schoolProfile, nipPrincipal: e.target.value })}
+                                        className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-medium"
+                                        placeholder="NIP / NUPTK"
                                     />
                                 </div>
                                 <div>

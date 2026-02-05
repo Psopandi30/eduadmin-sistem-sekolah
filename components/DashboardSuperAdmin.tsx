@@ -549,6 +549,11 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
     const isInitialLoadTutoring = React.useRef(true);
     const isSyncingFromServer = React.useRef(false);
+    const [editItem, setEditItem] = useState<any>(null);
+    const [editType, setEditType] = useState<'SubjectBimbel' | 'TeacherBimbel' | null>(null);
+    const [showEnrollStudentModal, setShowEnrollStudentModal] = useState(false);
+    const [selectedTutoringGroupId, setSelectedTutoringGroupId] = useState<number | null>(null);
+    const [searchStudentQuery, setSearchStudentQuery] = useState('');
 
     // NEW: FETCH TUTORING DATA FROM SUPABASE
     const fetchTutoringDataMain = async () => {
@@ -905,8 +910,9 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         e.preventDefault();
         const form = e.target as HTMLFormElement;
         const name = (form.elements.namedItem('groupName') as HTMLInputElement).value;
+        const reportType = (form.elements.namedItem('reportType') as HTMLSelectElement).value as 'resmi' | 'yayasan';
         if (name) {
-            setSubjectGroups([...subjectGroups, { id: Date.now(), name }]);
+            setSubjectGroups([...subjectGroups, { id: Date.now(), name, reportType } as any]);
             toast.success("Kelompok berhasil ditambahkan!");
             form.reset();
         }
@@ -1594,7 +1600,14 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                     {/* --- VIEW: RAPOR PRINT (Detail Cetak) --- */}
                     {uiState.activeView === 'rapot_print' && (
                         <div className="bg-white rounded-[2.5rem] p-6 h-full shadow-sm animate-in fade-in overflow-hidden">
-                            <RaporView setActiveView={setActiveView} />
+                            <RaporView
+                                setActiveView={setActiveView}
+                                students={students}
+                                classes={classes}
+                                subjects={subjects}
+                                schoolSettings={schoolSettings}
+                                teachers={teachers}
+                            />
                         </div>
                     )}
 
@@ -1743,8 +1756,35 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                                 </td>
                                                                 <td className="p-4 text-center">
                                                                     <div className="flex justify-center gap-3">
-                                                                        <button className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"><SquarePen size={18} /></button>
-                                                                        <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={18} /></button>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setNewTutoringSubject({
+                                                                                    name: s.name,
+                                                                                    classes: s.classes,
+                                                                                    meetings: s.meetings
+                                                                                });
+                                                                                setEditItem(s);
+                                                                                setEditType('SubjectBimbel');
+                                                                                setShowAddTutoringSubject(true);
+                                                                            }}
+                                                                            className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                                                        >
+                                                                            <SquarePen size={18} />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => setConfirmModal({
+                                                                                show: true,
+                                                                                message: `Hapus mata pelajaran ${s.name}?`,
+                                                                                onConfirm: () => {
+                                                                                    setTutoringSubjects(prev => prev.filter(item => item.id !== s.id));
+                                                                                    toast.success("Mapel berhasil dihapus");
+                                                                                    setConfirmModal(prev => ({ ...prev, show: false }));
+                                                                                }
+                                                                            })}
+                                                                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                                        >
+                                                                            <Trash2 size={18} />
+                                                                        </button>
                                                                     </div>
                                                                 </td>
                                                             </tr>
@@ -1786,9 +1826,55 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                                 <td className="p-4 font-mono text-slate-600 bg-slate-50/50">{t.password || '-'}</td>
                                                                 <td className="p-4 text-center">
                                                                     <div className="flex justify-center gap-3">
-                                                                        <button onClick={() => handleManageTutoringStudents(t)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Kelola Siswa"><UserPlus size={18} /></button>
-                                                                        <button onClick={() => handleEditTutoringTeacher(t)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Edit"><SquarePen size={18} /></button>
-                                                                        <button onClick={() => handleDeleteTutoringTeacher(t.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Hapus"><Trash2 size={18} /></button>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                handleManageTutoringStudents(t);
+                                                                            }}
+                                                                            className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                                                                            title="Kelola Siswa"
+                                                                        >
+                                                                            <UserPlus size={18} />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setNewTutoringTeacher({
+                                                                                    name: t.name,
+                                                                                    source: t.source || 'Internal',
+                                                                                    subjectId: t.subjectId,
+                                                                                    subjectName: t.subjectName,
+                                                                                    classId: t.classId,
+                                                                                    scheduleDay: t.scheduleDay,
+                                                                                    scheduleStart: t.scheduleStart,
+                                                                                    scheduleEnd: t.scheduleEnd,
+                                                                                    username: t.username,
+                                                                                    password: t.password,
+                                                                                    studentsCount: t.studentsCount,
+                                                                                    status: t.status
+                                                                                });
+                                                                                setEditItem(t);
+                                                                                setEditType('TeacherBimbel');
+                                                                                setShowAddTutoringTeacher(true);
+                                                                            }}
+                                                                            className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                                                            title="Edit"
+                                                                        >
+                                                                            <SquarePen size={18} />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => setConfirmModal({
+                                                                                show: true,
+                                                                                message: `Hapus guru ${t.name}?`,
+                                                                                onConfirm: () => {
+                                                                                    setTutoringTeachers(prev => prev.filter(item => item.id !== t.id));
+                                                                                    toast.success("Guru berhasil dihapus");
+                                                                                    setConfirmModal(prev => ({ ...prev, show: false }));
+                                                                                }
+                                                                            })}
+                                                                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                                            title="Hapus"
+                                                                        >
+                                                                            <Trash2 size={18} />
+                                                                        </button>
                                                                     </div>
                                                                 </td>
                                                             </tr>
@@ -2138,7 +2224,13 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                     </div>
 
                                     <form onSubmit={confirmAddGroup} className="flex gap-2 mb-6">
-                                        <input name="groupName" required placeholder="Nama Kelompok Baru..." className="flex-1 p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors" />
+                                        <div className="flex-1 flex gap-2">
+                                            <input name="groupName" required placeholder="Nama Kelompok Baru..." className="flex-1 p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors" />
+                                            <select name="reportType" className="p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer w-[140px]">
+                                                <option value="resmi">Rapor Resmi</option>
+                                                <option value="yayasan">Rapor Yayasan</option>
+                                            </select>
+                                        </div>
                                         <button type="submit" className="px-5 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md">Tambah</button>
                                     </form>
 
@@ -2148,14 +2240,20 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                 <tr>
                                                     <th className="p-3 border-b text-center w-12">No</th>
                                                     <th className="p-3 border-b">Nama Kelompok</th>
+                                                    <th className="p-3 border-b text-center">Jenis Rapor</th>
                                                     <th className="p-3 border-b text-center">Aksi</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {subjectGroups.map((g, i) => (
+                                                {subjectGroups.map((g: any, i) => (
                                                     <tr key={g.id} className="border-b last:border-0 hover:bg-slate-50">
                                                         <td className="p-3 text-center text-slate-500">{i + 1}</td>
                                                         <td className="p-3 font-medium text-slate-700">{g.name}</td>
+                                                        <td className="p-3 text-center">
+                                                            <span className={`px-2 py-1 rounded text-xs font-bold ${g.reportType === 'yayasan' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                                {g.reportType === 'yayasan' ? 'Yayasan' : 'Resmi'}
+                                                            </span>
+                                                        </td>
                                                         <td className="p-3 text-center">
                                                             <button onClick={() => handleDeleteGroup(g.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
                                                         </td>
@@ -2690,7 +2788,55 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                             </div>
                                         </div>
 
-                                        <button onClick={handleAddTutoringTeacher} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all mt-4">Simpan Data Guru</button>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Username</label>
+                                                <input
+                                                    value={newTutoringTeacher.username}
+                                                    onChange={(e) => setNewTutoringTeacher({ ...newTutoringTeacher, username: e.target.value })}
+                                                    className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors"
+                                                    placeholder="Username"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Password</label>
+                                                <input
+                                                    value={newTutoringTeacher.password}
+                                                    onChange={(e) => setNewTutoringTeacher({ ...newTutoringTeacher, password: e.target.value })}
+                                                    className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors"
+                                                    placeholder="Password"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={() => {
+                                                if (!newTutoringTeacher.name || !newTutoringTeacher.subjectId) {
+                                                    toast.error("Nama dan Mapel harus diisi!");
+                                                    return;
+                                                }
+
+                                                if (editItem && editType === 'TeacherBimbel') {
+                                                    setTutoringTeachers(prev => prev.map(t => t.id === editItem.id ? { ...newTutoringTeacher, id: editItem.id } : t));
+                                                    toast.success("Data guru bimbel berhasil diperbarui!");
+                                                } else {
+                                                    setTutoringTeachers([...tutoringTeachers, { ...newTutoringTeacher, id: Date.now() + Math.random() }]);
+                                                    toast.success("Guru bimbel berhasil ditambahkan!");
+                                                }
+
+                                                setShowAddTutoringTeacher(false);
+                                                setEditItem(null);
+                                                setEditType(null);
+                                                setNewTutoringTeacher({
+                                                    name: '', source: 'Internal', subjectId: '', subjectName: '',
+                                                    classId: '', scheduleDay: 'Senin', scheduleStart: '14:00', scheduleEnd: '15:30',
+                                                    username: '', password: '123', studentsCount: 0, status: 'Aktif'
+                                                });
+                                            }}
+                                            className="w-full py-4 bg-orange-600 text-white font-bold rounded-2xl hover:bg-orange-700 shadow-lg shadow-orange-200 transition-all mt-4"
+                                        >
+                                            {editItem && editType === 'TeacherBimbel' ? 'Update Data Guru' : 'Simpan Data Guru'}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
