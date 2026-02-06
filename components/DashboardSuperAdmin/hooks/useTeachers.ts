@@ -154,8 +154,38 @@ export const useTeachers = () => {
 
                     if (staffError) throw new Error(`Staff Insert Error: ${staffError.message}`);
 
-                    const createdTeacher = { ...newTeacher, id: staffData.id, nama: newTeacher.nama.trim(), nip: newTeacher.nip.trim() };
-                    setTeachers(prev => [createdTeacher, ...prev]);
+                    // Ensure password is recorded locally (for fallback login) and normalized
+                    const finalPassword = password;
+                    const createdTeacher = { ...newTeacher, id: staffData.id, nama: newTeacher.nama.trim(), nip: newTeacher.nip.trim(), password: finalPassword };
+
+                    // Update local state and persist to localStorage immediately
+                    setTeachers(prev => {
+                        const updated = [createdTeacher, ...prev];
+                        try {
+                            localStorage.setItem('teachers_data_v10', JSON.stringify(updated));
+                        } catch (e) {
+                            logger.warn('Failed to save teachers to localStorage', e);
+                        }
+                        return updated;
+                    });
+
+                    // Upsert cloud backup so other clients can sync immediately (fallback login relies on this)
+                    try {
+                        await supabase.from('app_settings').upsert({
+                            key: 'teachers_data_v10_sync',
+                            value: JSON.parse(localStorage.getItem('teachers_data_v10') || '[]'),
+                            updated_at: new Date().toISOString()
+                        });
+                    } catch (e) {
+                        logger.warn('Failed to upsert teachers backup to app_settings:', e);
+                    }
+
+                    // If signUp did not create a session, Supabase may require email confirmation.
+                    // Inform admin so they know the user cannot login until confirmation is completed.
+                    if (!authData.session) {
+                        toast.success('Data guru berhasil disimpan! (Konfirmasi email diperlukan sebelum login)');
+                    }
+
                     return createdTeacher;
                 })(),
                 {
