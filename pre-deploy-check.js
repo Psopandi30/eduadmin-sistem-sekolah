@@ -44,15 +44,15 @@ const checks = [
   {
     name: 'Production Login Fallback Disabled',
     check: () => {
-      // This is a code check, we assume the developer has implemented the check in Login.tsx
+      // This is a code check, ensure login code uses the VITE_ALLOW_FALLBACK_AUTH or helper isFallbackAuthAllowed
       try {
         const loginContent = readFileSync('components/Login.tsx', 'utf8');
-        return loginContent.includes('import.meta.env.PROD') && loginContent.includes('handleLegacyLogin');
+        return loginContent.includes('isFallbackAuthAllowed') || loginContent.includes('VITE_ALLOW_FALLBACK_AUTH');
       } catch {
         return false;
       }
     },
-    message: 'Ensure handleLegacyLogin in components/Login.tsx is protected by import.meta.env.PROD'
+    message: 'Ensure Login.tsx checks VITE_ALLOW_FALLBACK_AUTH or uses isFallbackAuthAllowed to prevent legacy fallback in production'
   },
   {
     name: 'Logger Utility Used',

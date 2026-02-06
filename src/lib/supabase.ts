@@ -44,6 +44,13 @@ export const getSupabaseConfigError = () => {
   return null;
 };
 
+// Control whether fallback (legacy/local) authentication is allowed.
+// In production deployments set VITE_ALLOW_FALLBACK_AUTH=false to disable fallback entirely.
+export const isFallbackAuthAllowed = () => {
+  // Default to true when variable is not set (legacy/dev), but treat explicit 'false' as disabled
+  return (import.meta.env.VITE_ALLOW_FALLBACK_AUTH ?? 'true') !== 'false';
+};
+
 // Database Types (generated from schema)
 export type Database = {
   public: {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, Lock, ArrowRight, School } from 'lucide-react';
 import { studentsDataGlobal, classesDataGlobal, teachersDataGlobal } from '../data/sharedData';
-import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
+import { supabase, isSupabaseConfigured, isFallbackAuthAllowed } from '../src/lib/supabase';
 import logger from '../src/utils/logger';
 
 interface LoginProps {
@@ -36,8 +36,14 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                 });
 
                 if (authError) {
-                    // Falls back to legacy login if Supabase auth fails (e.g. invalid credentials or user not in auth.users)
-                    logger.warn("Supabase auth failed, falling back to legacy login:", authError.message);
+                    // If Supabase auth fails, respect environment policy about fallback auth
+                    logger.warn("Supabase auth failed:", authError.message);
+                    if (!isFallbackAuthAllowed()) {
+                        setError("Autentikasi cloud diperlukan. Silakan hubungi admin.");
+                        setIsLoading(false);
+                        return;
+                    }
+                    logger.warn("Falling back to legacy login as allowed by VITE_ALLOW_FALLBACK_AUTH");
                     handleLegacyLogin();
                     return;
                 }
@@ -68,7 +74,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                     return;
                 }
             } catch (err: any) {
-                logger.warn("⚠️ Authentication error, falling back to legacy login:", err.message);
+                logger.warn("⚠️ Authentication error:", err.message);
+                if (!isFallbackAuthAllowed()) {
+                    setError("Autentikasi cloud diperlukan. Silakan hubungi admin.");
+                    setIsLoading(false);
+                    return;
+                }
                 handleLegacyLogin();
                 return;
             }

@@ -769,6 +769,93 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
         return () => clearTimeout(timer);
     }, [tutoringSubjects, tutoringTeachers, tutoringMaterials, tutoringEnrollments]);
 
+    // Download/Print tutoring recap (PDF via print)
+    const handleDownloadTutoringReport = () => {
+        try {
+            const dateLabel = new Date().toLocaleDateString('id-ID');
+            const title = `Rekap_Bimbel_${new Date().toISOString().slice(0,10)}`;
+
+            const subjectRows = tutoringSubjects.map((s) => `
+                <tr>
+                    <td>${(s.name || '').toString()}</td>
+                    <td>${((s.classes && s.classes.join) ? s.classes.join(', ') : (s.classes || '-'))}</td>
+                    <td>${s.meetings || ''}</td>
+                    <td>${s.status || ''}</td>
+                </tr>
+            `).join('');
+
+            const teacherRows = tutoringTeachers.map((t) => `
+                <tr>
+                    <td>${(t.name || '').toString()}</td>
+                    <td>${t.subjectName || ''}</td>
+                    <td>${t.classId || ''}</td>
+                    <td>${t.studentsCount || 0}</td>
+                </tr>
+            `).join('');
+
+            const stats = `<p style="margin:8px 0;font-weight:600">Mata Pelajaran: ${tutoringSubjects.length} &nbsp;•&nbsp; Guru: ${tutoringTeachers.length} &nbsp;•&nbsp; Siswa Terdaftar: ${tutoringEnrollments.length}</p>`;
+
+            const html = `<!doctype html>
+                <html>
+                <head>
+                    <meta charset="utf-8" />
+                    <title>${title}</title>
+                    <style>
+                        body{font-family:Inter,Arial,Helvetica,sans-serif;padding:20px;color:#111}
+                        h1{font-size:20px;margin:0 0 6px}
+                        table{width:100%;border-collapse:collapse;margin-top:10px}
+                        th,td{border:1px solid #e5e7eb;padding:8px;text-align:left;font-size:13px}
+                        th{background:#f8fafc;color:#0f172a;font-weight:700}
+                    </style>
+                </head>
+                <body>
+                    <h1>Rekap Bimbingan Belajar</h1>
+                    <div style="font-size:13px;color:#374151">Tanggal: ${dateLabel}</div>
+                    ${stats}
+
+                    <h2 style="margin-top:18px;font-size:14px">Mata Pelajaran</h2>
+                    <table>
+                        <thead>
+                            <tr><th>Nama</th><th>Kelas</th><th>Pertemuan</th><th>Status</th></tr>
+                        </thead>
+                        <tbody>
+                            ${subjectRows || '<tr><td colspan="4">Tidak ada data</td></tr>'}
+                        </tbody>
+                    </table>
+
+                    <h2 style="margin-top:18px;font-size:14px">Guru</h2>
+                    <table>
+                        <thead>
+                            <tr><th>Nama</th><th>Mata Pelajaran</th><th>Kelas</th><th>Terdaftar</th></tr>
+                        </thead>
+                        <tbody>
+                            ${teacherRows || '<tr><td colspan="4">Tidak ada data</td></tr>'}
+                        </tbody>
+                    </table>
+                </body>
+                </html>`;
+
+            const printWindow = window.open('', '_blank', 'width=900,height=700');
+            if (!printWindow) {
+                toast.error('Gagal membuka jendela baru untuk mencetak. Periksa popup blocker.');
+                return;
+            }
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.focus();
+
+            // Delay slightly to ensure resources are ready
+            setTimeout(() => {
+                try { printWindow.print(); } catch (e) { /* ignore print errors */ }
+            }, 600);
+
+            toast.success('Mempersiapkan rekap untuk dicetak.');
+        } catch (err: any) {
+            logger.error('Download tutoring report failed:', err);
+            toast.error('Gagal menyiapkan rekap: ' + (err?.message || ''));   
+        }
+    };
+
     // --- TUTORING HELPERS ---
     const [showAddTutoringSubject, setShowAddTutoringSubject] = useState(false);
     const [showAddTutoringTeacher, setShowAddTutoringTeacher] = useState(false);
