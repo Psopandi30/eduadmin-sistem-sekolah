@@ -16,21 +16,27 @@ const ManageTutoringStudentsModal: React.FC<ManageTutoringStudentsModalProps> = 
 }) => {
     const [search, setSearch] = useState('');
 
+    // Safety guards to prevent runtime errors in production builds
+    const safeAllStudents = Array.isArray(allStudents) ? allStudents : [];
+    const safeEnrolledStudents = Array.isArray(enrolledStudents) ? enrolledStudents : [];
+
     if (!isOpen || !tutoringGroup) return null;
 
     // Filter students who are NOT enrolled yet - Memoized for performance
     const availableStudents = React.useMemo(() => {
         const searchLower = search.toLowerCase();
-        return allStudents.filter(s =>
-            !enrolledStudents.includes(s.id) &&
-            (s.nama.toLowerCase().includes(searchLower) || (s.kelas && s.kelas.toLowerCase().includes(searchLower)))
-        );
-    }, [allStudents, enrolledStudents, search]);
+        return safeAllStudents.filter(s => {
+            if (!s || s.id === undefined || s.id === null) return false;
+            const nameMatch = typeof s.nama === 'string' && s.nama.toLowerCase().includes(searchLower);
+            const classMatch = s.kelas && typeof s.kelas === 'string' && s.kelas.toLowerCase().includes(searchLower);
+            return !safeEnrolledStudents.includes(s.id) && (nameMatch || classMatch);
+        });
+    }, [safeAllStudents, safeEnrolledStudents, search]);
 
     // Get full objects of enrolled students - Memoized for performance
     const validEnrolled = React.useMemo(() => {
-        return allStudents.filter(s => enrolledStudents.includes(s.id));
-    }, [allStudents, enrolledStudents]);
+        return safeAllStudents.filter(s => s && safeEnrolledStudents.includes(s.id));
+    }, [safeAllStudents, safeEnrolledStudents]);
 
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
