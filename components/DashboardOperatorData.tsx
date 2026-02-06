@@ -4,7 +4,7 @@ import {
     BookOpen, Megaphone, Video, Cpu, LogOut, User,
     Camera, Lock, Eye, EyeOff, Save, Settings,
     UserCheck, Calendar, TrendingUp, Database, X, Info,
-    Menu, Book, Wallet, LayoutDashboard as DashboardIcon, Plus, SquarePen, UserPlus, Trash2
+    Menu, Book, Wallet, LayoutDashboard as DashboardIcon, Plus, SquarePen, UserPlus, Trash2, Search
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -116,6 +116,7 @@ const DashboardOperatorData: React.FC<DashboardOperatorDataProps> = ({ user, onL
     const [showEnrollStudentModal, setShowEnrollStudentModal] = useState(false);
     const [selectedTutoringGroupId, setSelectedTutoringGroupId] = useState<number | null>(null);
     const [searchStudentQuery, setSearchStudentQuery] = useState('');
+    const [selectedClassForEnroll, setSelectedClassForEnroll] = useState<string>('');
 
     const [confirmModal, setConfirmModal] = useState({
         show: false,
@@ -1163,24 +1164,54 @@ const DashboardOperatorData: React.FC<DashboardOperatorDataProps> = ({ user, onL
                                     <button onClick={() => setShowEnrollStudentModal(false)}><X size={24} className="text-slate-400 hover:text-red-500" /></button>
                                 </div>
 
-                                <div className="mb-6">
-                                    <div className="relative">
-                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                                        <input
-                                            type="text"
-                                            placeholder="Cari nama atau kelas siswa..."
-                                            value={searchStudentQuery}
-                                            onChange={(e) => setSearchStudentQuery(e.target.value)}
-                                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
-                                        />
+                                <div className="mb-6 space-y-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div className="md:col-span-1">
+                                            <label className="block text-xs font-bold text-slate-600 mb-1 ml-1">
+                                                Pilih Kelas
+                                            </label>
+                                            <select
+                                                value={selectedClassForEnroll}
+                                                onChange={(e) => setSelectedClassForEnroll(e.target.value)}
+                                                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                            >
+                                                <option value="">-- Pilih Kelas --</option>
+                                                {classes.map((c: any) => (
+                                                    <option key={c.id} value={c.name}>
+                                                        {c.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-xs font-bold text-slate-600 mb-1 ml-1">
+                                                Cari Siswa
+                                            </label>
+                                            <div className="relative">
+                                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Ketik nama siswa..."
+                                                    value={searchStudentQuery}
+                                                    onChange={(e) => setSearchStudentQuery(e.target.value)}
+                                                    className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm font-medium"
+                                                    disabled={!selectedClassForEnroll}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
+                                    {!selectedClassForEnroll && (
+                                        <p className="text-xs text-amber-600 font-medium">
+                                            Silakan pilih kelas terlebih dahulu untuk menampilkan daftar siswa.
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className="p-1 space-y-2 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
                                     {students
+                                        .filter(s => !selectedClassForEnroll || s.kelas === selectedClassForEnroll)
                                         .filter(s =>
-                                            s.nama.toLowerCase().includes(searchStudentQuery.toLowerCase()) ||
-                                            s.kelas?.toLowerCase().includes(searchStudentQuery.toLowerCase())
+                                            s.nama.toLowerCase().includes(searchStudentQuery.toLowerCase())
                                         )
                                         .filter(s => !tutoringEnrollments.some(e => e.studentId === s.id && e.groupId === selectedTutoringGroupId))
                                         .map(s => (
