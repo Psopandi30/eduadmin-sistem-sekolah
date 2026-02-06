@@ -1713,11 +1713,35 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                                 </div>
                                                 <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
                                                     <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Siswa</p>
-                                                    <h3 className="text-3xl font-bold text-slate-800">{tutoringTeachers.reduce((acc, curr) => acc + curr.studentsCount, 0)}</h3>
+                                                    <h3 className="text-3xl font-bold text-slate-800">
+                                                        {tutoringEnrollments.length}
+                                                    </h3>
                                                 </div>
-                                                <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
-                                                    <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Materi Aktif</p>
-                                                    <h3 className="text-3xl font-bold text-slate-800">{tutoringMaterials.length}</h3>
+                                                <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 flex flex-col gap-3">
+                                                    <div>
+                                                        <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Materi Aktif</p>
+                                                        <h3 className="text-3xl font-bold text-slate-800">{tutoringMaterials.length}</h3>
+                                                    </div>
+                                                    <div className="flex gap-2 mt-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleDownloadTutoringReport}
+                                                            className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                                                        >
+                                                            <FileText size={14} /> PDF Rekap
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (typeof window !== 'undefined') {
+                                                                    window.print();
+                                                                }
+                                                            }}
+                                                            className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                                                        >
+                                                            <Printer size={14} /> Cetak
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
