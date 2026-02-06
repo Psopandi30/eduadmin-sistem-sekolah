@@ -16,27 +16,32 @@ const ManageTutoringStudentsModal: React.FC<ManageTutoringStudentsModalProps> = 
 }) => {
     const [search, setSearch] = useState('');
 
-    // Safety guards to prevent runtime errors in production builds
-    const safeAllStudents = Array.isArray(allStudents) ? allStudents : [];
-    const safeEnrolledStudents = Array.isArray(enrolledStudents) ? enrolledStudents : [];
-
+    // Jika modal belum dibuka atau group belum dipilih, jangan render apa-apa
     if (!isOpen || !tutoringGroup) return null;
 
-    // Filter students who are NOT enrolled yet - Memoized for performance
-    const availableStudents = React.useMemo(() => {
-        const searchLower = search.toLowerCase();
-        return safeAllStudents.filter(s => {
-            if (!s || s.id === undefined || s.id === null) return false;
-            const nameMatch = typeof s.nama === 'string' && s.nama.toLowerCase().includes(searchLower);
-            const classMatch = s.kelas && typeof s.kelas === 'string' && s.kelas.toLowerCase().includes(searchLower);
-            return !safeEnrolledStudents.includes(s.id) && (nameMatch || classMatch);
-        });
-    }, [safeAllStudents, safeEnrolledStudents, search]);
+    // Normalisasi data agar selalu dalam bentuk array aman
+    const safeAllStudents: any[] = Array.isArray(allStudents) ? allStudents : [];
+    const safeEnrolledStudents: any[] = Array.isArray(enrolledStudents) ? enrolledStudents : [];
 
-    // Get full objects of enrolled students - Memoized for performance
-    const validEnrolled = React.useMemo(() => {
-        return safeAllStudents.filter(s => s && safeEnrolledStudents.includes(s.id));
-    }, [safeAllStudents, safeEnrolledStudents]);
+    const searchLower = search.toLowerCase();
+
+    // Siswa yang tersedia untuk ditambahkan (belum terdaftar di group ini)
+    const availableStudents = safeAllStudents.filter((s) => {
+        if (!s || s.id === undefined || s.id === null) return false;
+        const alreadyEnrolled = safeEnrolledStudents.includes(s.id);
+        const nameMatch =
+            typeof s.nama === 'string' &&
+            s.nama.toLowerCase().includes(searchLower);
+        const classMatch =
+            typeof s.kelas === 'string' &&
+            s.kelas.toLowerCase().includes(searchLower);
+        return !alreadyEnrolled && (searchLower === '' ? true : (nameMatch || classMatch));
+    });
+
+    // Siswa yang sudah terdaftar di group ini
+    const validEnrolled = safeAllStudents.filter(
+        (s) => s && safeEnrolledStudents.includes(s.id)
+    );
 
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
