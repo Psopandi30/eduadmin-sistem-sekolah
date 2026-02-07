@@ -103,7 +103,7 @@ const DashboardOrangTua: React.FC<DashboardOrangTuaProps> = ({ user, onLogout, s
     ];
 
     return (
-    return (
+
         <div className="h-screen overflow-hidden bg-[#E0F2FE] font-sans flex flex-col relative">
             {/* Background Decoration - Bubbles (Consistent with Login) */}
             <div className="fixed top-[-50px] left-[-50px] w-40 h-40 rounded-full border-[6px] border-[#BFDBFE] opacity-60 pointer-events-none"></div>
