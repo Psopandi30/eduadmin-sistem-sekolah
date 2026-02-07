@@ -213,7 +213,7 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
                 ) : activeView === 'jadwal' ? (
                     <JadwalBimbelGuru onBack={() => setActiveView('home')} user={user} />
                 ) : activeView === 'kehadiran' ? (
-                    <KehadiranBimbelGuru onBack={() => setActiveView('home')} />
+                    <KehadiranBimbelGuru onBack={() => setActiveView('home')} user={user} />
                 ) : activeView === 'nilai' ? (
                     <InputNilaiBimbelGuru onBack={() => setActiveView('home')} />
                 ) : activeView === 'latihan' ? (

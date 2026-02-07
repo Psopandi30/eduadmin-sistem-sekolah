@@ -23,6 +23,7 @@ import { supabase, isSupabaseConfigured } from './src/lib/supabase';
 import ErrorBoundary from './components/ErrorBoundary';
 import logger from './src/utils/logger';
 import { Bot } from 'lucide-react';
+import { Toaster } from 'react-hot-toast';
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -149,6 +150,7 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary>
+      <Toaster />
       {!isLoggedIn ? (
         <Login
           onLogin={handleLogin}

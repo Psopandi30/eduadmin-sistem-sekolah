@@ -11,6 +11,9 @@ const NotepadGuru: React.FC<NotepadGuruProps> = ({ onBack }) => {
         return saved ? JSON.parse(saved) : [];
     });
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [noteToDelete, setNoteToDelete] = useState<number | null>(null);
+    const [selectedNote, setSelectedNote] = useState<any>(null);
     const [newNoteTitle, setNewNoteTitle] = useState('');
     const [newNoteContent, setNewNoteContent] = useState('');
 
@@ -41,10 +44,21 @@ const NotepadGuru: React.FC<NotepadGuruProps> = ({ onBack }) => {
         setIsAddModalOpen(false);
     };
 
-    const deleteNote = (id: number) => {
-        if (confirm('Hapus catatan ini?')) {
-            setNotes(notes.filter((n: any) => n.id !== id));
+    const openDeleteModal = (id: number) => {
+        setNoteToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (noteToDelete) {
+            setNotes(notes.filter((n: any) => n.id !== noteToDelete));
+            setIsDeleteModalOpen(false);
+            setNoteToDelete(null);
         }
+    };
+
+    const openViewModal = (note: any) => {
+        setSelectedNote(note);
     };
 
     return (
@@ -89,12 +103,22 @@ const NotepadGuru: React.FC<NotepadGuruProps> = ({ onBack }) => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {notes.map((note) => (
-                        <div key={note.id} className={`${note.color} p-5 rounded-2xl shadow-sm relative group hover:-translate-y-1 transition-transform duration-300`}>
-                            <h3 className="font-bold text-slate-800 mb-2">{note.title}</h3>
-                            <p className="text-sm text-slate-700 leading-relaxed min-h-[60px]">{note.content}</p>
+                        <div
+                            key={note.id}
+                            onClick={() => openViewModal(note)}
+                            className={`${note.color} p-5 rounded-2xl shadow-sm relative group hover:-translate-y-1 transition-transform duration-300 cursor-pointer`}
+                        >
+                            <h3 className="font-bold text-slate-800 mb-2 truncate">{note.title}</h3>
+                            <p className="text-sm text-slate-700 leading-relaxed min-h-[60px] line-clamp-3">{note.content}</p>
                             <div className="mt-4 pt-3 border-t border-black/5 flex justify-between items-center text-xs text-slate-500">
                                 <span>{note.date}</span>
-                                <button onClick={() => deleteNote(note.id)} className="p-1.5 hover:bg-white/50 rounded text-red-500 opacity-100 transition-opacity">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        openDeleteModal(note.id);
+                                    }}
+                                    className="p-1.5 hover:bg-white/50 rounded text-red-500 opacity-100 transition-opacity"
+                                >
                                     <Trash2 size={14} />
                                 </button>
                             </div>
@@ -119,7 +143,7 @@ const NotepadGuru: React.FC<NotepadGuruProps> = ({ onBack }) => {
                                 Catatan Baru
                             </h3>
                             <button onClick={() => setIsAddModalOpen(false)} className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors">
-                                <ChevronLeft size={20} className="rotate-180" /> {/* Using ChevronLeft as close icon alternative or just replace with X if imported */}
+                                <ChevronLeft size={20} className="rotate-180" />
                             </button>
                         </div>
                         <div className="p-6 space-y-4">
@@ -157,6 +181,71 @@ const NotepadGuru: React.FC<NotepadGuruProps> = ({ onBack }) => {
                                 className="px-6 py-2.5 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition-all shadow-lg shadow-amber-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Simpan Catatan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xs overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 text-center">
+                            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Trash2 size={32} />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-800 mb-2">Hapus Catatan?</h3>
+                            <p className="text-sm text-slate-500 mb-6">Tindakan ini tidak dapat dibatalkan.</p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setIsDeleteModalOpen(false)}
+                                    className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    className="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 shadow-lg shadow-red-200 transition-all"
+                                >
+                                    Hapus
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* View Note Modal */}
+            {selectedNote && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className={`${selectedNote.color} p-6 border-b border-black/5 flex justify-between items-center`}>
+                            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                <StickyNote size={24} />
+                                {selectedNote.title}
+                            </h3>
+                            <button onClick={() => setSelectedNote(null)} className="p-2 bg-white/40 hover:bg-white/60 rounded-full transition-colors">
+                                <ChevronLeft size={20} className="rotate-180" />
+                            </button>
+                        </div>
+                        <div className="p-8">
+                            <p className="text-slate-700 leading-relaxed text-lg whitespace-pre-wrap">
+                                {selectedNote.content}
+                            </p>
+                            <div className="mt-8 pt-4 border-t border-slate-100 flex justify-between items-center text-sm text-slate-400">
+                                <span className="flex items-center gap-1 font-bold">
+                                    <Plus size={14} /> Dibuat pada
+                                </span>
+                                <span>{selectedNote.date}</span>
+                            </div>
+                        </div>
+                        <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+                            <button
+                                onClick={() => setSelectedNote(null)}
+                                className="px-8 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-all"
+                            >
+                                Tutup
                             </button>
                         </div>
                     </div>

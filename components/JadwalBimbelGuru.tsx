@@ -13,7 +13,11 @@ const JadwalBimbelGuru: React.FC<JadwalBimbelGuruProps> = ({ onBack, user }) => 
 
     // Filter jadwal berdasarkan guru yang sedang login
     const mySchedule = tutoringClasses
-        .filter(cls => cls.teacher.includes(user?.nama || '') || user?.role === 'admin')
+        .filter(cls => {
+            const teacherName = cls.teacher?.toLowerCase().trim() || '';
+            const currentName = user?.nama?.toLowerCase().trim() || '';
+            return teacherName.includes(currentName) || currentName.includes(teacherName) || user?.role === 'admin';
+        })
         .map(cls => ({
             id: cls.id,
             hari: cls.schedule.split(',')[0].trim(),
@@ -23,6 +27,10 @@ const JadwalBimbelGuru: React.FC<JadwalBimbelGuruProps> = ({ onBack, user }) => 
             mapel: cls.description,
             status: cls.status
         }));
+
+    React.useEffect(() => {
+        console.log("JadwalBimbel - MySchedule:", mySchedule.length, "User:", user?.nama);
+    }, [mySchedule, user]);
 
     // Fallback if no data (optional, or just show empty state)
     // const jadwal = mySchedule.length > 0 ? mySchedule : []; 
@@ -85,17 +93,24 @@ const JadwalBimbelGuru: React.FC<JadwalBimbelGuruProps> = ({ onBack, user }) => 
 
                                 <button
                                     onClick={() => {
-                                        toast('Detail sesi akan segera tersedia', {
+                                        console.log("Detail button clicked for item:", item.id);
+                                        toast('Detail sesi sedang dikembangkan', {
                                             icon: '📅',
                                             style: {
-                                                borderRadius: '10px',
-                                                background: '#333',
+                                                borderRadius: '12px',
+                                                background: '#1e293b',
                                                 color: '#fff',
+                                                fontWeight: 'bold'
                                             },
+                                            position: 'bottom-center'
                                         });
                                     }}
-                                    className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${item.status === 'Selesai' ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'}`}>
-                                    {item.status === 'Selesai' ? 'Selesai' : 'Detail Sesi'}
+                                    className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-md ${item.status === 'Selesai'
+                                        ? 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200'
+                                        }`}
+                                >
+                                    {item.status === 'Selesai' ? 'Lihat Riwayat' : 'Detail Sesi'}
                                 </button>
                             </div>
                         ))}

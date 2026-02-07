@@ -6,26 +6,28 @@ import { toast } from 'react-hot-toast';
 
 interface KehadiranBimbelGuruProps {
     onBack: () => void;
+    user?: any;
 }
 
-const KehadiranBimbelGuru: React.FC<KehadiranBimbelGuruProps> = ({ onBack }) => {
+const KehadiranBimbelGuru: React.FC<KehadiranBimbelGuruProps> = ({ onBack, user }) => {
     const { tutoringClasses, isLoading } = useTutoring();
     const [selectedClassId, setSelectedClassId] = useState<string>('');
     const [attendanceData, setAttendanceData] = useState<any[]>([]);
+    const [isSaving, setIsSaving] = useState(false);
 
     // 1. Filter Classes for Current Teacher
-    // In a real app, 'user' prop should be passed to this component
-    // For now, we'll show all classes or assume a mock user in parent
-    const myClasses = tutoringClasses;
+    const myClasses = tutoringClasses.filter(c => {
+        const teacherName = c.teacher?.toLowerCase().trim() || '';
+        const currentName = user?.nama?.toLowerCase().trim() || '';
+        return teacherName.includes(currentName) || currentName.includes(teacherName) || user?.role === 'admin';
+    });
 
-    // 2. Load Students when Class is selected
-    // Note: In a real DB, we would fetch 'students' tailored to this class.
-    // For now, we will simulate students based on the selected class title.
     React.useEffect(() => {
+        console.log("KehadiranBimbel - MyClasses:", myClasses.length, "User:", user?.nama);
         if (myClasses.length > 0 && !selectedClassId) {
             setSelectedClassId(myClasses[0].id.toString());
         }
-    }, [myClasses, selectedClassId]);
+    }, [myClasses, selectedClassId, user]);
 
     React.useEffect(() => {
         if (selectedClassId) {
@@ -151,35 +153,61 @@ const KehadiranBimbelGuru: React.FC<KehadiranBimbelGuruProps> = ({ onBack }) => 
                     ))}
                 </div>
 
-                <div className="mt-8">
+                <div className="mt-8 pb-10">
                     <button
                         onClick={async () => {
+                            console.log("Simpan button clicked");
+                            if (isSaving) return;
+
                             try {
+                                setIsSaving(true);
                                 const { error } = await supabase
                                     .from('app_settings')
                                     .upsert({
-                                        key: 'bimbel_attendance_v1',
-                                        value: attendanceData,
+                                        key: `bimbel_att_${selectedClassId || 'default'}`,
+                                        value: {
+                                            class_id: selectedClassId,
+                                            attendance: attendanceData,
+                                            timestamp: new Date().toISOString(),
+                                            saved_by: user?.nama
+                                        },
                                         updated_at: new Date().toISOString()
                                     }, { onConflict: 'key' });
 
                                 if (error) throw error;
+
                                 toast.success('Absensi Bimbel berhasil disinkronkan!', {
                                     duration: 3000,
                                     position: 'top-center',
                                     style: { background: '#10B981', color: '#fff', fontWeight: 'bold' }
                                 });
                             } catch (e) {
+                                console.error('Error saving attendance:', e);
                                 toast.error('Gagal menyimpan absensi, coba lagi.', {
                                     duration: 3000,
                                     position: 'top-center'
                                 });
+                            } finally {
+                                setIsSaving(false);
                             }
                         }}
-                        className="w-full bg-teal-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-teal-700/20 hover:bg-teal-700 transition-colors flex items-center justify-center gap-2"
+                        disabled={isSaving || !selectedClassId}
+                        className={`w-full py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg ${isSaving || !selectedClassId
+                            ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                            : 'bg-teal-600 text-white shadow-teal-700/20 hover:bg-teal-700 active:scale-95'
+                            }`}
                     >
-                        <UserCheck size={20} />
-                        Simpan Absensi Bimbel
+                        {isSaving ? (
+                            <div className="flex items-center gap-2">
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                Menyimpan...
+                            </div>
+                        ) : (
+                            <>
+                                <UserCheck size={20} />
+                                Simpan Absensi Bimbel
+                            </>
+                        )}
                     </button>
                 </div>
             </div>
