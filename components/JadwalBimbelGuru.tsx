@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronLeft, Calendar, Clock, MapPin, Users } from 'lucide-react';
 import { useTutoring } from './DashboardSuperAdmin/hooks/useTutoring';
+import { toast } from 'react-hot-toast';
 
 interface JadwalBimbelGuruProps {
     onBack: () => void;
@@ -82,7 +83,18 @@ const JadwalBimbelGuru: React.FC<JadwalBimbelGuruProps> = ({ onBack, user }) => 
                                     </div>
                                 </div>
 
-                                <button className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${item.status === 'Selesai' ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'}`}>
+                                <button
+                                    onClick={() => {
+                                        toast('Detail sesi akan segera tersedia', {
+                                            icon: '📅',
+                                            style: {
+                                                borderRadius: '10px',
+                                                background: '#333',
+                                                color: '#fff',
+                                            },
+                                        });
+                                    }}
+                                    className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${item.status === 'Selesai' ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'}`}>
                                     {item.status === 'Selesai' ? 'Selesai' : 'Detail Sesi'}
                                 </button>
                             </div>

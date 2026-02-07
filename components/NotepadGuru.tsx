@@ -8,30 +8,37 @@ interface NotepadGuruProps {
 const NotepadGuru: React.FC<NotepadGuruProps> = ({ onBack }) => {
     const [notes, setNotes] = useState(() => {
         const saved = localStorage.getItem('guru_notes_v1');
-        return saved ? JSON.parse(saved) : [
-            { id: 1, title: 'Rencana Rapat Wali Murid', content: 'Membahas persiapan ujian akhir semester...', color: 'bg-yellow-100', date: '2025-10-20' },
-            { id: 2, title: 'Ide Lomba Kelas', content: 'Lomba kebersihan dan menghias kelas...', color: 'bg-blue-100', date: '2025-10-22' },
-        ];
+        return saved ? JSON.parse(saved) : [];
     });
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newNoteTitle, setNewNoteTitle] = useState('');
+    const [newNoteContent, setNewNoteContent] = useState('');
 
     React.useEffect(() => {
         localStorage.setItem('guru_notes_v1', JSON.stringify(notes));
     }, [notes]);
 
-    const addNote = () => {
-        const title = prompt("Judul Catatan:");
-        if (!title) return;
-        const content = prompt("Isi Catatan:");
-        if (!content) return;
+    const openAddModal = () => {
+        setNewNoteTitle('');
+        setNewNoteContent('');
+        setIsAddModalOpen(true);
+    };
+
+    const handleSaveNote = () => {
+        if (!newNoteTitle.trim() || !newNoteContent.trim()) {
+            // Optional: Add toast error here if desired
+            return;
+        }
 
         const newNote = {
             id: Date.now(),
-            title,
-            content,
+            title: newNoteTitle,
+            content: newNoteContent,
             color: ['bg-yellow-100', 'bg-blue-100', 'bg-green-100', 'bg-red-100'][Math.floor(Math.random() * 4)],
-            date: new Date().toISOString().split('T')[0]
+            date: new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })
         };
         setNotes([newNote, ...notes]);
+        setIsAddModalOpen(false);
     };
 
     const deleteNote = (id: number) => {
@@ -57,7 +64,7 @@ const NotepadGuru: React.FC<NotepadGuruProps> = ({ onBack }) => {
                     <p className="text-slate-400 text-[10px] md:text-sm font-medium">Catatan pribadi tugas & administrasi.</p>
                 </div>
                 <button
-                    onClick={addNote}
+                    onClick={openAddModal}
                     className="p-2.5 md:p-3 bg-amber-500 text-white rounded-xl md:rounded-2xl hover:bg-amber-600 transition-all shadow-lg shadow-amber-200 active:scale-95"
                     title="Tambah Catatan"
                 >
@@ -95,12 +102,66 @@ const NotepadGuru: React.FC<NotepadGuruProps> = ({ onBack }) => {
                     ))}
 
                     {/* Add New Placeholder */}
-                    <button onClick={addNote} className="border-2 border-dashed border-slate-300 rounded-2xl p-5 flex flex-col items-center justify-center text-slate-400 gap-2 hover:border-amber-400 hover:text-amber-500 hover:bg-amber-50 transition-all min-h-[150px]">
+                    <button onClick={openAddModal} className="border-2 border-dashed border-slate-300 rounded-2xl p-5 flex flex-col items-center justify-center text-slate-400 gap-2 hover:border-amber-400 hover:text-amber-500 hover:bg-amber-50 transition-all min-h-[150px]">
                         <Plus size={32} />
                         <span className="font-bold text-sm">Tambah Catatan Baru</span>
                     </button>
                 </div>
             </div>
+
+            {/* Add Note Modal */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="bg-amber-500 p-6 text-white flex justify-between items-center">
+                            <h3 className="text-xl font-bold flex items-center gap-2">
+                                <StickyNote size={24} />
+                                Catatan Baru
+                            </h3>
+                            <button onClick={() => setIsAddModalOpen(false)} className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors">
+                                <ChevronLeft size={20} className="rotate-180" /> {/* Using ChevronLeft as close icon alternative or just replace with X if imported */}
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-sm font-bold text-slate-700">Judul Catatan</label>
+                                <input
+                                    type="text"
+                                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all font-bold text-slate-700"
+                                    placeholder="Contoh: Ide Lomba Kelas"
+                                    value={newNoteTitle}
+                                    onChange={(e) => setNewNoteTitle(e.target.value)}
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-sm font-bold text-slate-700">Isi Catatan</label>
+                                <textarea
+                                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all min-h-[150px] resize-none text-slate-600"
+                                    placeholder="Tulis detail catatan Anda di sini..."
+                                    value={newNoteContent}
+                                    onChange={(e) => setNewNoteContent(e.target.value)}
+                                ></textarea>
+                            </div>
+                        </div>
+                        <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                            <button
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-600 font-bold hover:bg-white hover:text-red-500 transition-all"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={handleSaveNote}
+                                disabled={!newNoteTitle.trim() || !newNoteContent.trim()}
+                                className="px-6 py-2.5 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition-all shadow-lg shadow-amber-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Simpan Catatan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

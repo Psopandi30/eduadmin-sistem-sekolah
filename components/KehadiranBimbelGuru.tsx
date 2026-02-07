@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ChevronLeft, UserCheck, Search, CheckCircle, XCircle, AlertCircle, Users } from 'lucide-react';
 import { useTutoring } from './DashboardSuperAdmin/hooks/useTutoring';
+import { supabase } from '../src/lib/supabase';
+import { toast } from 'react-hot-toast';
 
 interface KehadiranBimbelGuruProps {
     onBack: () => void;
@@ -150,7 +152,33 @@ const KehadiranBimbelGuru: React.FC<KehadiranBimbelGuruProps> = ({ onBack }) => 
                 </div>
 
                 <div className="mt-8">
-                    <button className="w-full bg-teal-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-teal-700/20 hover:bg-teal-700 transition-colors">
+                    <button
+                        onClick={async () => {
+                            try {
+                                const { error } = await supabase
+                                    .from('app_settings')
+                                    .upsert({
+                                        key: 'bimbel_attendance_v1',
+                                        value: attendanceData,
+                                        updated_at: new Date().toISOString()
+                                    }, { onConflict: 'key' });
+
+                                if (error) throw error;
+                                toast.success('Absensi Bimbel berhasil disinkronkan!', {
+                                    duration: 3000,
+                                    position: 'top-center',
+                                    style: { background: '#10B981', color: '#fff', fontWeight: 'bold' }
+                                });
+                            } catch (e) {
+                                toast.error('Gagal menyimpan absensi, coba lagi.', {
+                                    duration: 3000,
+                                    position: 'top-center'
+                                });
+                            }
+                        }}
+                        className="w-full bg-teal-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-teal-700/20 hover:bg-teal-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <UserCheck size={20} />
                         Simpan Absensi Bimbel
                     </button>
                 </div>
@@ -160,3 +188,4 @@ const KehadiranBimbelGuru: React.FC<KehadiranBimbelGuruProps> = ({ onBack }) => 
 };
 
 export default KehadiranBimbelGuru;
+```

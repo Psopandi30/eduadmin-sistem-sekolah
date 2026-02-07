@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, FolderInput, Save, TrendingUp, Award, ClipboardList } from 'lucide-react';
+import { supabase } from '../src/lib/supabase';
+import { toast } from 'react-hot-toast';
 
 interface InputNilaiBimbelGuruProps {
     onBack: () => void;
@@ -8,13 +10,44 @@ interface InputNilaiBimbelGuruProps {
 const InputNilaiBimbelGuru: React.FC<InputNilaiBimbelGuruProps> = ({ onBack }) => {
     const [siswa, setSiswa] = useState('Ahmad Dahlan');
     const [filterPeriode, setFilterPeriode] = useState('Semua');
+    const [cbtResults, setCbtResults] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // Dummy Data Hasil CBT (Nanti disinkronkan dengan database CBT)
-    const [cbtResults, setCbtResults] = useState([
-        { id: 1, title: 'Tryout Akbar SKD CPNS 2025', score: 450, total: 550, date: '2025-10-15', status: 'Lulus', type: 'Tryout' },
-        { id: 2, title: 'Latihan Soal Matematika Bab 3', score: 85, total: 100, date: '2025-10-10', status: 'Kompeten', type: 'Latihan' },
-        { id: 3, title: 'Ujian Harian Bahasa Inggris', score: 78, total: 100, date: '2025-10-05', status: 'Cukup', type: 'Ujian' },
-    ]);
+    useEffect(() => {
+        fetchCbtResults();
+    }, []);
+
+    const fetchCbtResults = async () => {
+        try {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('cbt_results')
+                .select('*')
+                .order('submitted_at', { ascending: false });
+
+            if (error) throw error;
+
+            if (data) {
+                // Map database fields to UI fields
+                const mappedData = data.map((item: any) => ({
+                    id: item.id,
+                    title: item.exam_title,
+                    score: item.score,
+                    total: item.total_score,
+                    date: new Date(item.submitted_at).toLocaleDateString('id-ID'),
+                    status: item.status,
+                    type: item.exam_type
+                }));
+                setCbtResults(mappedData);
+            }
+        } catch (error) {
+            console.error('Error fetching CBT results:', error);
+            // Fallback to empty or dummy if strictly needed, but better to show empty state for "real" experience
+            // setCbtResults([]); 
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col h-full">
@@ -56,7 +89,9 @@ const InputNilaiBimbelGuru: React.FC<InputNilaiBimbelGuruProps> = ({ onBack }) =
                     <div className="bg-green-50 p-4 rounded-2xl border border-green-100">
                         <p className="text-xs font-bold text-green-500 mb-1">Rata-rata Skor</p>
                         <p className="text-2xl font-bold text-green-700">
-                            {Math.round(cbtResults.reduce((acc, curr) => acc + (curr.score / curr.total * 100), 0) / cbtResults.length) || 0}
+                            {cbtResults.length > 0
+                                ? Math.round(cbtResults.reduce((acc, curr) => acc + (curr.score / curr.total * 100), 0) / cbtResults.length)
+                                : 0}
                         </p>
                     </div>
                 </div>
@@ -68,7 +103,11 @@ const InputNilaiBimbelGuru: React.FC<InputNilaiBimbelGuruProps> = ({ onBack }) =
                         Riwayat Hasil Ujian (CBT)
                     </h3>
 
-                    {cbtResults.length > 0 ? (
+                    {loading ? (
+                        <div className="flex justify-center py-10">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+                        </div>
+                    ) : cbtResults.length > 0 ? (
                         cbtResults.map((result) => (
                             <div key={result.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                                 <div className="flex justify-between items-start mb-3">
