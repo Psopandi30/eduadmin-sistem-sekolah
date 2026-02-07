@@ -75,8 +75,8 @@ export const useTutoring = () => {
                         date: m.created_at ? new Date(m.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                         youtubeId: m.video_url || '',
                         driveLink: m.file_url || '',
-                        meetingLink: '',
-                        quizQuestions: []
+                        meetingLink: (m as any).meeting_link || '',
+                        quizQuestions: (m as any).quiz_data || []
                     }))
             }));
 
@@ -111,8 +111,11 @@ export const useTutoring = () => {
                 title: material.title,
                 video_url: material.youtubeId,
                 file_url: material.driveLink,
-                meeting_number: material.meeting_number || 1
-            }]);
+                meeting_number: material.meeting_number || 1,
+                // Add new fields (casting to 'any' if schema not yet updated in types)
+                meeting_link: material.meetingLink,
+                quiz_data: material.quizQuestions
+            } as any]);
 
             if (error) throw error;
             toast.success("Materi berhasil diunggah ke cloud!");

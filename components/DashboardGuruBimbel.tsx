@@ -85,7 +85,7 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
     ];
 
     return (
-        <div className="min-h-screen bg-[#E0F2FE] font-sans flex flex-col relative">
+        <div className="h-screen overflow-hidden bg-[#E0F2FE] font-sans flex flex-col relative">
             {/* Background Decoration - Bubbles (Consistent with Login) */}
             <div className="fixed top-[-50px] left-[-50px] w-40 h-40 rounded-full border-[6px] border-[#BFDBFE] opacity-60 pointer-events-none"></div>
             <div className="fixed top-20 right-[-20px] w-24 h-24 rounded-full bg-[#BFDBFE] opacity-40 pointer-events-none"></div>
@@ -132,7 +132,7 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
                 </div>
             </div>
 
-            <div className={`flex-1 relative z-10 w-full max-w-7xl mx-auto scrollbar-hide transition-all duration-500 ${activeView === 'home' ? 'p-4 md:p-8 pb-24 sm:pb-20 overflow-y-auto' : 'p-0 overflow-y-auto pb-16'}`}>
+            <div className={`flex-1 relative z-10 w-full max-w-7xl mx-auto scrollbar-hide transition-all duration-500 ${activeView === 'home' ? 'p-4 md:p-8 pb-24 sm:pb-20 overflow-y-auto' : 'p-0 overflow-hidden'}`}>
                 {activeView === 'home' ? (
                     <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
                         {/* Left Column: Menu Items */}
