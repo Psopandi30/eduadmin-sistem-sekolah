@@ -7,7 +7,14 @@ interface InputNilaiBimbelGuruProps {
 
 const InputNilaiBimbelGuru: React.FC<InputNilaiBimbelGuruProps> = ({ onBack }) => {
     const [siswa, setSiswa] = useState('Ahmad Dahlan');
-    const [tipeLaporan, setTipeLaporan] = useState('tryout');
+    const [filterPeriode, setFilterPeriode] = useState('Semua');
+
+    // Dummy Data Hasil CBT (Nanti disinkronkan dengan database CBT)
+    const [cbtResults, setCbtResults] = useState([
+        { id: 1, title: 'Tryout Akbar SKD CPNS 2025', score: 450, total: 550, date: '2025-10-15', status: 'Lulus', type: 'Tryout' },
+        { id: 2, title: 'Latihan Soal Matematika Bab 3', score: 85, total: 100, date: '2025-10-10', status: 'Kompeten', type: 'Latihan' },
+        { id: 3, title: 'Ujian Harian Bahasa Inggris', score: 78, total: 100, date: '2025-10-05', status: 'Cukup', type: 'Ujian' },
+    ]);
 
     return (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col h-full">
@@ -19,7 +26,7 @@ const InputNilaiBimbelGuru: React.FC<InputNilaiBimbelGuruProps> = ({ onBack }) =
                 <div className="flex-1">
                     <h2 className="font-bold text-lg text-slate-800 flex items-center gap-2">
                         <FolderInput className="text-indigo-500" size={20} />
-                        Input Perkembangan
+                        Hasil Nilai Bimbel
                     </h2>
                 </div>
             </div>
@@ -40,79 +47,66 @@ const InputNilaiBimbelGuru: React.FC<InputNilaiBimbelGuruProps> = ({ onBack }) =
                     </select>
                 </div>
 
-                {/* Tipe Laporan Tabs */}
-                <div className="flex p-1 bg-slate-200 rounded-xl mb-6">
-                    <button
-                        onClick={() => setTipeLaporan('tryout')}
-                        className={`flex-1 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${tipeLaporan === 'tryout' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        <ClipboardList size={16} /> Nilai Tryout
-                    </button>
-                    <button
-                        onClick={() => setTipeLaporan('progress')}
-                        className={`flex-1 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${tipeLaporan === 'progress' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        <TrendingUp size={16} /> Progres Bulanan
-                    </button>
+                {/* Filter & Summary */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+                        <p className="text-xs font-bold text-indigo-400 mb-1">Total Ujian</p>
+                        <p className="text-2xl font-bold text-indigo-700">{cbtResults.length} <span className="text-sm font-medium text-indigo-400">Kali</span></p>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-2xl border border-green-100">
+                        <p className="text-xs font-bold text-green-500 mb-1">Rata-rata Skor</p>
+                        <p className="text-2xl font-bold text-green-700">
+                            {Math.round(cbtResults.reduce((acc, curr) => acc + (curr.score / curr.total * 100), 0) / cbtResults.length) || 0}
+                        </p>
+                    </div>
                 </div>
 
-                {tipeLaporan === 'tryout' ? (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                <Award className="text-yellow-500" size={20} />
-                                Hasil Tryout / Latihan
-                            </h3>
+                {/* List Hasil CBT */}
+                <div className="space-y-4">
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-2">
+                        <Award className="text-yellow-500" size={20} />
+                        Riwayat Hasil Ujian (CBT)
+                    </h3>
 
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">Judul Latihan / TO</label>
-                                    <input type="text" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold" placeholder="Contoh: Tryout Matematika Bab 3" />
+                    {cbtResults.length > 0 ? (
+                        cbtResults.map((result) => (
+                            <div key={result.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mb-2 inline-block ${result.type === 'Tryout' ? 'bg-purple-50 text-purple-600' :
+                                            result.type === 'Latihan' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'
+                                            }`}>
+                                            {result.type}
+                                        </span>
+                                        <h4 className="font-bold text-slate-800 text-sm md:text-base">{result.title}</h4>
+                                        <p className="text-xs text-slate-400 mt-1">{result.date}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-lg font-bold text-slate-800">
+                                            {result.score}<span className="text-xs text-slate-400 ml-0.5">/{result.total}</span>
+                                        </div>
+                                        <span className={`text-[10px] font-bold ${result.status === 'Lulus' || result.status === 'Kompeten' ? 'text-green-500' : 'text-yellow-500'
+                                            }`}>
+                                            {result.status}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 mb-1">Nilai (0-100)</label>
-                                        <input type="number" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-lg text-center" placeholder="0" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 mb-1">Tanggal</label>
-                                        <input type="date" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium" />
-                                    </div>
+                                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                    <div
+                                        className={`h-full rounded-full ${(result.score / result.total) >= 0.8 ? 'bg-green-500' :
+                                            (result.score / result.total) >= 0.6 ? 'bg-yellow-500' : 'bg-red-500'
+                                            }`}
+                                        style={{ width: `${(result.score / result.total) * 100}%` }}
+                                    ></div>
                                 </div>
                             </div>
+                        ))
+                    ) : (
+                        <div className="text-center py-10 text-slate-400">
+                            <ClipboardList size={40} className="mx-auto mb-2 opacity-50" />
+                            <p>Belum ada data nilai CBT.</p>
                         </div>
-                    </div>
-                ) : (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                <TrendingUp className="text-green-500" size={20} />
-                                Evaluasi Bulanan
-                            </h3>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">Bulan</label>
-                                    <input type="month" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">Catatan Perkembangan</label>
-                                    <textarea rows={4} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm leading-relaxed" placeholder="Tuliskan perkembangan siswa selama bulan ini..."></textarea>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">Rekomendasi Belajar</label>
-                                    <textarea rows={2} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm leading-relaxed" placeholder="Saran materi yang perlu diulang..."></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                <div className="mt-8">
-                    <button className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-700/20 hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
-                        <Save size={20} />
-                        Simpan Laporan
-                    </button>
+                    )}
                 </div>
             </div>
         </div>
