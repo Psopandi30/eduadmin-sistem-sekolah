@@ -36,7 +36,39 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                 });
 
                 if (authError) {
-                    // If Supabase auth fails, respect environment policy about fallback auth
+                    // SPECIAL CHECK: Guru Bimbel (stored in table, not in Auth)
+                    // If auth fails, check if it's a Guru Bimbel account
+                    try {
+                        // Use raw username as typed
+                        const { data: bimbelTeacherRaw } = await (supabase as any)
+                            .from('tutoring_teachers')
+                            .select('*')
+                            .eq('username', username)
+                            .eq('password', password)
+                            .maybeSingle();
+
+                        const bimbelTeacher = bimbelTeacherRaw as any;
+
+                        if (bimbelTeacher) {
+                            logger.log("✅ Login successful for Guru Bimbel:", bimbelTeacher.name);
+                            onLogin('gb', {
+                                id: bimbelTeacher.id,
+                                nama: bimbelTeacher.name,
+                                email: `${username}@bimbel.sekolah.id`, // Dummy email
+                                role: 'gb',
+                                roleDisplay: 'Guru Bimbel',
+                                avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=100&auto=format&fit=crop',
+                                mapel: bimbelTeacher.subject_name || 'Bimbel',
+                                nip: bimbelTeacher.username || '-'
+                            });
+                            setIsLoading(false);
+                            return;
+                        }
+                    } catch (e) {
+                        logger.error("Bimbel auth check error:", e);
+                    }
+
+                    // If Supabase auth fails and not a Bimbel teacher, respect environment policy about fallback auth
                     logger.warn("Supabase auth failed:", authError.message);
                     if (!isFallbackAuthAllowed()) {
                         setError("Autentikasi cloud diperlukan. Silakan hubungi admin.");

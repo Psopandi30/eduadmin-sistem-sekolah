@@ -930,15 +930,17 @@ const Nilai: React.FC<NilaiProps> = ({
                                         <button
                                             key={idx}
                                             onClick={() => {
-                                                if (activeBankTarget) {
-                                                    if (activeBankTarget.col === 'MAIN_SAB_SPECIAL_VIEW') {
+                                                const target = activeBankTarget;
+                                                if (target) {
+                                                    if (target.col === 'MAIN_SAB_SPECIAL_VIEW') {
                                                         // Handle Description View Update
+                                                        const targetNis = target.nis;
                                                         setGradesData(prev => ({
                                                             ...prev,
                                                             [descriptionStorageKey]: {
                                                                 ...prev[descriptionStorageKey],
-                                                                [activeBankTarget.nis]: {
-                                                                    ...(prev[descriptionStorageKey]?.[activeBankTarget.nis] || {}),
+                                                                [targetNis]: {
+                                                                    ...(prev[descriptionStorageKey]?.[targetNis] || {}),
                                                                     'MAIN_SAB': desc
                                                                 }
                                                             }
@@ -946,7 +948,7 @@ const Nilai: React.FC<NilaiProps> = ({
                                                         setIsSaved(false);
                                                     } else {
                                                         // Normal Table Update
-                                                        handleGradeChange(activeBankTarget.nis, activeBankTarget.col, desc);
+                                                        handleGradeChange(target.nis, target.col, desc);
                                                     }
                                                     setIsBankOpen(false);
                                                 }
