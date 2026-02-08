@@ -17,31 +17,73 @@ import {
     PlayCircle,
     Sparkles,
     GraduationCap,
-    Clock
+    Clock,
+    Loader2
 } from 'lucide-react';
 import {
     materiDataGlobal,
     latihanDataGlobal,
+    updateMateriDataGlobal,
+    updateLatihanDataGlobal,
     MateriItem,
     LatihanItem,
     QuestionPG,
     QuestionEssay
 } from '../data/sharedData';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
+import logger from '../src/utils/logger';
 
 interface LatihanSoalSiswaProps {
     onBack: () => void;
     userClass?: string;
+    user?: any;
 }
 
-const LatihanSoalSiswa: React.FC<LatihanSoalSiswaProps> = ({ onBack, userClass = "5A" }) => {
+const LatihanSoalSiswa: React.FC<LatihanSoalSiswaProps> = ({ onBack, userClass: propClass, user }) => {
+    const userClass = user?.studentClass || user?.kelas || propClass || '1A';
     const [activeTab, setActiveTab] = useState<'materi' | 'latihan'>('materi');
     const [selectedLatihan, setSelectedLatihan] = useState<LatihanItem | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedSubject, setSelectedSubject] = useState('Semua');
 
+    const [materiList, setMateriList] = useState<MateriItem[]>(materiDataGlobal);
+    const [latihanList, setLatihanList] = useState<LatihanItem[]>(latihanDataGlobal);
+    const [loading, setLoading] = useState(false);
+
+    // --- FETCH DATA FROM CLOUD ---
+    React.useEffect(() => {
+        const fetchCloudData = async () => {
+            if (!isSupabaseConfigured()) return;
+            setLoading(true);
+            try {
+                // Fetch Materi
+                const { data: mRes } = await supabase.from('app_settings').select('value').eq('key', 'materi_data_v10').maybeSingle();
+                if (mRes?.value) {
+                    const parsed = typeof mRes.value === 'string' ? JSON.parse(mRes.value) : mRes.value;
+                    setMateriList(parsed);
+                    updateMateriDataGlobal(parsed);
+                }
+
+                // Fetch Latihan
+                const { data: lRes } = await supabase.from('app_settings').select('value').eq('key', 'latihan_data_v10').maybeSingle();
+                if (lRes?.value) {
+                    const parsed = typeof lRes.value === 'string' ? JSON.parse(lRes.value) : lRes.value;
+                    setLatihanList(parsed);
+                    updateLatihanDataGlobal(parsed);
+                }
+            } catch (err) {
+                logger.warn("Could not fetch materi/latihan from cloud");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCloudData();
+    }, []);
+
     // Filter data based on student class
-    const rawMateri = materiDataGlobal.filter(m => m.classId === userClass && m.status === 'Terbit');
-    const rawLatihan = latihanDataGlobal.filter(l => l.classId === userClass && l.status === 'Terbit');
+    const rawMateri = materiList.filter(m => m.classId === userClass && m.status === 'Terbit');
+    const rawLatihan = latihanList.filter(l => l.classId === userClass && l.status === 'Terbit');
 
     // Unique subjects for filtering
     const subjects = ['Semua', ...Array.from(new Set([...rawMateri, ...rawLatihan].map(item => item.subjectName)))];
@@ -150,7 +192,12 @@ const LatihanSoalSiswa: React.FC<LatihanSoalSiswaProps> = ({ onBack, userClass =
             )}
 
             <div className="flex-1 overflow-y-auto p-4 sm:p-10 scrollbar-hide">
-                {selectedLatihan ? (
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center h-full gap-4">
+                        <Loader2 className="animate-spin text-blue-600" size={48} />
+                        <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Memuat Data...</p>
+                    </div>
+                ) : selectedLatihan ? (
                     // VIEW: LATIHAN DETAIL (ESSAY/PG VIEWER FOR PARENTS)
                     <div className="animate-in fade-in duration-300">
                         <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] border-2 border-slate-50 shadow-2xl shadow-blue-900/5 mb-8 relative overflow-hidden group">

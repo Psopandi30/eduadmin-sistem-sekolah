@@ -115,7 +115,7 @@ export const useFinance = () => {
             }
 
             // 3. Bills (Using app_settings for JSON Blob Sync)
-            const { data: billsRes } = await supabase.from('app_settings').select('value').eq('key', 'finance_student_bills_v10').single();
+            const { data: billsRes } = await supabase.from('app_settings').select('value').eq('key', 'finance_student_bills_v10').maybeSingle();
             if (billsRes?.value) {
                 const parsed = typeof billsRes.value === 'string' ? JSON.parse(billsRes.value) : billsRes.value;
                 setStudentBills(parsed);
@@ -123,7 +123,7 @@ export const useFinance = () => {
             }
 
             // 4. History (Using app_settings for JSON Blob Sync)
-            const { data: historyRes } = await supabase.from('app_settings').select('value').eq('key', 'payments_data_v10').single();
+            const { data: historyRes } = await supabase.from('app_settings').select('value').eq('key', 'payments_data_v10').maybeSingle();
             if (historyRes?.value) {
                 const parsed = typeof historyRes.value === 'string' ? JSON.parse(historyRes.value) : historyRes.value;
                 setPaymentHistory(parsed);

@@ -21,7 +21,7 @@ const NotifikasiSiswa: React.FC<NotifikasiProps> = ({ onBack, user }) => {
             }
 
             try {
-                const { data } = await supabase.from('app_settings').select('value').eq('key', 'announcements_data_v10').single();
+                const { data } = await supabase.from('app_settings').select('value').eq('key', 'announcements_data_v10').maybeSingle();
                 if (data?.value) {
                     const allAnnouncements = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
 

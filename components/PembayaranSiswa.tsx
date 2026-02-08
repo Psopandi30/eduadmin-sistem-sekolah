@@ -27,7 +27,7 @@ const PembayaranSiswa: React.FC<PembayaranSiswaProps> = ({ onBack, user }) => {
             if (isSupabaseConfigured()) {
                 try {
                     // Load Billing Data from Cloud
-                    const { data: billsRes } = await supabase.from('app_settings').select('value').eq('key', 'finance_student_bills_v10').single();
+                    const { data: billsRes } = await supabase.from('app_settings').select('value').eq('key', 'finance_student_bills_v10').maybeSingle();
                     if (billsRes?.value) {
                         const allBills = typeof billsRes.value === 'string' ? JSON.parse(billsRes.value) : billsRes.value;
                         const myUnpaid = allBills.filter((b: any) =>
@@ -47,7 +47,7 @@ const PembayaranSiswa: React.FC<PembayaranSiswaProps> = ({ onBack, user }) => {
                     }
 
                     // Load History (Payments) from Cloud
-                    const { data: historyRes } = await supabase.from('app_settings').select('value').eq('key', 'payments_data_v10').single();
+                    const { data: historyRes } = await supabase.from('app_settings').select('value').eq('key', 'payments_data_v10').maybeSingle();
                     if (historyRes?.value) {
                         const allHistory = typeof historyRes.value === 'string' ? JSON.parse(historyRes.value) : historyRes.value;
                         const myHistory = allHistory.filter((h: any) =>

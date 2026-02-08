@@ -18,7 +18,7 @@ export const useGrades = (classId?: string, mapel?: string, semester?: string) =
                 .from('app_settings')
                 .select('value')
                 .eq('key', key)
-                .single();
+                .maybeSingle();
 
             if (data?.value) {
                 const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;

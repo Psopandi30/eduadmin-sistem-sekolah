@@ -226,7 +226,14 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
                             <div className="bg-white rounded-[2.5rem] p-6 h-full shadow-sm animate-in fade-in overflow-hidden">
                                 <KelasWali
                                     kelasData={[{ id: 1, kode: user?.kelas || '1A', nama: user?.kelas || '1A', wali: user?.nama || '-', waliNip: user?.nip || '-' }]}
-                                    studentsData={{ [user?.kelas || '1A']: JSON.parse(localStorage.getItem('students_data_v2') || '[]').filter((s: any) => s.kelas === (user?.kelas || '1A')) }}
+                                    studentsData={{
+                                        [user?.kelas || '1A']: (() => {
+                                            try {
+                                                const saved = localStorage.getItem('students_data_v10');
+                                                return saved ? JSON.parse(saved).filter((s: any) => s.kelas === (user?.kelas || '1A')) : [];
+                                            } catch (e) { return []; }
+                                        })()
+                                    }}
                                 />
                             </div>
                         ) : activeView === 'quran' ? (

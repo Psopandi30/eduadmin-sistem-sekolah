@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Edit3, ChevronDown, FileSpreadsheet, Star, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Edit3, ChevronDown, FileSpreadsheet, Star, ChevronRight, ChevronLeft } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 import { toast } from 'react-hot-toast';
 import logger from '../src/utils/logger';
@@ -16,7 +16,7 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
 
     // Standard subjects list (Synced from Admin)
     const [subjectList, setSubjectList] = useState<string[]>(() => {
-        const saved = typeof window !== 'undefined' ? localStorage.getItem('subjects_data_v2') : null;
+        const saved = typeof window !== 'undefined' ? localStorage.getItem('subjects_data_v10') : null;
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
@@ -53,7 +53,7 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
 
     // Load Grades and Supplementary Data
     useEffect(() => {
-        const studentId = user?.studentId?.toString() || user?.id?.toString() || user?.nis?.toString() || '4';
+        const studentId = user?.studentId?.toString() || user?.id?.toString() || user?.nis?.toString() || '';
         const currentSemesterFull = selectedSemester === 'Semester 1' ? '1 (Ganjil)' : '2 (Genap)';
 
         const loadContent = async () => {
@@ -66,7 +66,7 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
                 const key = `grades_v2_${selectedClass}_${subj}_${currentSemesterFull}`;
 
                 try {
-                    const { data } = await supabase.from('app_settings').select('value').eq('key', key).single();
+                    const { data } = await supabase.from('app_settings').select('value').eq('key', key).maybeSingle();
                     let daily = 0, exam = 0, report = 0;
 
                     if (data?.value) {
@@ -94,7 +94,7 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
             // 2. Load Supplementary Data from Cloud
             const suppKey = `rapor_supp_${selectedClass}_${studentId}_${currentSemesterFull}`;
             try {
-                const { data } = await supabase.from('app_settings').select('value').eq('key', suppKey).single();
+                const { data } = await supabase.from('app_settings').select('value').eq('key', suppKey).maybeSingle();
                 if (data?.value) {
                     setSuppData(typeof data.value === 'string' ? JSON.parse(data.value) : data.value);
                 } else {

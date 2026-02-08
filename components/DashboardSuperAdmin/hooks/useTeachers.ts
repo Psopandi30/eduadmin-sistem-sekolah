@@ -150,9 +150,9 @@ export const useTeachers = () => {
                             position: newTeacher.jabatan,
                         })
                         .select()
-                        .single();
+                        .maybeSingle();
 
-                    if (staffError) throw new Error(`Staff Insert Error: ${staffError.message}`);
+                    if (staffError || !staffData) throw new Error(`Staff Insert Error: ${staffError?.message || 'Data not returned'}`);
 
                     // Ensure password is recorded locally (for fallback login) and normalized
                     const finalPassword = password;
@@ -231,7 +231,7 @@ export const useTeachers = () => {
                 if (error) throw error;
 
                 if (updates.nama) {
-                    const { data: sData } = await supabase.from('staff').select('profile_id').eq('id', id).single();
+                    const { data: sData } = await supabase.from('staff').select('profile_id').eq('id', id).maybeSingle();
                     if (sData?.profile_id) {
                         await supabase.from('profiles').update({ full_name: updates.nama.trim() }).eq('id', sData.profile_id);
                     }
@@ -371,7 +371,7 @@ export const useTeachers = () => {
                         await supabase.from('staff').update({ position }).eq('id', id);
 
                         if (nama) {
-                            const { data: sData } = await supabase.from('staff').select('profile_id').eq('id', id).single();
+                            const { data: sData } = await supabase.from('staff').select('profile_id').eq('id', id).maybeSingle();
                             if (sData?.profile_id) {
                                 await supabase.from('profiles').update({ full_name: nama }).eq('id', sData.profile_id);
                             }
@@ -387,7 +387,7 @@ export const useTeachers = () => {
 
                     for (const ins of inserts) {
                         if (ins.nama_temp) {
-                            const { data: pData } = await supabase.from('profiles').select('id').eq('email', ins.employee_number + '@sekolah.id').single();
+                            const { data: pData } = await supabase.from('profiles').select('id').eq('email', ins.employee_number + '@sekolah.id').maybeSingle();
                             if (pData) {
                                 await supabase.from('profiles').update({ full_name: ins.nama_temp }).eq('id', pData.id);
                             }

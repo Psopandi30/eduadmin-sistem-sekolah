@@ -29,7 +29,7 @@ const JadwalUjian: React.FC<JadwalUjianProps> = ({ onBack, user }) => {
                     .from('app_settings')
                     .select('value')
                     .eq('key', 'exam_schedules_v2')
-                    .single();
+                    .maybeSingle();
 
                 if (data?.value) {
                     const allExams = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;

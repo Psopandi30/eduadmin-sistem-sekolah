@@ -42,7 +42,8 @@ interface DashboardOrangTuaProps {
     schoolName?: string;
 }
 
-import { announcementDataGlobal, teachersDataGlobal } from '../data/sharedData';
+import { announcementDataGlobal, teachersDataGlobal, subjectsDataGlobal, schedulePeriodsGlobal } from '../data/sharedData';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 import logger from '../src/utils/logger';
 
 // ... (imports)
@@ -86,6 +87,42 @@ const DashboardOrangTua: React.FC<DashboardOrangTuaProps> = ({ user, onLogout, s
             setWaliKelasName(user.studentWali);
         }
     }, [user?.studentClass, user?.studentWali]);
+
+    // --- MASTER DATA SYNC (Cloud to LocalStorage) ---
+    useEffect(() => {
+        const syncMasterData = async () => {
+            if (!isSupabaseConfigured()) return;
+            try {
+                // 1. Sync Subjects
+                const { data: subData } = await supabase.from('subjects').select('*, subject_groups(name)');
+                if (subData && subData.length > 0) {
+                    const mapped = subData.map(s => ({
+                        id: s.id,
+                        name: s.name,
+                        code: s.code,
+                        group: (s.subject_groups as any)?.name || 'Umum'
+                    }));
+                    localStorage.setItem('subjects_data_v10', JSON.stringify(mapped));
+                }
+
+                // 2. Sync Schedule Periods
+                const { data: periodData } = await supabase.from('app_settings').select('value').eq('key', 'schedule_periods_v2').maybeSingle();
+                if (periodData?.value) {
+                    localStorage.setItem('schedule_periods_v2', JSON.stringify(periodData.value));
+                }
+
+                // 3. Sync Teachers (for Wali Kelas lookup)
+                const { data: teachData } = await supabase.from('app_settings').select('value').eq('key', 'teachers_data_v10_sync').maybeSingle();
+                if (teachData?.value) {
+                    localStorage.setItem('teachers_data_v10', JSON.stringify(teachData.value));
+                }
+            } catch (e) {
+                logger.error("Global Master Data Sync Error", e);
+            }
+        };
+
+        syncMasterData();
+    }, []);
 
     // Menu Items Data
     const menuItems = [
@@ -277,7 +314,7 @@ const DashboardOrangTua: React.FC<DashboardOrangTuaProps> = ({ user, onLogout, s
                     ) : activeView === 'bimbingan' ? (
                         <BimbinganBelajarSiswa onBack={() => setActiveView('home')} user={user} />
                     ) : activeView === 'latihan' ? (
-                        <LatihanSoalSiswa onBack={() => setActiveView('home')} userClass={user?.studentClass || '5A'} />
+                        <LatihanSoalSiswa onBack={() => setActiveView('home')} user={user} userClass={user?.studentClass || '1A'} />
                     ) : activeView === 'quran' ? (
                         <AlQuranSiswa onBack={() => setActiveView('home')} />
                     ) : activeView === 'channel' ? (

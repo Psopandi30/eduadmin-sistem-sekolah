@@ -77,15 +77,34 @@ const JadwalMengajarGuru: React.FC<JadwalMengajarGuruProps> = ({ onBack, user })
             );
 
             if (isMyMapel) {
-                const periodInfo = schedulePeriodsGlobal.find(p => p.id === item.period);
-                const subjectInfo = subjectsDataGlobal.find(s => s.id.toString() === item.subjectId.toString());
+                const periodInfo = (() => {
+                    const savedPeriods = localStorage.getItem('schedule_periods_v2');
+                    if (savedPeriods) {
+                        try {
+                            const periods = JSON.parse(savedPeriods);
+                            return periods.find((p: any) => p.id === item.period);
+                        } catch (e) { }
+                    }
+                    return schedulePeriodsGlobal.find(p => p.id === item.period);
+                })();
+
+                const subjectInfo = (() => {
+                    const savedSubjects = localStorage.getItem('subjects_data_v10');
+                    if (savedSubjects) {
+                        try {
+                            const subjects = JSON.parse(savedSubjects);
+                            return subjects.find((s: any) => s.id.toString() === item.subjectId.toString());
+                        } catch (e) { }
+                    }
+                    return subjectsDataGlobal.find(s => s.id.toString() === item.subjectId.toString());
+                })();
 
                 results.push({
                     id: item.id,
                     hari: item.day,
                     jam: periodInfo ? `${periodInfo.start} - ${periodInfo.end}` : `Jam ke-${item.period}`,
                     kelas: item.classId,
-                    mapel: subjectInfo?.name || item.customName || 'Mata Pelajaran',
+                    mapel: subjectInfo?.name || subjectInfo?.nama || item.customName || 'Mata Pelajaran',
                     ruang: `R. ${item.classId}`
                 });
             }

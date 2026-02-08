@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronRight, ClipboardList, FileSpreadsheet, BookOpen, GraduationCap } from 'lucide-react';
 import RapotSiswa from './RapotSiswa';
 import DetailNilai from './DetailNilai';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
+import logger from '../src/utils/logger';
 
 interface HasilBelajarProps {
     onBack: () => void;
@@ -13,32 +15,47 @@ const HasilBelajar: React.FC<HasilBelajarProps> = ({ onBack, user }) => {
     const [detailCategory, setDetailCategory] = useState<'Nilai Ulangan' | 'Nilai Ujian'>('Nilai Ulangan');
     const [chartData, setChartData] = useState<any[]>([]);
 
-    React.useEffect(() => {
+    useEffect(() => {
         const levels = ['1', '2', '3', '4', '5', '6'];
         const colors = ['bg-yellow-400', 'bg-[#9F8FEF]', 'bg-[#EE8686]', 'bg-[#8DBF82]', 'bg-[#4AB7CC]', 'bg-orange-400'];
         const borders = ['border-yellow-600', 'border-[#7c69db]', 'border-[#d66565]', 'border-[#6ea063]', 'border-[#388A99]', 'border-orange-600'];
 
-        const dynamicData: any[] = [];
-        const studentName = user?.studentName || user?.nama;
-        const currentClass = user?.studentClass || '1A';
-        const parallel = currentClass.replace(/\d+/, '');
-
-        levels.forEach((lvl, idx) => {
-            const className = `${lvl}${parallel}`;
-            let totalGrade = 0;
-            let subjectCount = 0;
-
+        const fetchData = async () => {
+            const dynamicData: any[] = [];
             const studentId = (user?.studentId || user?.id || user?.nis || '').toString();
-            const savedSubjects = localStorage.getItem('subjects_data_v2');
-            const subjects = savedSubjects ? JSON.parse(savedSubjects) : [];
-            const semesterStr = "1 (Ganjil)"; // Default for overall trend, or can be dynamic
+            const currentClass = user?.studentClass || '1A';
+            const parallel = currentClass.replace(/[0-9]/g, '') || 'A';
 
-            for (const sub of subjects) {
-                const key = `grades_v2_${className}_${sub.name}_${semesterStr}`;
-                const saved = localStorage.getItem(key);
-                if (saved) {
-                    try {
-                        const data = JSON.parse(saved);
+            // Get shared subjects
+            const savedSubjects = localStorage.getItem('subjects_data_v10');
+            const subjects = savedSubjects ? JSON.parse(savedSubjects) : [];
+            const semesterStr = "1 (Ganjil)";
+
+            for (let i = 0; i < levels.length; i++) {
+                const lvl = levels[i];
+                const className = `${lvl}${parallel}`;
+                let totalGrade = 0;
+                let subjectCount = 0;
+
+                for (const sub of subjects) {
+                    const key = `grades_v2_${className}_${sub.name}_${semesterStr}`;
+                    let saved = localStorage.getItem(key);
+                    let data: any = null;
+
+                    if (isSupabaseConfigured()) {
+                        try {
+                            const { data: cloudRes } = await supabase.from('app_settings').select('value').eq('key', key).maybeSingle();
+                            if (cloudRes?.value) {
+                                data = typeof cloudRes.value === 'string' ? JSON.parse(cloudRes.value) : cloudRes.value;
+                            }
+                        } catch (e) { }
+                    }
+
+                    if (!data && saved) {
+                        try { data = JSON.parse(saved); } catch (e) { }
+                    }
+
+                    if (data && Array.isArray(data)) {
                         const student = data.find((s: any) => {
                             const rowId = (s.studentId || s.id || s.nis || '').toString();
                             return (rowId && rowId === studentId) ||
@@ -48,25 +65,27 @@ const HasilBelajar: React.FC<HasilBelajarProps> = ({ onBack, user }) => {
                             totalGrade += student.finalScore;
                             subjectCount++;
                         }
-                    } catch (e) { }
+                    }
+                }
+
+                if (subjectCount > 0) {
+                    dynamicData.push({
+                        label: `Kelas ${lvl}`,
+                        value: Math.round(totalGrade / subjectCount),
+                        color: colors[i],
+                        borderColor: borders[i]
+                    });
                 }
             }
 
-            if (subjectCount > 0) {
-                dynamicData.push({
-                    label: `Kelas ${lvl}`,
-                    value: Math.round(totalGrade / subjectCount),
-                    color: colors[idx],
-                    borderColor: borders[idx]
-                });
+            if (dynamicData.length === 0) {
+                setChartData([{ label: 'No Data', value: 0, color: 'bg-slate-200', borderColor: 'border-slate-300' }]);
+            } else {
+                setChartData(dynamicData);
             }
-        });
+        };
 
-        if (dynamicData.length === 0) {
-            setChartData([{ label: 'No Data', value: 0, color: 'bg-slate-200', borderColor: 'border-slate-300' }]);
-        } else {
-            setChartData(dynamicData);
-        }
+        fetchData();
     }, [user]);
 
     if (internalView === 'rapot') {
@@ -98,8 +117,8 @@ const HasilBelajar: React.FC<HasilBelajarProps> = ({ onBack, user }) => {
 
         return chartData.map((data, index) => {
             const x = (segmentWidth / 2) + (index * segmentWidth);
-            const y = 100 - data.value; // Inverted Y-axis
-            return `${x}%,${y}%`;
+            const y = 100 - data.value; // Map 0-100 score to 100-0 SVG Y
+            return `${x},${y}`;
         }).join(' ');
     };
 
@@ -182,21 +201,21 @@ const HasilBelajar: React.FC<HasilBelajarProps> = ({ onBack, user }) => {
                             ))}
 
                             {/* Trend Line (SVG Overlay) */}
-                            <svg className="absolute inset-0 w-full h-full pointer-events-none p-4" style={{ overflow: 'visible' }}>
+                            <svg className="absolute inset-0 w-full h-full pointer-events-none p-4" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
                                 <polyline
                                     points={getPolylinePoints()}
                                     fill="none"
                                     stroke="#F59E0B"
-                                    strokeWidth="5"
+                                    strokeWidth="2"
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
                                     className="drop-shadow-lg"
                                 />
                                 {/* Arrow Head at the end of line */}
                                 <path
-                                    d={`M ${lastX}% ${lastY}% l -6 8 m 6 -8 l -10 2`}
+                                    d={`M ${lastX} ${lastY} l -2 3 m 2 -3 l -3 1`}
                                     stroke="#F59E0B"
-                                    strokeWidth="5"
+                                    strokeWidth="2"
                                     strokeLinecap="round"
                                 />
                             </svg>

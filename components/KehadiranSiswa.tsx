@@ -30,7 +30,7 @@ const KehadiranSiswa: React.FC<KehadiranSiswaProps> = ({ onBack, user }) => {
                     .from('app_settings')
                     .select('value')
                     .eq('key', 'attendance_data_v2')
-                    .single();
+                    .maybeSingle();
 
                 if (data?.value) {
                     const allRecords = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;

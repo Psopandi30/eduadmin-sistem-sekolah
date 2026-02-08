@@ -122,7 +122,7 @@ export const useStudents = () => {
                     .from('classes')
                     .select('id')
                     .eq('name', student.kelas)
-                    .single();
+                    .maybeSingle();
 
                 const { data, error } = await supabase
                     .from('students')
@@ -175,7 +175,7 @@ export const useStudents = () => {
 
                 // If kelas changed, need to lookup class_id again
                 if (updates.kelas) {
-                    const { data: cData } = await supabase.from('classes').select('id').eq('name', updates.kelas).single();
+                    const { data: cData } = await supabase.from('classes').select('id').eq('name', updates.kelas).maybeSingle();
                     if (cData) dbUpdates.class_id = cData.id;
                 }
 

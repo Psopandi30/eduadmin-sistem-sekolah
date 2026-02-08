@@ -12,6 +12,8 @@ import {
     classesDataGlobal
 } from '../data/sharedData';
 import toast from 'react-hot-toast';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
+import logger from '../src/utils/logger';
 
 interface MateriLatihanGuruProps {
     onBack: () => void;
@@ -28,12 +30,61 @@ const MateriLatihanGuru: React.FC<MateriLatihanGuruProps> = ({ onBack, user }) =
     const [materiList, setMateriList] = useState<MateriItem[]>(materiDataGlobal);
     const [latihanList, setLatihanList] = useState<LatihanItem[]>(latihanDataGlobal);
 
+    const [loading, setLoading] = useState(false);
+
+    // --- FETCH DATA FROM CLOUD ---
+    const fetchCloudData = async () => {
+        if (!isSupabaseConfigured()) return;
+        setLoading(true);
+        try {
+            // Fetch Materi
+            const { data: mRes } = await supabase.from('app_settings').select('value').eq('key', 'materi_data_v10').maybeSingle();
+            if (mRes?.value) {
+                const parsed = typeof mRes.value === 'string' ? JSON.parse(mRes.value) : mRes.value;
+                setMateriList(parsed);
+                updateMateriDataGlobal(parsed);
+            }
+
+            // Fetch Latihan
+            const { data: lRes } = await supabase.from('app_settings').select('value').eq('key', 'latihan_data_v10').maybeSingle();
+            if (lRes?.value) {
+                const parsed = typeof lRes.value === 'string' ? JSON.parse(lRes.value) : lRes.value;
+                setLatihanList(parsed);
+                updateLatihanDataGlobal(parsed);
+            }
+        } catch (err) {
+            logger.warn("Could not fetch materi/latihan from cloud");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchCloudData();
+    }, []);
+
+    // Helper: Save to Cloud
+    const saveToCloud = async (key: 'materi_data_v10' | 'latihan_data_v10', data: any[]) => {
+        if (!isSupabaseConfigured()) return;
+        try {
+            await supabase.from('app_settings').upsert({
+                key,
+                value: data,
+                updated_at: new Date().toISOString()
+            });
+        } catch (err) {
+            logger.error(`Error saving ${key} to cloud`, err);
+        }
+    };
+
     useEffect(() => {
         updateMateriDataGlobal(materiList);
+        localStorage.setItem('materi_data_v10', JSON.stringify(materiList));
     }, [materiList]);
 
     useEffect(() => {
         updateLatihanDataGlobal(latihanList);
+        localStorage.setItem('latihan_data_v10', JSON.stringify(latihanList));
     }, [latihanList]);
 
     // --- MODAL STATE ---
@@ -78,7 +129,9 @@ const MateriLatihanGuru: React.FC<MateriLatihanGuruProps> = ({ onBack, user }) =
             publishDate: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
         };
 
-        setMateriList([newMateri, ...materiList]);
+        const updated = [newMateri, ...materiList];
+        setMateriList(updated);
+        saveToCloud('materi_data_v10', updated);
         setShowMateriModal(false);
         setMateriForm({ title: '', classId: defaultClass, subjectName: user?.mapel || '', driveLink: '', status: 'Terbit' });
         toast.success("Materi berhasil diupload!");
@@ -96,7 +149,9 @@ const MateriLatihanGuru: React.FC<MateriLatihanGuruProps> = ({ onBack, user }) =
             publishDate: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
         };
 
-        setLatihanList([newLatihan, ...latihanList]);
+        const updated = [newLatihan, ...latihanList];
+        setLatihanList(updated);
+        saveToCloud('latihan_data_v10', updated);
         setShowLatihanModal(false);
         setLatihanForm({ title: '', classId: defaultClass, subjectName: user?.mapel || '', type: 'PG', questions: [], status: 'Terbit' });
         toast.success("Latihan soal berhasil dibuat!");
@@ -152,14 +207,18 @@ const MateriLatihanGuru: React.FC<MateriLatihanGuruProps> = ({ onBack, user }) =
 
     const handleDeleteMateri = (id: number) => {
         if (confirm("Hapus materi ini?")) {
-            setMateriList(materiList.filter(m => m.id !== id));
+            const updated = materiList.filter(m => m.id !== id);
+            setMateriList(updated);
+            saveToCloud('materi_data_v10', updated);
             toast.success("Materi dihapus");
         }
     };
 
     const handleDeleteLatihan = (id: number) => {
         if (confirm("Hapus latihan ini?")) {
-            setLatihanList(latihanList.filter(l => l.id !== id));
+            const updated = latihanList.filter(l => l.id !== id);
+            setLatihanList(updated);
+            saveToCloud('latihan_data_v10', updated);
             toast.success("Latihan dihapus");
         }
     };

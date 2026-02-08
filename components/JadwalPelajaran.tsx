@@ -41,7 +41,7 @@ const JadwalPelajaran: React.FC<JadwalPelajaranProps> = ({ onBack, user }) => {
                     .from('app_settings')
                     .select('value')
                     .eq('key', 'master_schedules_v2')
-                    .single();
+                    .maybeSingle();
 
                 if (data && data.value) {
                     const parsedSchedules = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
@@ -77,12 +77,32 @@ const JadwalPelajaran: React.FC<JadwalPelajaranProps> = ({ onBack, user }) => {
         if (customName) return customName;
         if (subjectId === 'custom' && customName) return customName;
 
+        // Try to get from synced subjects first
+        const savedSubjects = localStorage.getItem('subjects_data_v10');
+        if (savedSubjects) {
+            try {
+                const subjects = JSON.parse(savedSubjects);
+                const found = subjects.find((s: any) => s.id === Number(subjectId) || s.id === subjectId);
+                if (found) return found.name;
+            } catch (e) { }
+        }
+
         const subject = subjectsDataGlobal.find(s => s.id === Number(subjectId));
         return subject ? subject.nama : 'Mata Pelajaran';
     };
 
     // Helper: Get Time Label
     const getTimeLabel = (periodId: number) => {
+        // Try to get from synced periods first
+        const savedPeriods = localStorage.getItem('schedule_periods_v2');
+        if (savedPeriods) {
+            try {
+                const periods = JSON.parse(savedPeriods);
+                const p = periods.find((period: any) => period.id === periodId);
+                if (p) return `${p.start} - ${p.end}`;
+            } catch (e) { }
+        }
+
         const p = schedulePeriodsGlobal.find(period => period.id === periodId);
         return p ? `${p.start} - ${p.end}` : `Jam ke-${periodId}`;
     };

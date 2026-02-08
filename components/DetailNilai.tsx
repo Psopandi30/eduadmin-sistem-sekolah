@@ -11,12 +11,12 @@ interface DetailNilaiProps {
 }
 
 const DetailNilai: React.FC<DetailNilaiProps> = ({ onBack, category, user }) => {
-    const [selectedClass, setSelectedClass] = useState(user?.kelas || '1A'); // Auto-select user class
+    const [selectedClass, setSelectedClass] = useState(user?.studentClass || user?.kelas || '1A'); // Auto-select user class
     const [selectedSemester, setSelectedSemester] = useState<'Ganjil' | 'Genap'>('Ganjil'); // Default Ganjil
     const [ujianCategory, setUjianCategory] = useState<'PTS' | 'PAS' | 'PAT'>('PTS');
 
     // Auto-set semester for PAS and PAT
-    React.useEffect(() => {
+    useEffect(() => {
         if (category === 'Nilai Ujian') {
             if (ujianCategory === 'PAS') setSelectedSemester('Ganjil');
             if (ujianCategory === 'PAT') setSelectedSemester('Genap');
@@ -67,7 +67,7 @@ const DetailNilai: React.FC<DetailNilaiProps> = ({ onBack, category, user }) => 
                     .from('app_settings')
                     .select('value')
                     .eq('key', key)
-                    .single();
+                    .maybeSingle();
 
                 if (data?.value) {
                     const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
@@ -104,7 +104,7 @@ const DetailNilai: React.FC<DetailNilaiProps> = ({ onBack, category, user }) => 
                     const studentRecord = savedData.find((g: any) => {
                         const rowId = (g.studentId || g.id || g.nis || '').toString();
                         return (rowId && rowId === studentId) ||
-                            (user?.nama && g.studentName?.toLowerCase() === user.nama.toLowerCase());
+                            (g.studentName?.toLowerCase() === (user?.studentName || user?.namaLengkap || '').toLowerCase());
                     });
 
                     if (studentRecord) {
@@ -201,12 +201,18 @@ const DetailNilai: React.FC<DetailNilaiProps> = ({ onBack, category, user }) => 
                                 onChange={(e) => setSelectedClass(e.target.value)}
                                 className="w-full appearance-none bg-slate-50 border border-slate-200 text-slate-700 py-3 px-4 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                             >
-                                <option>1 A</option>
-                                <option>2 A</option>
-                                <option>3 A</option>
-                                <option>4 A</option>
-                                <option>5 A</option>
-                                <option>6 A</option>
+                                <option>1A</option>
+                                <option>1B</option>
+                                <option>2A</option>
+                                <option>2B</option>
+                                <option>3A</option>
+                                <option>3B</option>
+                                <option>4A</option>
+                                <option>4B</option>
+                                <option>5A</option>
+                                <option>5B</option>
+                                <option>6A</option>
+                                <option>6B</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
                         </div>

@@ -86,10 +86,10 @@ const Login: React.FC<LoginProps> = ({ onLogin, schoolName = "NAMA SEKOLAH", log
                         .from('profiles')
                         .select('*')
                         .eq('id', data.user.id)
-                        .single();
+                        .maybeSingle();
 
-                    if (profileError) {
-                        logger.error("❌ Profile fetch error:", profileError.message);
+                    if (profileError || !profile) {
+                        logger.error("❌ Profile fetch error or missing:", profileError?.message || 'Profile not found');
                         setError("Gagal mengambil data profil.");
                         setIsLoading(false);
                         return;

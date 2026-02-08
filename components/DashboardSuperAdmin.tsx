@@ -209,6 +209,22 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
     useEffect(() => {
         localStorage.setItem('schedule_periods_v2', JSON.stringify(schedulePeriods));
+
+        // SYNC TO CLOUD
+        const syncPeriods = async () => {
+            if (isSupabaseConfigured() && schedulePeriods.length > 0) {
+                try {
+                    await supabase.from('app_settings').upsert({
+                        key: 'schedule_periods_v2',
+                        value: schedulePeriods,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'key' });
+                } catch (e) {
+                    logger.error("Failed to sync schedule periods to cloud", e);
+                }
+            }
+        };
+        syncPeriods();
     }, [schedulePeriods]);
     // uiState.selectedJadwalLevel, showTimeModal, uiState.newPeriodData, showSemesterModal, uiState.newSemesterName, mapelViewMode now from uiState via reducer
     const [teacherAssignments, setTeacherAssignments] = useState(() => {
@@ -773,7 +789,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     const handleDownloadTutoringReport = () => {
         try {
             const dateLabel = new Date().toLocaleDateString('id-ID');
-            const title = `Rekap_Bimbel_${new Date().toISOString().slice(0,10)}`;
+            const title = `Rekap_Bimbel_${new Date().toISOString().slice(0, 10)}`;
 
             const subjectRows = tutoringSubjects.map((s) => `
                 <tr>
@@ -852,7 +868,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
             toast.success('Mempersiapkan rekap untuk dicetak.');
         } catch (err: any) {
             logger.error('Download tutoring report failed:', err);
-            toast.error('Gagal menyiapkan rekap: ' + (err?.message || ''));   
+            toast.error('Gagal menyiapkan rekap: ' + (err?.message || ''));
         }
     };
 
