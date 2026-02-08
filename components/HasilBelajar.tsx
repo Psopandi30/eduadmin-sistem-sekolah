@@ -31,8 +31,11 @@ const HasilBelajar: React.FC<HasilBelajarProps> = ({ onBack, user }) => {
             const subjects = savedSubjects ? JSON.parse(savedSubjects) : [];
             const semesterStr = "1 (Ganjil)";
 
+            const currentLevel = parseInt(user?.studentClass || '1');
+
             for (let i = 0; i < levels.length; i++) {
                 const lvl = levels[i];
+                if (parseInt(lvl) > currentLevel) continue; // Skip future grades
                 const className = `${lvl}${parallel}`;
                 let totalGrade = 0;
                 let subjectCount = 0;

@@ -25,28 +25,18 @@ const DetailNilai: React.FC<DetailNilaiProps> = ({ onBack, category, user }) => 
 
     // Dynamic Subject List (Synced from Admin)
     const [subjects, setSubjects] = useState<any[]>(() => {
-        const saved = typeof window !== 'undefined' ? localStorage.getItem('subjects_data_v2') : null;
+        const saved = typeof window !== 'undefined' ? localStorage.getItem('subjects_data_v10') : null;
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
                 return parsed.map((s: any) => ({
                     id: s.id,
                     name: s.name,
-                    teacher: s.teacherName || 'Guru Mata Pelajaran'
+                    teacher: 'Guru Mata Pelajaran'
                 }));
             } catch (e) { }
         }
-        // General Default if empty
-        return [
-            { id: 1, name: 'Pendidikan Agama Islam', teacher: '-' },
-            { id: 2, name: 'Pendidikan Pancasila', teacher: '-' },
-            { id: 3, name: 'Bahasa Indonesia', teacher: '-' },
-            { id: 4, name: 'Matematika', teacher: '-' },
-            { id: 5, name: 'IPAS', teacher: '-' },
-            { id: 6, name: 'Seni Budaya', teacher: '-' },
-            { id: 7, name: 'Pendidikan Jasmani', teacher: '-' },
-            { id: 8, name: 'Bahasa Inggris', teacher: '-' },
-        ];
+        return [];
     });
 
     const [cloudGrades, setCloudGrades] = useState<{ [key: string]: any[] }>({});
@@ -196,25 +186,9 @@ const DetailNilai: React.FC<DetailNilaiProps> = ({ onBack, category, user }) => 
                     <div className="flex items-center gap-3">
                         <label className="text-slate-500 font-bold whitespace-nowrap min-w-[50px]">Kelas</label>
                         <div className="relative flex-1">
-                            <select
-                                value={selectedClass}
-                                onChange={(e) => setSelectedClass(e.target.value)}
-                                className="w-full appearance-none bg-slate-50 border border-slate-200 text-slate-700 py-3 px-4 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                            >
-                                <option>1A</option>
-                                <option>1B</option>
-                                <option>2A</option>
-                                <option>2B</option>
-                                <option>3A</option>
-                                <option>3B</option>
-                                <option>4A</option>
-                                <option>4B</option>
-                                <option>5A</option>
-                                <option>5B</option>
-                                <option>6A</option>
-                                <option>6B</option>
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
+                            <div className="w-full bg-slate-50 border border-slate-200 text-slate-700 py-3 px-4 rounded-xl font-bold">
+                                {selectedClass}
+                            </div>
                         </div>
                     </div>
 
