@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { examsDataGlobal, classesDataGlobal } from '../data/sharedData';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase';
 import logger from '../src/utils/logger';
