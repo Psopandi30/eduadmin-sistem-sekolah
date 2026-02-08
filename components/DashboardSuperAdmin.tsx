@@ -1103,9 +1103,8 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
             jabatan: uiState.newTeacher.jabatan,
             mapel: uiState.newTeacher.jabatan === 'Guru Mata Pelajaran' ? uiState.newTeacher.mapel : '-',
             wali: uiState.newTeacher.jabatan === 'Guru Kelas' || uiState.newTeacher.jabatan === 'Wali Kelas' ? uiState.newTeacher.class : '-',
-            username: uiState.newTeacher.nama.split(' ')[0].toLowerCase() + Math.floor(Math.random() * 100),
-            // Security: Generate random password or require user to set it
-            password: Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8) // Generate random password
+            username: uiState.newTeacher.nip.trim(),
+            password: uiState.newTeacher.nip.trim()
         };
 
         if (uiState.editItem && uiState.editType === 'Teacher') {
@@ -2655,7 +2654,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
 
                                         {/* Username/Password removed - auto generated */}
                                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mt-4 text-sm text-blue-800">
-                                            <p><strong>Info:</strong> Username dan Password akan dibuat otomatis oleh sistem.</p>
+                                            <p><strong>Info:</strong> Username dan Password akan disamakan dengan <strong>NIP</strong> secara otomatis.</p>
                                         </div>
 
 
