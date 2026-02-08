@@ -114,33 +114,70 @@ export const useTeachers = () => {
         if (isSupabaseConfigured()) {
             return toast.promise(
                 (async () => {
+                    // Build target email and password
                     const email = `${newTeacher.username.trim()}@sekolah.id`.toLowerCase();
                     const password = newTeacher.password || '12345678';
 
-                    const { data: authData, error: authError } = await supabase.auth.signUp({
-                        email,
-                        password,
-                        options: {
-                            data: { full_name: newTeacher.nama.trim(), role: 'gb' }
+                    // 1) Check if a profile with this email already exists. If so, reuse its id.
+                    let userId: string | null = null;
+                    let authData: any = undefined;
+                    try {
+                        const { data: existingProfile } = await supabase.from('profiles').select('id, email').eq('email', email).maybeSingle();
+                        if (existingProfile && existingProfile.id) {
+                            userId = existingProfile.id;
+                            // Update full name if different
+                            await supabase.from('profiles').update({ full_name: newTeacher.nama.trim(), is_active: true }).eq('id', userId);
                         }
-                    });
+                    } catch (e) {
+                        logger.warn('Error checking existing profile', e);
+                    }
 
-                    if (authError) throw new Error(`Auth Error: ${authError.message}`);
-                    if (!authData.user) throw new Error("Gagal membuat user auth");
-
-                    const userId = authData.user.id;
-
-                    const { error: profileError } = await supabase
-                        .from('profiles')
-                        .insert({
-                            id: userId,
+                    // 2) If no existing profile found, attempt signUp to create auth user and profile
+                    if (!userId) {
+                        const signUpRes = await supabase.auth.signUp({
                             email,
-                            full_name: newTeacher.nama.trim(),
-                            role: 'gb',
-                            is_active: true
+                            password,
+                            options: {
+                                data: { full_name: newTeacher.nama.trim(), role: 'gb' }
+                            }
                         });
+                        const authDataLocal = signUpRes.data;
+                        const authError = signUpRes.error;
+                        authData = authDataLocal;
 
-                    if (profileError && !profileError.message.includes('duplicate')) throw profileError;
+                        // If signup failed due to user already existing (race/previous import), try to recover by loading profile
+                        if (authError) {
+                            const msg = String(authError.message || '').toLowerCase();
+                            if (msg.includes('already') || msg.includes('registered')) {
+                                const { data: existing } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle();
+                                if (existing && existing.id) {
+                                    userId = existing.id;
+                                } else {
+                                    throw new Error(`Auth Error: ${authError.message}`);
+                                }
+                            } else {
+                                throw new Error(`Auth Error: ${authError.message}`);
+                            }
+                        }
+
+                        if (!userId) {
+                            if (!authData?.user) throw new Error("Gagal membuat user auth");
+                            userId = authData.user.id;
+                        }
+
+                        // Ensure profile record exists for the created user id
+                        const { error: profileError } = await supabase
+                            .from('profiles')
+                            .upsert({
+                                id: userId,
+                                email,
+                                full_name: newTeacher.nama.trim(),
+                                role: 'gb',
+                                is_active: true
+                            }, { onConflict: 'id' });
+
+                        if (profileError) throw profileError;
+                    }
 
                     const { data: staffData, error: staffError } = await supabase
                         .from('staff')
@@ -180,9 +217,9 @@ export const useTeachers = () => {
                         logger.warn('Failed to upsert teachers backup to app_settings:', e);
                     }
 
-                    // If signUp did not create a session, Supabase may require email confirmation.
+                    // If signUp happened and did not create a session, Supabase may require email confirmation.
                     // Inform admin so they know the user cannot login until confirmation is completed.
-                    if (!authData.session) {
+                    if (authData && !authData.session) {
                         toast.success('Data guru berhasil disimpan! (Konfirmasi email diperlukan sebelum login)');
                     }
 
