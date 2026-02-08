@@ -132,7 +132,7 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
                 </div>
             </div>
 
-            <div className={`flex-1 relative z-10 w-full max-w-7xl mx-auto scrollbar-hide transition-all duration-500 ${activeView === 'home' ? 'p-4 md:p-8 pb-24 sm:pb-20 overflow-y-auto' : 'p-0 overflow-hidden'}`}>
+            <div className={`flex-1 relative z-10 w-full max-w-7xl mx-auto scrollbar-hide transition-all duration-500 ${activeView === 'home' ? 'p-4 md:p-8 pb-24 sm:pb-20 overflow-y-auto' : 'p-0 overflow-hidden flex flex-col'}`}>
                 {activeView === 'home' ? (
                     <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
                         {/* Left Column: Menu Items */}
@@ -206,37 +206,41 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
                             </div>
                         </div>
                     </div>
-                ) : activeView === 'quran' ? (
-                    <AlQuranSiswa onBack={() => setActiveView('home')} />
-                ) : activeView === 'channel' ? (
-                    <ChannelSekolahSiswa onBack={() => setActiveView('home')} />
-                ) : activeView === 'jadwal' ? (
-                    <JadwalBimbelGuru onBack={() => setActiveView('home')} user={user} />
-                ) : activeView === 'kehadiran' ? (
-                    <KehadiranBimbelGuru onBack={() => setActiveView('home')} user={user} />
-                ) : activeView === 'nilai' ? (
-                    <InputNilaiBimbelGuru onBack={() => setActiveView('home')} />
-                ) : activeView === 'latihan' ? (
-                    <InputMateriBimbelLengkap
-                        onBack={() => setActiveView('home')}
-                        classes={myTutoringClasses}
-                    />
-                ) : activeView === 'notepad' ? (
-                    <NotepadGuru onBack={() => setActiveView('home')} />
-                ) : activeView === 'ai' ? (
-                    <BelajarAISiswa
-                        onBack={() => setActiveView('home')}
-                        user={user}
-                        title="Asisten AI"
-                        welcomeMessage="Halo Bapak/Ibu Guru Bimbel! Saya asisten AI Anda. Ada yang bisa saya bantu dalam materi bimbingan atau pembahasan soal olimpiade hari ini?"
-                    />
-                ) : activeView === 'informasi' ? (
-                    <InformasiWaliKelas onBack={() => setActiveView('home')} />
-                ) : activeView === 'notifikasi' ? (
-                    <NotifikasiSiswa onBack={() => setActiveView('home')} />
-                ) : activeView === 'profile' ? (
-                    <ProfilGuru user={user} onBack={() => setActiveView('home')} onLogout={onLogout} />
-                ) : null}
+                ) : (
+                    <div className="flex-1 h-full">
+                        {activeView === 'quran' ? (
+                            <AlQuranSiswa onBack={() => setActiveView('home')} />
+                        ) : activeView === 'channel' ? (
+                            <ChannelSekolahSiswa onBack={() => setActiveView('home')} />
+                        ) : activeView === 'jadwal' ? (
+                            <JadwalBimbelGuru onBack={() => setActiveView('home')} user={user} />
+                        ) : activeView === 'kehadiran' ? (
+                            <KehadiranBimbelGuru onBack={() => setActiveView('home')} user={user} />
+                        ) : activeView === 'nilai' ? (
+                            <InputNilaiBimbelGuru onBack={() => setActiveView('home')} />
+                        ) : activeView === 'latihan' ? (
+                            <InputMateriBimbelLengkap
+                                onBack={() => setActiveView('home')}
+                                classes={myTutoringClasses}
+                            />
+                        ) : activeView === 'notepad' ? (
+                            <NotepadGuru onBack={() => setActiveView('home')} />
+                        ) : activeView === 'ai' ? (
+                            <BelajarAISiswa
+                                onBack={() => setActiveView('home')}
+                                user={user}
+                                title="Asisten AI"
+                                welcomeMessage="Halo Bapak/Ibu Guru Bimbel! Saya asisten AI Anda. Ada yang bisa saya bantu dalam materi bimbingan atau pembahasan soal olimpiade hari ini?"
+                            />
+                        ) : activeView === 'informasi' ? (
+                            <InformasiWaliKelas onBack={() => setActiveView('home')} />
+                        ) : activeView === 'notifikasi' ? (
+                            <NotifikasiSiswa onBack={() => setActiveView('home')} />
+                        ) : activeView === 'profile' ? (
+                            <ProfilGuru user={user} onBack={() => setActiveView('home')} onLogout={onLogout} />
+                        ) : null}
+                    </div>
+                )}
             </div>
 
             {/* Bottom Navigation Bar */}

@@ -117,7 +117,7 @@ const DashboardGuruMapel: React.FC<DashboardGuruMapelProps> = ({ user, onLogout,
             </div>
 
             {/* Main Content */}
-            <div className={`flex-1 relative z-10 w-full max-w-7xl mx-auto scrollbar-hide transition-all duration-500 ${activeView === 'home' ? 'p-4 md:p-8 pb-24 sm:pb-20 overflow-y-auto' : 'p-0 overflow-hidden'}`}>
+            <div className={`flex-1 relative z-10 w-full max-w-7xl mx-auto scrollbar-hide transition-all duration-500 ${activeView === 'home' ? 'p-4 md:p-8 pb-24 sm:pb-20 overflow-y-auto' : 'p-0 overflow-hidden flex flex-col'}`}>
                 {activeView === 'home' ? (
                     <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
                         {/* Left Column: Menu Items */}
@@ -197,7 +197,7 @@ const DashboardGuruMapel: React.FC<DashboardGuruMapelProps> = ({ user, onLogout,
                         </div>
                     </div>
                 ) : (
-                    <div className="flex-1">
+                    <div className="flex-1 h-full">
                         {activeView === 'jadwal' ? (
                             <JadwalMengajarGuru user={user} onBack={() => setActiveView('home')} />
                         ) : activeView === 'ujian' ? (
