@@ -93,17 +93,16 @@ const JadwalBimbelGuru: React.FC<JadwalBimbelGuruProps> = ({ onBack, user }) => 
 
                                 {/* Tombol Detail Sesi dihapus sesuai permintaan */}
                             </div>
-                            </div>
-                ))}
-            </div>
-            ) : (
-            <div className="text-center py-10 text-slate-400">
-                <CalendarDays size={48} className="mx-auto mb-4 opacity-50" />
-                <p>Belum ada jadwal mengajar yang tersedia.</p>
-            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-10 text-slate-400">
+                        <CalendarDays size={48} className="mx-auto mb-4 opacity-50" />
+                        <p>Belum ada jadwal mengajar yang tersedia.</p>
+                    </div>
                 )}
+            </div>
         </div>
-        </div >
     );
 };
 
