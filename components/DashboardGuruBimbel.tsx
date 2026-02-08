@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Calendar,
+    CalendarDays,
     UserCheck,
     FolderInput,
     BookOpen,
@@ -55,8 +56,8 @@ const DashboardGuruBimbel: React.FC<DashboardGuruBimbelProps> = ({ user, onLogou
 
     // Menu Items Data
     const menuItems = [
-        { id: 'jadwal', label: 'Jadwal Bimbel', icon: <Calendar size={24} />, color: 'bg-blue-500' },
-        { id: 'kehadiran', label: 'Cek kehadiran Siswa', icon: <UserCheck size={24} />, color: 'bg-teal-500' },
+        { id: 'jadwal', label: 'Jadwal Bimbel', icon: <CalendarDays size={24} />, color: 'bg-blue-500' },
+        { id: 'kehadiran', label: 'Kehadiran Les', icon: <UserCheck size={24} />, color: 'bg-teal-500' },
         { id: 'nilai', label: 'Hasil Nilai Bimbel', icon: <FolderInput size={24} />, color: 'bg-indigo-500' },
         { id: 'latihan', label: 'Materi dan Latihan', icon: <BookOpen size={24} />, color: 'bg-rose-500' },
         { id: 'quran', label: 'Al Quran', icon: <Book size={24} />, color: 'bg-green-600' },

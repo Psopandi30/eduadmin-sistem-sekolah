@@ -14,6 +14,7 @@ const KehadiranBimbelGuru: React.FC<KehadiranBimbelGuruProps> = ({ onBack, user 
     const [selectedClassId, setSelectedClassId] = useState<string>('');
     const [attendanceData, setAttendanceData] = useState<any[]>([]);
     const [isSaving, setIsSaving] = useState(false);
+    const [lastSynced, setLastSynced] = useState<string | null>(null);
 
     // 1. Filter Classes for Current Teacher
     const myClasses = tutoringClasses.filter(c => {
@@ -30,20 +31,37 @@ const KehadiranBimbelGuru: React.FC<KehadiranBimbelGuruProps> = ({ onBack, user 
     }, [myClasses, selectedClassId, user]);
 
     React.useEffect(() => {
-        if (selectedClassId) {
-            const cls = myClasses.find(c => c.id.toString() === selectedClassId);
-            if (cls) {
-                // Simulate fetching students for this class
-                // In production, this would be: await supabase.from('class_students').select(...).eq('class_id', cls.id)
-                const mockStudents = [
-                    { id: 1, nama: 'Ahmad Dahlan', status: 'Hadir', catatan: '' },
-                    { id: 2, nama: 'Siti Aisyah', status: 'Hadir', catatan: '' },
-                    { id: 3, nama: 'Budi Santoso', status: 'Sakit', catatan: 'Demam' },
-                ];
-                setAttendanceData(mockStudents);
+        const fetchSavedAttendance = async () => {
+            if (!selectedClassId) return;
+
+            try {
+                // Try to load from Supabase app_settings (our temporary storage)
+                const { data, error } = await supabase
+                    .from('app_settings')
+                    .select('value')
+                    .eq('key', `bimbel_att_${selectedClassId}`)
+                    .maybeSingle();
+
+                if (data && data.value) {
+                    console.log("Loaded saved attendance:", data.value);
+                    setAttendanceData(data.value.attendance || []);
+                    setLastSynced(data.value.timestamp || null);
+                } else {
+                    // Fallback to mock if no data saved yet
+                    const mockStudents = [
+                        { id: 1, nama: 'Ahmad Dahlan', status: 'Hadir', catatan: '' },
+                        { id: 2, nama: 'Siti Aisyah', status: 'Hadir', catatan: '' },
+                        { id: 3, nama: 'Budi Santoso', status: 'Sakit', catatan: 'Demam' },
+                    ];
+                    setAttendanceData(mockStudents);
+                }
+            } catch (err) {
+                console.error("Error fetching saved attendance:", err);
             }
-        }
-    }, [selectedClassId, myClasses]);
+        };
+
+        fetchSavedAttendance();
+    }, [selectedClassId]);
 
     const handleStatusChange = (id: number, status: string) => {
         setAttendanceData(prev => prev.map(s => s.id === id ? { ...s, status } : s));
@@ -67,8 +85,15 @@ const KehadiranBimbelGuru: React.FC<KehadiranBimbelGuruProps> = ({ onBack, user 
                     </h2>
                 </div>
                 {selectedClassId && (
-                    <div className="bg-teal-50 text-teal-600 rounded-lg px-3 py-1.5 text-xs font-bold flex items-center gap-1">
-                        <Users size={14} /> {myClasses.find(c => c.id.toString() === selectedClassId)?.title || 'Kelas'}
+                    <div className="flex flex-col items-end gap-1">
+                        <div className="bg-teal-50 text-teal-600 rounded-lg px-3 py-1.5 text-xs font-bold flex items-center gap-1">
+                            <Users size={14} /> {myClasses.find(c => c.id.toString() === selectedClassId)?.title || 'Kelas'}
+                        </div>
+                        {lastSynced && (
+                            <span className="text-[9px] text-slate-400 font-medium">
+                                Sinkron terakhir: {new Date(lastSynced).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                        )}
                     </div>
                 )}
             </div>
@@ -176,6 +201,8 @@ const KehadiranBimbelGuru: React.FC<KehadiranBimbelGuruProps> = ({ onBack, user 
 
                                 if (error) throw error;
 
+                                const syncTime = new Date().toISOString();
+                                setLastSynced(syncTime);
                                 toast.success('Absensi Bimbel berhasil disinkronkan!', {
                                     duration: 3000,
                                     position: 'top-center',

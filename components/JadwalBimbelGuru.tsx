@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, Calendar, Clock, MapPin, Users } from 'lucide-react';
+import { ChevronLeft, Calendar, CalendarDays, Clock, MapPin, Users } from 'lucide-react';
 import { useTutoring } from './DashboardSuperAdmin/hooks/useTutoring';
 import { toast } from 'react-hot-toast';
 
@@ -54,7 +54,7 @@ const JadwalBimbelGuru: React.FC<JadwalBimbelGuruProps> = ({ onBack, user }) => 
                     <ChevronLeft size={24} />
                 </button>
                 <h2 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                    <Calendar className="text-blue-600" size={20} />
+                    <CalendarDays className="text-blue-600" size={20} />
                     Jadwal Mengajar {user?.nama ? user.nama.split(',')[0] : 'Saya'}
                 </h2>
             </div>
@@ -91,38 +91,19 @@ const JadwalBimbelGuru: React.FC<JadwalBimbelGuruProps> = ({ onBack, user }) => 
                                     </div>
                                 </div>
 
-                                <button
-                                    onClick={() => {
-                                        console.log("Detail button clicked for item:", item.id);
-                                        toast('Detail sesi sedang dikembangkan', {
-                                            icon: '📅',
-                                            style: {
-                                                borderRadius: '12px',
-                                                background: '#1e293b',
-                                                color: '#fff',
-                                                fontWeight: 'bold'
-                                            },
-                                            position: 'bottom-center'
-                                        });
-                                    }}
-                                    className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-md ${item.status === 'Selesai'
-                                        ? 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200'
-                                        }`}
-                                >
-                                    {item.status === 'Selesai' ? 'Lihat Riwayat' : 'Detail Sesi'}
-                                </button>
+                                {/* Tombol Detail Sesi dihapus sesuai permintaan */}
                             </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-10 text-slate-400">
-                        <Calendar size={48} className="mx-auto mb-4 opacity-50" />
-                        <p>Belum ada jadwal mengajar yang tersedia.</p>
-                    </div>
-                )}
+                            </div>
+                ))}
             </div>
+            ) : (
+            <div className="text-center py-10 text-slate-400">
+                <CalendarDays size={48} className="mx-auto mb-4 opacity-50" />
+                <p>Belum ada jadwal mengajar yang tersedia.</p>
+            </div>
+                )}
         </div>
+        </div >
     );
 };
 
