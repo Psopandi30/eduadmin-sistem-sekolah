@@ -207,25 +207,9 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
                     <div className="flex items-center gap-2 flex-1">
                         <label className="text-slate-600 font-bold whitespace-nowrap">Kelas</label>
                         <div className="relative w-full">
-                            <select
-                                value={selectedClass}
-                                onChange={(e) => setSelectedClass(e.target.value)}
-                                className="w-full appearance-none bg-white border border-slate-300 text-slate-700 py-2 px-4 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                            >
-                                <option>1A</option>
-                                <option>1B</option>
-                                <option>2A</option>
-                                <option>2B</option>
-                                <option>3A</option>
-                                <option>3B</option>
-                                <option>4A</option>
-                                <option>4B</option>
-                                <option>5A</option>
-                                <option>5B</option>
-                                <option>6A</option>
-                                <option>6B</option>
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
+                            <div className="w-full bg-white border border-slate-300 text-slate-700 py-2 px-4 rounded-xl font-bold">
+                                {selectedClass}
+                            </div>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 flex-1">
