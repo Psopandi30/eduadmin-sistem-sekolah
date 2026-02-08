@@ -20,23 +20,23 @@ const KehadiranSiswaGuru: React.FC<KehadiranSiswaGuruProps> = ({ onBack, user })
     // Fetch Classes for Dropdown
     const [classesList] = useState<any[]>(() => {
         if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('classes_data_v1');
+            const saved = localStorage.getItem('classes_data_v10'); // Unified to v10
             if (saved) return JSON.parse(saved);
         }
         return [
-            { id: 1, nama: '1A' }, { id: 2, nama: '1B' },
-            { id: 3, nama: '2A' }, { id: 4, nama: '2B' },
-            { id: 5, nama: '3A' }, { id: 6, nama: '3B' },
-            { id: 7, nama: '4A' }, { id: 8, nama: '4B' },
-            { id: 9, nama: '5A' }, { id: 10, nama: '5B' },
-            { id: 11, nama: '6A' }, { id: 12, nama: '6B' },
+            { id: 1, nama: '1A', tingkat: 1 }, { id: 2, nama: '1B', tingkat: 1 },
+            { id: 3, nama: '2A', tingkat: 2 }, { id: 4, nama: '2B', tingkat: 2 },
+            { id: 5, nama: '3A', tingkat: 3 }, { id: 6, nama: '3B', tingkat: 3 },
+            { id: 7, nama: '4A', tingkat: 4 }, { id: 8, nama: '4B', tingkat: 4 },
+            { id: 9, nama: '5A', tingkat: 5 }, { id: 10, nama: '5B', tingkat: 5 },
+            { id: 11, nama: '6A', tingkat: 6 }, { id: 12, nama: '6B', tingkat: 6 },
         ];
     });
 
     // --- REAL DATA FETCHING ---
     const [students] = useState<any[]>(() => {
         if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('students_data_v2');
+            const saved = localStorage.getItem('students_data_v10'); // Unified to v10
             if (saved) return JSON.parse(saved);
         }
         return [];
@@ -139,18 +139,18 @@ const KehadiranSiswaGuru: React.FC<KehadiranSiswaGuruProps> = ({ onBack, user })
     return (
         <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col h-full">
             {/* Header */}
-            <div className="px-4 py-3 md:px-6 md:py-4 border-b border-slate-100 flex items-center gap-3 md:gap-4 shrink-0 bg-white sticky top-0 z-30">
+            <div className="px-5 py-5 sm:p-8 border-b border-slate-100 flex items-center gap-3 md:gap-4 shrink-0 bg-gradient-to-r from-teal-50/50 to-emerald-50/30 sticky top-0 z-30">
                 <button
                     onClick={onBack}
-                    className="p-2 md:p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl md:rounded-2xl transition-all border border-slate-100 shrink-0"
+                    className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white shadow-md rounded-xl sm:rounded-2xl text-slate-400 hover:text-teal-600 hover:scale-110 transition-all active:scale-95 border border-slate-100"
                 >
-                    <ArrowLeft size={20} className="md:w-[22px]" />
+                    <ChevronLeft className="text-slate-500" size={24} strokeWidth={3} />
                 </button>
-                <div className="min-w-0">
-                    <h2 className="text-base md:text-2xl font-black text-slate-800 tracking-tight leading-tight truncate">
-                        Absensi Siswa
+                <div className="min-w-0 flex-1">
+                    <h2 className="text-base sm:text-xl font-black text-slate-800 tracking-tight leading-tight truncate">
+                        Kehadiran Siswa
                     </h2>
-                    <p className="text-slate-400 text-[10px] md:text-sm font-medium">Rekapitulasi kehadiran harian siswa.</p>
+                    <p className="text-teal-600/60 text-[8px] sm:text-xs font-bold uppercase tracking-widest mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">Rekapitulasi absensi harian kelas {selectedClass}</p>
                 </div>
             </div>
             {/* Content Area */}
@@ -214,21 +214,21 @@ const KehadiranSiswaGuru: React.FC<KehadiranSiswaGuruProps> = ({ onBack, user })
                     <div className="bg-white p-4 rounded-3xl border border-slate-50 shadow-sm">
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Hadir Today</p>
                         <div className="flex items-center gap-2">
-                            <span className="text-xl font-black text-teal-600 leading-none">{attendanceData.filter(d => d.classId === selectedClass && d.date === todayStr && d.status === 'Hadir').length}</span>
+                            <span className="text-xl font-black text-teal-600 leading-none">{attendanceData.filter(d => d.classId === selectedClass && d.date === todayStr && (d.status === 'H' || d.status === 'Hadir')).length}</span>
                             <CheckCircle size={14} className="text-teal-200" />
                         </div>
                     </div>
                     <div className="bg-white p-4 rounded-3xl border border-slate-50 shadow-sm">
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Izin/Sakit</p>
                         <div className="flex items-center gap-2">
-                            <span className="text-xl font-black text-amber-500 leading-none">{attendanceData.filter(d => d.classId === selectedClass && d.date === todayStr && (d.status === 'Izin' || d.status === 'Sakit')).length}</span>
+                            <span className="text-xl font-black text-amber-500 leading-none">{attendanceData.filter(d => d.classId === selectedClass && d.date === todayStr && (d.status === 'I' || d.status === 'Izin' || d.status === 'S' || d.status === 'Sakit')).length}</span>
                             <AlertCircle size={14} className="text-amber-200" />
                         </div>
                     </div>
                     <div className="bg-white p-4 rounded-3xl border border-slate-50 shadow-sm">
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Tanpa Ket</p>
                         <div className="flex items-center gap-2">
-                            <span className="text-xl font-black text-rose-500 leading-none">{classStudents.length - attendanceData.filter(d => d.classId === selectedClass && d.date === todayStr).length}</span>
+                            <span className="text-xl font-black text-rose-500 leading-none">{classStudents.length - attendanceData.filter(d => d.classId === selectedClass && d.date === todayStr && d.status).length}</span>
                             <XCircle size={14} className="text-rose-200" />
                         </div>
                     </div>

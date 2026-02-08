@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { announcementDataGlobal } from '../data/sharedData';
 import {
-    Calendar,
+    CalendarDays,
     UserCheck,
     FolderInput,
     BookOpen,
@@ -18,7 +18,8 @@ import {
     Megaphone,
     Search,
     FileSpreadsheet,
-    FileText
+    FileText,
+    School
 } from 'lucide-react';
 
 import AlQuranSiswa from './AlQuranSiswa';
@@ -33,6 +34,7 @@ import NotepadGuru from './NotepadGuru';
 import ProfilGuru from './ProfilGuru';
 import InformasiWaliKelas from './InformasiWaliKelas';
 import RapotSiswa from './RapotSiswa';
+import KelasWali from './KelasWali';
 import RaporSettingsView from './DashboardSuperAdmin/components/views/RaporSettingsView';
 
 interface DashboardWaliKelasProps {
@@ -43,7 +45,7 @@ interface DashboardWaliKelasProps {
 
 const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout, schoolName = "SD Normal Islam Samarinda" }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [activeView, setActiveView] = useState<'home' | 'jadwal' | 'kehadiran' | 'nilai' | 'deskripsi' | 'raport' | 'latihan' | 'quran' | 'channel' | 'ai' | 'informasi' | 'notepad' | 'notifikasi' | 'profile'>('home');
+    const [activeView, setActiveView] = useState<'home' | 'jadwal' | 'kehadiran' | 'nilai' | 'deskripsi' | 'raport' | 'latihan' | 'quran' | 'channel' | 'ai' | 'informasi' | 'informasi_kelas' | 'notepad' | 'notifikasi' | 'profile'>('home');
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -52,16 +54,17 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
 
     // Menu Items Data
     const menuItems = [
-        { id: 'jadwal', label: 'Jadwal Mengajar', icon: <Calendar size={28} />, color: 'bg-gradient-to-br from-blue-500 to-indigo-600' },
-        { id: 'kehadiran', label: 'Absensi Siswa', icon: <UserCheck size={28} />, color: 'bg-gradient-to-br from-teal-400 to-emerald-600' },
+        { id: 'jadwal', label: 'Jadwal Mengajar', icon: <CalendarDays size={28} />, color: 'bg-gradient-to-br from-blue-500 to-indigo-600' },
+        { id: 'kehadiran', label: 'Kehadiran Siswa', icon: <UserCheck size={28} />, color: 'bg-gradient-to-br from-teal-400 to-emerald-600' },
         { id: 'nilai', label: 'Input Nilai', icon: <FolderInput size={28} />, color: 'bg-gradient-to-br from-violet-500 to-purple-700' },
         { id: 'deskripsi', label: 'Master Deskripsi', icon: <FileText size={28} />, color: 'bg-gradient-to-br from-amber-400 to-orange-600' },
         { id: 'raport', label: 'E-Rapor', icon: <FileSpreadsheet size={28} />, color: 'bg-gradient-to-br from-emerald-400 to-green-700' },
+        { id: 'informasi_kelas', label: 'Informasi Kelas', icon: <School size={28} />, color: 'bg-gradient-to-br from-blue-400 to-cyan-600' },
         { id: 'latihan', label: 'Materi dan Latihan', icon: <BookOpen size={28} />, color: 'bg-gradient-to-br from-rose-400 to-pink-600' },
         { id: 'quran', label: 'Al Quran', icon: <Book size={28} />, color: 'bg-gradient-to-br from-green-500 to-emerald-800' },
         { id: 'channel', label: 'Channel Sekolah', icon: <Tv size={28} />, color: 'bg-gradient-to-br from-red-500 to-rose-700' },
         { id: 'ai', label: 'Asisten AI', icon: <Bot size={28} />, color: 'bg-gradient-to-br from-cyan-400 to-blue-500' },
-        { id: 'notepad', label: 'Notepad', icon: <StickyNote size={28} />, color: 'bg-gradient-to-br from-yellow-400 to-amber-600' },
+        { id: 'notepad', label: 'Notepad Guru', icon: <StickyNote size={28} />, color: 'bg-gradient-to-br from-yellow-400 to-amber-600' },
         { id: 'informasi', label: 'Informasi', icon: <Megaphone size={28} />, color: 'bg-gradient-to-br from-orange-400 to-red-500' },
     ];
 
@@ -145,6 +148,7 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
                                                 else if (item.id === 'informasi') setActiveView('informasi');
                                                 else if (item.id === 'quran') setActiveView('quran');
                                                 else if (item.id === 'channel') setActiveView('channel');
+                                                else if (item.id === 'informasi_kelas') setActiveView('informasi_kelas');
                                                 else if (item.id === 'ai') setActiveView('ai');
                                             }}
                                             className="flex flex-col items-center gap-3 group w-full"
@@ -218,6 +222,13 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
                             <NotepadGuru onBack={() => setActiveView('home')} />
                         ) : activeView === 'informasi' ? (
                             <InformasiWaliKelas onBack={() => setActiveView('home')} />
+                        ) : activeView === 'informasi_kelas' ? (
+                            <div className="bg-white rounded-[2.5rem] p-6 h-full shadow-sm animate-in fade-in overflow-hidden">
+                                <KelasWali
+                                    kelasData={[{ id: 1, kode: user?.kelas || '1A', nama: user?.kelas || '1A', wali: user?.nama || '-', waliNip: user?.nip || '-' }]}
+                                    studentsData={{ [user?.kelas || '1A']: JSON.parse(localStorage.getItem('students_data_v2') || '[]').filter((s: any) => s.kelas === (user?.kelas || '1A')) }}
+                                />
+                            </div>
                         ) : activeView === 'quran' ? (
                             <AlQuranSiswa onBack={() => setActiveView('home')} />
                         ) : activeView === 'channel' ? (
@@ -253,7 +264,7 @@ const DashboardWaliKelas: React.FC<DashboardWaliKelasProps> = ({ user, onLogout,
                         onClick={() => setActiveView('jadwal')}
                         className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'jadwal' ? 'text-[#004AAD]' : 'text-slate-400 hover:text-slate-600'}`}
                     >
-                        <Calendar size={22} fill={activeView === 'jadwal' ? "currentColor" : "none"} />
+                        <CalendarDays size={22} fill={activeView === 'jadwal' ? "currentColor" : "none"} />
                         <span className="text-[10px] font-medium text-center leading-none">Jadwal</span>
                         {activeView === 'jadwal' && <div className="w-1 h-1 bg-[#004AAD] rounded-full mt-0.5"></div>}
                     </button>

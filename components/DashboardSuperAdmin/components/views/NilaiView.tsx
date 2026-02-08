@@ -54,7 +54,7 @@ const NilaiView: React.FC<NilaiViewProps> = ({ setActiveView, students, classes,
     const [masterDescriptions, setMasterDescriptions] = useState<any[]>([]);
 
     const getStorageKey = () => {
-        return `grades_${selectedClass}_${selectedSubject}_${selectedSemester}`;
+        return `grades_v2_${selectedClass}_${selectedSubject}_${selectedSemester}`;
     };
 
 

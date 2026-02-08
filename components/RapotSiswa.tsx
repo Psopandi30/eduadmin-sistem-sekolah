@@ -158,9 +158,9 @@ const RapotSiswa: React.FC<RapotSiswaProps> = ({ onBack, user }) => {
             <div className="px-5 py-5 sm:p-8 border-b border-slate-100 flex items-center gap-3 md:gap-4 shrink-0 bg-gradient-to-r from-emerald-50/50 to-teal-50/30 sticky top-0 z-30">
                 <button
                     onClick={onBack}
-                    className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white shadow-md rounded-xl sm:rounded-2xl text-slate-400 hover:text-emerald-600 hover:scale-110 transition-all active:scale-95"
+                    className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white shadow-md rounded-xl sm:rounded-2xl text-slate-400 hover:text-emerald-600 hover:scale-110 transition-all active:scale-95 border border-slate-100"
                 >
-                    <ChevronRight className="rotate-180" size={20} sm:size={24} strokeWidth={3} />
+                    <ChevronLeft className="text-slate-500" size={24} strokeWidth={3} />
                 </button>
                 <div className="min-w-0 flex-1">
                     <h2 className="text-base sm:text-xl font-black text-slate-800 tracking-tight leading-tight truncate">

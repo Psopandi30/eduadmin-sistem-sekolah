@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { announcementDataGlobal } from '../data/sharedData';
 import {
-    Calendar,
+    CalendarDays,
     UserCheck,
     FolderInput,
     BookOpen,
@@ -50,16 +50,16 @@ const DashboardGuruMapel: React.FC<DashboardGuruMapelProps> = ({ user, onLogout,
 
     // Menu Items Data
     const menuItems = [
-        { id: 'jadwal', label: 'Jadwal Mengajar', icon: <Calendar size={24} />, color: 'bg-blue-500' },
+        { id: 'jadwal', label: 'Jadwal Mengajar', icon: <CalendarDays size={24} />, color: 'bg-blue-500' },
         { id: 'ujian', label: 'Jadwal Ujian', icon: <FileText size={24} />, color: 'bg-indigo-500' },
-        { id: 'kehadiran', label: 'Absensi Siswa', icon: <UserCheck size={24} />, color: 'bg-teal-500' },
+        { id: 'kehadiran', label: 'Kehadiran Siswa', icon: <UserCheck size={24} />, color: 'bg-teal-500' },
         { id: 'nilai', label: 'Input Nilai', icon: <FolderInput size={24} />, color: 'bg-indigo-500' },
         { id: 'deskripsi', label: 'Master Deskripsi', icon: <FileSpreadsheet size={24} />, color: 'bg-emerald-600' },
         { id: 'latihan', label: 'Materi dan Latihan', icon: <BookOpen size={24} />, color: 'bg-rose-500' },
         { id: 'quran', label: 'Al Quran', icon: <Book size={24} />, color: 'bg-green-600' },
-        { id: 'channel', label: 'Channel sekolah ku', icon: <Tv size={24} />, color: 'bg-red-600' },
+        { id: 'channel', label: 'Channel Sekolah', icon: <Tv size={24} />, color: 'bg-red-600' },
         { id: 'ai', label: 'Asisten AI', icon: <Bot size={24} />, color: 'bg-cyan-500' },
-        { id: 'notepad', label: 'Notepad', icon: <StickyNote size={24} />, color: 'bg-amber-500' },
+        { id: 'notepad', label: 'Notepad Guru', icon: <StickyNote size={24} />, color: 'bg-amber-500' },
     ];
 
     // Sync Announcements
@@ -249,7 +249,7 @@ const DashboardGuruMapel: React.FC<DashboardGuruMapelProps> = ({ user, onLogout,
                         onClick={() => setActiveView('jadwal')}
                         className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'jadwal' ? 'text-[#004AAD]' : 'text-slate-400 hover:text-slate-600'}`}
                     >
-                        <Calendar size={22} fill={activeView === 'jadwal' ? "currentColor" : "none"} />
+                        <CalendarDays size={22} fill={activeView === 'jadwal' ? "currentColor" : "none"} />
                         <span className="text-[10px] font-medium text-center leading-none">Jadwal</span>
                         {activeView === 'jadwal' && <div className="w-1 h-1 bg-[#004AAD] rounded-full mt-0.5"></div>}
                     </button>

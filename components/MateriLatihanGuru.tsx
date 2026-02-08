@@ -167,18 +167,18 @@ const MateriLatihanGuru: React.FC<MateriLatihanGuruProps> = ({ onBack, user }) =
     return (
         <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden animate-in fade-in duration-300 flex flex-col h-full">
             {/* Header */}
-            <div className="px-4 py-3 md:px-6 md:py-4 border-b border-slate-100 flex items-center gap-3 md:gap-4 shrink-0 bg-white sticky top-0 z-30">
+            <div className="px-5 py-5 sm:p-8 border-b border-slate-100 flex items-center gap-3 md:gap-4 shrink-0 bg-gradient-to-r from-rose-50/50 to-red-50/30 sticky top-0 z-30">
                 <button
                     onClick={onBack}
-                    className="p-2 md:p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl md:rounded-2xl transition-all border border-slate-100 shrink-0"
+                    className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white shadow-md rounded-xl sm:rounded-2xl text-slate-400 hover:text-rose-600 hover:scale-110 transition-all active:scale-95 border border-slate-100"
                 >
-                    <ArrowLeft size={20} className="md:w-[22px]" />
+                    <ChevronLeft className="text-slate-500" size={24} strokeWidth={3} />
                 </button>
-                <div className="min-w-0">
-                    <h2 className="text-base md:text-2xl font-black text-slate-800 tracking-tight leading-tight truncate">
+                <div className="min-w-0 flex-1">
+                    <h2 className="text-base sm:text-xl font-black text-slate-800 tracking-tight leading-tight truncate">
                         Materi dan Latihan
                     </h2>
-                    <p className="text-slate-400 text-[10px] md:text-sm font-medium">Fasilitas pembelajaran digital Guru.</p>
+                    <p className="text-rose-600/60 text-[8px] sm:text-xs font-bold uppercase tracking-widest mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">Fasilitas pembelajaran digital guru & siswa.</p>
                 </div>
             </div>
 

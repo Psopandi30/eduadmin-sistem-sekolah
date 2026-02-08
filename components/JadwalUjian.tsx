@@ -80,9 +80,9 @@ const JadwalUjian: React.FC<JadwalUjianProps> = ({ onBack, user }) => {
             <div className="p-5 sm:p-8 border-b border-slate-100 flex items-center gap-3 sm:gap-4 bg-gradient-to-r from-blue-50/50 to-indigo-50/30">
                 <button
                     onClick={onBack}
-                    className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white shadow-md rounded-xl sm:rounded-2xl text-slate-400 hover:text-blue-600 hover:scale-110 transition-all active:scale-95"
+                    className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white shadow-md rounded-xl sm:rounded-2xl text-slate-400 hover:text-blue-600 hover:scale-110 transition-all active:scale-95 border border-slate-100"
                 >
-                    <ChevronRight className="rotate-180" size={20} sm:size={24} strokeWidth={3} />
+                    <ChevronLeft className="text-slate-500" size={24} strokeWidth={3} />
                 </button>
                 <div className="flex-1">
                     <h3 className="font-black text-slate-800 text-base sm:text-xl tracking-tight">Jadwal Ujian</h3>
