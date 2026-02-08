@@ -237,6 +237,18 @@ export const useTeachers = () => {
         }
     };
 
+    // Helper: map jabatan string to role code used in profiles.role
+    const mapJabatanToRole = (jabatan: string) => {
+        const j = (jabatan || '').toLowerCase();
+        if (j.includes('kepala')) return 'ks';
+        if (j.includes('wali') || j.includes('kelas')) return 'wk';
+        if (j.includes('mata pelajaran') || j.includes('mapel')) return 'gm';
+        if (j.includes('bimbel') || j.includes('bimbingan')) return 'gb';
+        if (j.includes('operator') || j.includes('data')) return 'operator_data';
+        if (j.includes('tata usaha') || j.includes('staff')) return 'staff_tu';
+        return 'ot';
+    };
+
     const deleteTeacher = async (id: string | number) => {
         if (isSupabaseConfigured() && typeof id === 'string') {
             try {
@@ -378,82 +390,149 @@ export const useTeachers = () => {
 
         toast.promise(
             (async () => {
+                // Batch strategy:
+                // 1) fetch existing staff and profiles for emails
+                // 2) upsert profiles in batch (onConflict email) and get profile ids
+                // 3) upsert staff in batch (onConflict employee_number) using profile ids
+                // 4) update classes assignments in parallel (clear old assignments, set new ones)
+
+                // 1) fetch existing staff and classes
                 const { data: dbStaff } = await supabase.from('staff').select('id, employee_number');
                 const staffMap: Record<string, string> = {};
                 dbStaff?.forEach(s => staffMap[s.employee_number] = s.id);
 
-                const latestStaffMap: Record<string, string> = { ...staffMap };
-                const updates: any[] = [];
-                const inserts: any[] = [];
+                // Separate tutoring (bimbel) teachers to store in `tutoring_teachers` table
+                const bimbelTeachers = allTeachersToSync.filter(t => mapJabatanToRole(t.jabatan) === 'gb');
+                const normalTeachers = allTeachersToSync.filter(t => mapJabatanToRole(t.jabatan) !== 'gb');
 
-                allTeachersToSync.forEach(g => {
-                    if (staffMap[g.nip]) {
-                        updates.push({
-                            id: staffMap[g.nip],
-                            position: g.jabatan,
-                            nama: g.nama.trim()
-                        });
-                    } else {
-                        inserts.push({
-                            employee_number: g.nip.trim(),
-                            position: g.jabatan,
-                            nama_temp: g.nama.trim() // Temp storage for sync
-                        });
+                const emails = Array.from(new Set(normalTeachers.map(t => ((t.username || t.nip) + '@sekolah.id').toLowerCase())));
+                const { data: existingProfiles } = await supabase.from('profiles').select('id, email, role').in('email', emails);
+                const profileByEmail: Record<string, string> = {};
+                const profileRoleByEmail: Record<string, string> = {};
+                existingProfiles?.forEach(p => {
+                    if (p.email) profileByEmail[p.email] = p.id;
+                    if (p.email && p.role) profileRoleByEmail[p.email] = p.role;
+                });
+
+                // 2) Prepare profiles payload and upsert (onConflict by email)
+                const profilesPayload = emails.map(email => {
+                    // find teacher to get full_name
+                    const t = normalTeachers.find(x => ((x.username || x.nip) + '@sekolah.id').toLowerCase() === email);
+                    return {
+                        email,
+                        full_name: t?.nama?.trim() || ''
+                    };
+                });
+
+                // Detect potential role changes: compare existing profile.role with the role implied by jabatan
+                const conflicts: Array<{ email: string; existingRole?: string; expectedRole: string; nama?: string }> = [];
+                emails.forEach(email => {
+                    const t = normalTeachers.find(x => ((x.username || x.nip) + '@sekolah.id').toLowerCase() === email);
+                    const expectedRole = t ? mapJabatanToRole(t.jabatan) : 'ot';
+                    const existingRole = profileRoleByEmail[email];
+                    if (existingRole && existingRole !== expectedRole) {
+                        conflicts.push({ email, existingRole, expectedRole, nama: t?.nama });
                     }
                 });
 
-                if (updates.length > 0) {
-                    for (const up of updates) {
-                        const { id, position, nama } = up;
-                        await supabase.from('staff').update({ position }).eq('id', id);
+                // If conflicts detected, ask admin to confirm before overwriting roles
+                if (conflicts.length > 0) {
+                    const summary = conflicts.slice(0, 5).map(c => `${c.nama || c.email}: ${c.existingRole} → ${c.expectedRole}`).join('\n');
+                    const proceed = window.confirm(`Terdeteksi perubahan role untuk ${conflicts.length} akun:\n${summary}${conflicts.length > 5 ? '\n...dan lainnya' : ''}\n\nLanjutkan dan perbarui role sesuai jabatan?`);
 
-                        if (nama) {
-                            const { data: sData } = await supabase.from('staff').select('profile_id').eq('id', id).maybeSingle();
-                            if (sData?.profile_id) {
-                                await supabase.from('profiles').update({ full_name: nama }).eq('id', sData.profile_id);
-                            }
-                        }
+                    // Audit attempt
+                    try {
+                        const { data: sessData } = await supabase.auth.getSession();
+                        const actorId = sessData?.session?.user?.id || null;
+                        const { data: existingLog } = await supabase.from('app_settings').select('value').eq('key', 'audit_logs').maybeSingle();
+                        const logs = existingLog?.value || [];
+                        logs.push({
+                            id: `log-${Date.now()}`,
+                            actor: actorId,
+                            time: new Date().toISOString(),
+                            action: 'detect_role_conflict',
+                            details: { count: conflicts.length, sample: conflicts.slice(0, 10) },
+                            outcome: proceed ? 'confirmed' : 'cancelled'
+                        });
+                        await supabase.from('app_settings').upsert({ key: 'audit_logs', value: logs, updated_at: new Date().toISOString() });
+                    } catch (e) {
+                        logger.warn('Failed to write audit log for role conflict', e);
+                    }
+
+                    if (!proceed) {
+                        throw new Error('Sinkronisasi dibatalkan oleh pengguna (konflik role terdeteksi)');
                     }
                 }
 
-                if (inserts.length > 0) {
-                    // Stripping nama_temp before insert to staff table
-                    const staffInserts = inserts.map(({ employee_number, position }) => ({ employee_number, position }));
-                    const { error: insertError } = await supabase.from('staff').insert(staffInserts);
-                    if (insertError) throw insertError;
+                const { data: upsertedProfiles } = await supabase.from('profiles').upsert(profilesPayload, { onConflict: 'email' }).select('id,email');
+                upsertedProfiles?.forEach(p => { if (p.email) profileByEmail[p.email] = p.id; });
 
-                    for (const ins of inserts) {
-                        if (ins.nama_temp) {
-                            const { data: pData } = await supabase.from('profiles').select('id').eq('email', ins.employee_number + '@sekolah.id').maybeSingle();
-                            if (pData) {
-                                await supabase.from('profiles').update({ full_name: ins.nama_temp }).eq('id', pData.id);
-                            }
-                        }
+                // 6) Handle tutoring (bimbel) teachers separately: upsert into `tutoring_teachers`
+                if (bimbelTeachers.length > 0) {
+                    try {
+                        const tutoringPayload = bimbelTeachers.map(t => {
+                            const username = ((t.username || t.nip) + '').trim();
+                            return {
+                                name: t.nama?.trim() || '',
+                                source: 'internal',
+                                subject_name: t.mapel || '',
+                                class_id: t.wali && t.wali !== '-' ? t.wali : null,
+                                username: username || null,
+                                password: t.password || (t.nip ? String(t.nip).trim() : null),
+                                status: 'Aktif'
+                            };
+                        });
+                        await supabase.from('tutoring_teachers').upsert(tutoringPayload, { onConflict: 'username' });
+                    } catch (e) {
+                        logger.warn('Failed to upsert tutoring_teachers payload', e);
                     }
                 }
 
-                const { data: refreshedStaff } = await supabase.from('staff').select('id, employee_number');
-                refreshedStaff?.forEach(s => latestStaffMap[s.employee_number] = s.id);
+                // 3) Prepare staff payloads for upsert
+                const staffPayload: any[] = allTeachersToSync.map(t => {
+                    const emp = String(t.nip || '').trim();
+                    const email = ((t.username || emp) + '@sekolah.id').toLowerCase();
+                    const profileId = profileByEmail[email] || null;
+                    if (staffMap[emp]) {
+                        return { id: staffMap[emp], employee_number: emp, position: t.jabatan };
+                    }
+                    return { employee_number: emp, position: t.jabatan, profile_id: profileId };
+                });
 
-                const { data: dbClasses } = await supabase.from('classes').select('id, name');
-                const classMap: Record<string, string> = {};
-                dbClasses?.forEach(c => classMap[c.name] = c.id);
+                const { data: upsertedStaff, error: staffUpsertError } = await supabase.from('staff').upsert(staffPayload, { onConflict: 'employee_number' }).select('id,employee_number');
+                if (staffUpsertError) throw staffUpsertError;
 
-                for (const g of teachers) {
+                const latestStaffMap: Record<string, string> = { ...staffMap };
+                upsertedStaff?.forEach(s => { latestStaffMap[s.employee_number] = s.id; });
+
+                // 4) Classes: fetch class ids then perform updates in parallel
+                const { data: dbClasses } = await supabase.from('classes').select('id, name, homeroom_teacher_id');
+                const classMap: Record<string, any> = {};
+                dbClasses?.forEach(c => { classMap[c.name] = c; });
+
+                // Build assignments: for each teacher determine desired classId (or null to clear)
+                const assignments: Array<{ teacherId: string; classId: string | null }> = [];
+                allTeachersToSync.forEach(g => {
+                    const emp = String(g.nip || '').trim();
+                    const teacherId = latestStaffMap[emp] || (typeof g.id === 'string' ? g.id : null);
+                    if (!teacherId) return;
                     if (g.wali && g.wali !== '-') {
-                        const classId = classMap[g.wali];
-                        const teacherId = latestStaffMap[g.nip] || (typeof g.id === 'string' ? g.id : null);
-                        if (classId && teacherId) {
-                            await supabase.from('classes').update({ homeroom_teacher_id: null }).eq('homeroom_teacher_id', teacherId);
-                            await supabase.from('classes').update({ homeroom_teacher_id: teacherId }).eq('id', classId);
-                        }
-                    } else if (g.wali === '-') {
-                        const teacherId = latestStaffMap[g.nip] || (typeof g.id === 'string' ? g.id : null);
-                        if (teacherId) {
-                            await supabase.from('classes').update({ homeroom_teacher_id: null }).eq('homeroom_teacher_id', teacherId);
-                        }
+                        const c = classMap[g.wali];
+                        if (c) assignments.push({ teacherId, classId: c.id });
+                    } else {
+                        assignments.push({ teacherId, classId: null });
                     }
+                });
+
+                // Clear homeroom_teacher_id for any teachers that will be reassigned
+                const teacherIdsToClear = Array.from(new Set(assignments.map(a => a.teacherId)));
+                if (teacherIdsToClear.length > 0) {
+                    await supabase.from('classes').update({ homeroom_teacher_id: null }).in('homeroom_teacher_id', teacherIdsToClear);
                 }
+
+                // Now set new assignments (parallel)
+                const classUpdatePromises = assignments.filter(a => a.classId).map(a => supabase.from('classes').update({ homeroom_teacher_id: a.teacherId }).eq('id', a.classId));
+                await Promise.all(classUpdatePromises);
 
                 // 5. Cloud backup for Initial Login support (Legacy)
                 await supabase.from('app_settings').upsert({
