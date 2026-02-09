@@ -45,6 +45,7 @@ const LatihanSoalSiswa: React.FC<LatihanSoalSiswaProps> = ({ onBack, userClass: 
     const [selectedLatihan, setSelectedLatihan] = useState<LatihanItem | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedSubject, setSelectedSubject] = useState('Semua');
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
     const [materiList, setMateriList] = useState<MateriItem[]>(materiDataGlobal);
     const [latihanList, setLatihanList] = useState<LatihanItem[]>(latihanDataGlobal);
@@ -97,6 +98,23 @@ const LatihanSoalSiswa: React.FC<LatihanSoalSiswaProps> = ({ onBack, userClass: 
         (selectedSubject === 'Semua' || l.subjectName === selectedSubject) &&
         (l.title.toLowerCase().includes(searchQuery.toLowerCase()) || l.subjectName.toLowerCase().includes(searchQuery.toLowerCase()))
     );
+
+    // Helper: Convert Google Drive link to Preview link
+    const getPreviewUrl = (url: string) => {
+        if (!url) return '';
+        if (url.includes('drive.google.com')) {
+            // Convert /view, /edit, etc to /preview
+            let pUrl = url.replace(/\/view(\?.*)?$/, '/preview');
+            pUrl = pUrl.replace(/\/edit(\?.*)?$/, '/preview');
+            if (!pUrl.includes('/preview')) {
+                // If it's a direct ID link or similar
+                if (pUrl.endsWith('/')) pUrl = pUrl.slice(0, -1);
+                if (!pUrl.endsWith('/preview')) pUrl += '/preview';
+            }
+            return pUrl;
+        }
+        return url;
+    };
 
     return (
         <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl shadow-blue-900/10 border border-white overflow-hidden animate-in slide-in-from-right duration-500 flex flex-col h-full">
@@ -324,14 +342,12 @@ const LatihanSoalSiswa: React.FC<LatihanSoalSiswaProps> = ({ onBack, userClass: 
                                             </div>
                                         </div>
 
-                                        <a
-                                            href={item.driveLink}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                        <button
+                                            onClick={() => setPreviewUrl(getPreviewUrl(item.driveLink))}
                                             className="w-full flex items-center justify-center gap-3 text-[10px] sm:text-xs font-black text-white bg-[#004AAD] px-6 py-4 sm:py-5 rounded-[1.2rem] sm:rounded-[1.8rem] hover:bg-blue-800 hover:shadow-2xl hover:shadow-blue-900/40 active:scale-95 transition-all group/btn uppercase tracking-widest border-b-4 border-blue-900 shadow-xl shadow-blue-500/10"
                                         >
                                             LIHAT MATERI <ArrowRight size={18} sm:size={20} className="group-hover/btn:translate-x-1 transition-transform" strokeWidth={3} />
-                                        </a>
+                                        </button>
                                     </div>
                                 </div>
                             ))
@@ -400,6 +416,50 @@ const LatihanSoalSiswa: React.FC<LatihanSoalSiswaProps> = ({ onBack, userClass: 
                     </div>
                 )}
             </div>
+
+            {/* INTERNAL PREVIEW MODAL */}
+            {previewUrl && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000] flex flex-col p-4 md:p-10 animate-in fade-in zoom-in duration-300">
+                    <div className="flex justify-between items-center mb-4 text-white">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-600 rounded-xl">
+                                <FileText size={20} />
+                            </div>
+                            <h3 className="font-black text-sm uppercase tracking-widest">Preview Materi</h3>
+                        </div>
+                        <button
+                            onClick={() => setPreviewUrl(null)}
+                            className="w-10 h-10 bg-white/10 hover:bg-red-500 rounded-full flex items-center justify-center transition-all group"
+                        >
+                            <X size={24} className="group-hover:rotate-90 transition-transform" />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 bg-white rounded-[2rem] overflow-hidden shadow-2xl relative">
+                        {/* Loading State for iFrame */}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center -z-10 bg-slate-50">
+                            <Loader2 size={40} className="text-blue-600 animate-spin mb-4" />
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Membuka Dokumen...</p>
+                        </div>
+
+                        <iframe
+                            src={previewUrl}
+                            className="w-full h-full border-none relative z-10"
+                            allow="autoplay"
+                            title="Materi Preview"
+                        ></iframe>
+                    </div>
+
+                    <div className="mt-4 flex justify-center">
+                        <button
+                            onClick={() => setPreviewUrl(null)}
+                            className="px-10 py-4 bg-white text-blue-900 font-black rounded-2xl shadow-xl hover:bg-blue-50 transition-all active:scale-95 text-xs uppercase tracking-widest"
+                        >
+                            Tutup Materi
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
