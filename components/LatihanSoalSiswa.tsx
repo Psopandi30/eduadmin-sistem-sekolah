@@ -18,7 +18,8 @@ import {
     Sparkles,
     GraduationCap,
     Clock,
-    Loader2
+    Loader2,
+    X
 } from 'lucide-react';
 import {
     materiDataGlobal,
