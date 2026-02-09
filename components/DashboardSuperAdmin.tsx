@@ -160,6 +160,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
     const setPlottingClassNama = (nama: string) => dispatch({ type: 'SET_PLOTTING_CLASS_NAMA', payload: nama });
     const setPlottingSubjectIds = (ids: any[]) => dispatch({ type: 'SET_PLOTTING_SUBJECT_IDS', payload: ids });
     const setPlottingNip = (nip: string) => dispatch({ type: 'SET_PLOTTING_NIP', payload: nip });
+    const setPlottingSelectedClasses = (classes: string[]) => dispatch({ type: 'SET_PLOTTING_SELECTED_CLASSES', payload: classes });
     const setSelectedJadwalClass = (cls: string) => dispatch({ type: 'SET_SELECTED_JADWAL_CLASS', payload: cls });
     const setSelectedJadwalLevel = (level: number) => dispatch({ type: 'SET_SELECTED_JADWAL_LEVEL', payload: level });
     const setShowTimeModal = (show: boolean) => dispatch({ type: 'SET_SHOW_TIME_MODAL', payload: show });
@@ -2720,18 +2721,30 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                 <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg p-8">
                                     <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
                                         <h3 className="font-bold text-lg text-slate-800">Plotting Guru & Mata Pelajaran</h3>
-                                        <button onClick={() => setShowPlottingModal(false)}><X size={24} className="text-slate-400 hover:text-red-500" /></button>
+                                        <button onClick={() => { setShowPlottingModal(false); dispatch({ type: 'RESET_PLOTTING_FORM' }); }}><X size={24} className="text-slate-400 hover:text-red-500" /></button>
                                     </div>
                                     <form onSubmit={(e) => {
                                         e.preventDefault();
-                                        if (uiState.plottingTeacherId && uiState.plottingClassNama && uiState.plottingSubjectIds.length > 0) {
-                                            setTeacherAssignments([...teacherAssignments, {
-                                                id: Date.now(),
+                                        if (uiState.plottingTeacherId && uiState.plottingSelectedClasses.length > 0 && uiState.plottingSubjectIds.length > 0) {
+                                            // Method A: Expand multiple classes into individual records
+                                            let targetClasses = [...uiState.plottingSelectedClasses];
+
+                                            // Handle "Semua Kelas"
+                                            if (targetClasses.includes("Semua Kelas")) {
+                                                targetClasses = classes.map(c => c.nama);
+                                            }
+
+                                            const newAssignments = targetClasses.map(classNama => ({
+                                                id: Date.now() + Math.random(),
                                                 teacherId: uiState.plottingTeacherId,
-                                                classNama: uiState.plottingClassNama,
+                                                classNama: classNama,
                                                 subjectIds: uiState.plottingSubjectIds
-                                            }]);
+                                            }));
+
+                                            setTeacherAssignments([...teacherAssignments, ...newAssignments]);
                                             setShowPlottingModal(false);
+                                            dispatch({ type: 'RESET_PLOTTING_FORM' });
+                                            toast.success(`${newAssignments.length} Plotting guru berhasil disimpan!`);
                                         } else {
                                             toast.error("Mohon lengkapi semua data!");
                                         }
@@ -2766,20 +2779,46 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Untuk Kelas</label>
-                                            <select
-                                                name="classNama"
-                                                required
-                                                className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer"
-                                                value={uiState.plottingClassNama}
-                                                onChange={(e) => setPlottingClassNama(e.target.value)}
-                                            >
-                                                <option value="">Pilih Kelas</option>
-                                                {classes.map(c => (
-                                                    <option key={c.id.toString()} value={c.nama}>{c.nama}</option>
-                                                ))}
-
-                                            </select>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Untuk Kelas (Bisa Pilih Banyak)</label>
+                                            <div className="relative">
+                                                <input
+                                                    readOnly
+                                                    value={
+                                                        uiState.plottingSelectedClasses.length > 0
+                                                            ? (uiState.plottingSelectedClasses.includes("Semua Kelas")
+                                                                ? "Semua Kelas"
+                                                                : uiState.plottingSelectedClasses.join(', '))
+                                                            : ""
+                                                    }
+                                                    placeholder="Pilih kelas..."
+                                                    className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 transition-colors mb-2"
+                                                />
+                                                <select
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        if (val === "Semua Kelas") {
+                                                            setPlottingSelectedClasses(["Semua Kelas"]);
+                                                        } else if (val === "Reset") {
+                                                            setPlottingSelectedClasses([]);
+                                                        } else {
+                                                            let newClasses = uiState.plottingSelectedClasses.filter(c => c !== "Semua Kelas");
+                                                            if (!newClasses.includes(val)) {
+                                                                newClasses.push(val);
+                                                            }
+                                                            setPlottingSelectedClasses(newClasses);
+                                                        }
+                                                        e.target.value = "";
+                                                    }}
+                                                    className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:border-blue-500 cursor-pointer"
+                                                >
+                                                    <option value="" disabled selected>+ Tambah Kelas</option>
+                                                    <option value="Semua Kelas">Semua Kelas</option>
+                                                    {classes.map(c => (
+                                                        <option key={c.id.toString()} value={c.nama}>{c.nama}</option>
+                                                    ))}
+                                                    <option value="Reset" className="text-red-500 font-bold">Reset Pilihan</option>
+                                                </select>
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Mata Pelajaran (Bisa Pilih Banyak: Tahan Ctrl)</label>
@@ -2804,7 +2843,7 @@ const DashboardSuperAdmin: React.FC<SuperAdminProps> = ({ user, onLogout, school
                                         </div>
 
                                         <div className="flex gap-4 mt-8">
-                                            <button type="button" onClick={() => setShowPlottingModal(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">Batal</button>
+                                            <button type="button" onClick={() => { setShowPlottingModal(false); dispatch({ type: 'RESET_PLOTTING_FORM' }); }} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">Batal</button>
                                             <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">Simpan Plotting</button>
                                         </div>
                                     </form>

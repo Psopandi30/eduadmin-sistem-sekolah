@@ -8,7 +8,6 @@ import {
     Book,
     Tv,
     Bot,
-    Gamepad2,
     StickyNote,
     Bell,
     Home,

@@ -56,6 +56,7 @@ export interface AdminUIState {
     // Plotting States
     plottingTeacherId: string;
     plottingClassNama: string;
+    plottingSelectedClasses: string[];
     plottingSubjectIds: any[];
     plottingNip: string;
     mapelViewMode: 'master' | 'plotting';
@@ -119,6 +120,7 @@ type AdminUIAction =
     | { type: 'SET_TEMP_EXAM_NOTE'; payload: string }
     | { type: 'SET_PLOTTING_TEACHER_ID'; payload: string }
     | { type: 'SET_PLOTTING_CLASS_NAMA'; payload: string }
+    | { type: 'SET_PLOTTING_SELECTED_CLASSES'; payload: string[] }
     | { type: 'SET_PLOTTING_SUBJECT_IDS'; payload: any[] }
     | { type: 'SET_PLOTTING_NIP'; payload: string }
     | { type: 'SET_MAPEL_VIEW_MODE'; payload: 'master' | 'plotting' }
@@ -175,6 +177,7 @@ const initialState: AdminUIState = {
     tempExamNote: '',
     plottingTeacherId: '',
     plottingClassNama: '',
+    plottingSelectedClasses: [],
     plottingSubjectIds: [],
     plottingNip: '',
     mapelViewMode: 'plotting',
@@ -183,7 +186,7 @@ const initialState: AdminUIState = {
     confirmModal: {
         show: false,
         message: '',
-        onConfirm: () => {}
+        onConfirm: () => { }
     }
 };
 
@@ -280,6 +283,8 @@ function adminUIReducer(state: AdminUIState, action: AdminUIAction): AdminUIStat
             return { ...state, plottingTeacherId: action.payload };
         case 'SET_PLOTTING_CLASS_NAMA':
             return { ...state, plottingClassNama: action.payload };
+        case 'SET_PLOTTING_SELECTED_CLASSES':
+            return { ...state, plottingSelectedClasses: action.payload };
         case 'SET_PLOTTING_SUBJECT_IDS':
             return { ...state, plottingSubjectIds: action.payload };
         case 'SET_PLOTTING_NIP':
@@ -297,6 +302,7 @@ function adminUIReducer(state: AdminUIState, action: AdminUIAction): AdminUIStat
                 ...state,
                 plottingTeacherId: '',
                 plottingClassNama: '',
+                plottingSelectedClasses: [],
                 plottingSubjectIds: [],
                 plottingNip: ''
             };
@@ -306,7 +312,7 @@ function adminUIReducer(state: AdminUIState, action: AdminUIAction): AdminUIStat
                 confirmModal: {
                     show: false,
                     message: '',
-                    onConfirm: () => {}
+                    onConfirm: () => { }
                 }
             };
         default:

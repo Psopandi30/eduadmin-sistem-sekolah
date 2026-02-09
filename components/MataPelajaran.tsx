@@ -60,7 +60,8 @@ const MataPelajaran: React.FC<MataPelajaranProps> = ({
     // Form State
     const [formData, setFormData] = useState({
         subjectNames: [] as string[], // Using names or codes since ID might not be unique in dummy data, but let's use 'kode' if unique. App.tsx mapelData has 'kode'.
-        teacherNip: ''
+        teacherNip: '',
+        selectedClasses: [] as string[] // Array of class names for multi-select
     });
 
     // Initialize selected class
@@ -95,7 +96,7 @@ const MataPelajaran: React.FC<MataPelajaranProps> = ({
 
     const handleOpenAdd = () => {
         setEditingState({ isEditing: false, index: null });
-        setFormData({ subjectNames: [], teacherNip: '' });
+        setFormData({ subjectNames: [], teacherNip: '', selectedClasses: [] });
         setIsModalOpen(true);
     };
 
@@ -103,7 +104,8 @@ const MataPelajaran: React.FC<MataPelajaranProps> = ({
         setEditingState({ isEditing: true, index });
         setFormData({
             subjectNames: [item.id], // Storing ID/Kode here
-            teacherNip: item.nip
+            teacherNip: item.nip,
+            selectedClasses: [selectedClassRaw] // Default to current class when editing
         });
         setIsModalOpen(true);
     };
@@ -114,9 +116,15 @@ const MataPelajaran: React.FC<MataPelajaranProps> = ({
             return;
         }
 
+        if (formData.selectedClasses.length === 0) {
+            alert("Mohon pilih minimal satu Kelas!");
+            return;
+        }
+
         const selectedTeacher = availableTeachers.find(t => t.noPegawai === formData.teacherNip);
 
         if (selectedTeacher) {
+            // Create entries for each subject
             const newEntries = formData.subjectNames.map(subCode => {
                 const selectedSubject = availableSubjects.find(s => s.kode === subCode);
                 return selectedSubject ? {
@@ -129,26 +137,37 @@ const MataPelajaran: React.FC<MataPelajaranProps> = ({
             }).filter(Boolean) as any[];
 
             setClassSubjectsData(prev => {
-                const currentList = [...(prev[selectedClassRaw] || [])];
+                const updated = { ...prev };
 
                 if (editingState.isEditing && editingState.index !== null) {
-                    // Update existing
+                    // Update existing entry in current class only
+                    const currentList = [...(updated[selectedClassRaw] || [])];
                     if (newEntries.length > 0) {
                         currentList[editingState.index] = newEntries[0];
                     }
+                    updated[selectedClassRaw] = currentList;
                 } else {
-                    // Add new
-                    newEntries.forEach(entry => currentList.push(entry));
+                    // Add new entries to all selected classes
+                    formData.selectedClasses.forEach(className => {
+                        const currentList = [...(updated[className] || [])];
+                        newEntries.forEach(entry => {
+                            // Check if this combination already exists to avoid duplicates
+                            const exists = currentList.some(
+                                item => item.id === entry.id && item.nip === entry.nip
+                            );
+                            if (!exists) {
+                                currentList.push(entry);
+                            }
+                        });
+                        updated[className] = currentList;
+                    });
                 }
 
-                return {
-                    ...prev,
-                    [selectedClassRaw]: currentList
-                };
+                return updated;
             });
 
             setIsModalOpen(false);
-            setFormData({ subjectNames: [], teacherNip: '' });
+            setFormData({ subjectNames: [], teacherNip: '', selectedClasses: [] });
             setEditingState({ isEditing: false, index: null });
         }
     };
@@ -160,6 +179,17 @@ const MataPelajaran: React.FC<MataPelajaranProps> = ({
                 return { ...prev, subjectNames: prev.subjectNames.filter(c => c !== code) };
             } else {
                 return { ...prev, subjectNames: [...prev.subjectNames, code] };
+            }
+        });
+    };
+
+    const toggleClass = (className: string) => {
+        setFormData(prev => {
+            const exists = prev.selectedClasses.includes(className);
+            if (exists) {
+                return { ...prev, selectedClasses: prev.selectedClasses.filter(c => c !== className) };
+            } else {
+                return { ...prev, selectedClasses: [...prev.selectedClasses, className] };
             }
         });
     };
@@ -316,7 +346,7 @@ const MataPelajaran: React.FC<MataPelajaranProps> = ({
                             <div>
                                 <h3 className="text-xl font-bold">{editingState.isEditing ? 'Ubah Pengampu Mapel' : 'Tambah Pengampu Mapel'}</h3>
                                 <p className="text-blue-100 text-xs mt-1">
-                                    {editingState.isEditing ? 'Perbarui data guru pengampu' : 'Atur pelajaran dan guru pengampu'} untuk {selectedClassRaw}
+                                    {editingState.isEditing ? `Perbarui data guru pengampu untuk ${selectedClassRaw}` : 'Atur mata pelajaran dan guru pengampu untuk kelas yang dipilih'}
                                 </p>
                             </div>
                             <button
@@ -390,6 +420,42 @@ const MataPelajaran: React.FC<MataPelajaranProps> = ({
                                     </div>
                                 )}
                             </div>
+
+                            {/* Class Multi-Select - Only show when adding new */}
+                            {!editingState.isEditing && (
+                                <div className="space-y-3">
+                                    <label className="text-sm font-bold text-slate-700">
+                                        Pilih Kelas (Bisa pilih lebih dari satu)
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto custom-scrollbar border border-slate-200 rounded-xl p-2 bg-slate-50">
+                                        {kelasData.length > 0 ? kelasData.map((kelas) => {
+                                            const isSelected = formData.selectedClasses.includes(kelas.nama);
+                                            return (
+                                                <div
+                                                    key={kelas.id}
+                                                    onClick={() => toggleClass(kelas.nama)}
+                                                    className={`p-3 rounded-lg border cursor-pointer flex items-center justify-between transition-all ${isSelected ? 'bg-blue-50 border-blue-500 shadow-sm' : 'bg-white border-slate-200 hover:border-blue-300'}`}
+                                                >
+                                                    <div className="flex flex-col">
+                                                        <span className={`text-sm font-bold ${isSelected ? 'text-blue-700' : 'text-slate-700'}`}>
+                                                            {kelas.nama}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-500">
+                                                            Wali: {kelas.wali || '-'}
+                                                        </span>
+                                                    </div>
+                                                    {isSelected && <Check size={18} className="text-blue-600" />}
+                                                </div>
+                                            );
+                                        }) : <div className="col-span-2 p-4 text-center text-slate-400 text-sm">Tidak ada data kelas.</div>}
+                                    </div>
+                                    {formData.selectedClasses.length > 0 && (
+                                        <div className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg inline-block font-bold">
+                                            {formData.selectedClasses.length} kelas dipilih
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Modal Footer */}

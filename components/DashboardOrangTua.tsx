@@ -11,7 +11,6 @@ import {
     Book,
     Tv,
     Bot,
-    Gamepad2,
     Bell,
     Home,
     User,
@@ -32,7 +31,7 @@ import LatihanSoalSiswa from './LatihanSoalSiswa';
 import AlQuranSiswa from './AlQuranSiswa';
 import ChannelSekolahSiswa from './ChannelSekolahSiswa';
 import BelajarAISiswa from './BelajarAISiswa';
-import GameEdukasiSiswa from './GameEdukasiSiswa';
+
 import ProfilAkun from './ProfilAkun';
 import NotifikasiSiswa from './NotifikasiSiswa';
 
