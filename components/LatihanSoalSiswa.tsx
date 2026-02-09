@@ -420,7 +420,7 @@ const LatihanSoalSiswa: React.FC<LatihanSoalSiswaProps> = ({ onBack, userClass: 
 
             {/* INTERNAL PREVIEW MODAL */}
             {previewUrl && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000] flex flex-col p-4 md:p-10 animate-in fade-in zoom-in duration-300">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000] flex flex-col p-4 md:p-10 animate-in fade-in zoom-in duration-300 overflow-y-auto">
                     <div className="flex justify-between items-center mb-4 text-white">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-blue-600 rounded-xl">
