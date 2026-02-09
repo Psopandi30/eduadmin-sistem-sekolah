@@ -29,6 +29,7 @@ const MateriLatihanGuru: React.FC<MateriLatihanGuruProps> = ({ onBack, user }) =
     // --- STATE DATA ---
     const [materiList, setMateriList] = useState<MateriItem[]>(materiDataGlobal);
     const [latihanList, setLatihanList] = useState<LatihanItem[]>(latihanDataGlobal);
+    const [assignedClasses, setAssignedClasses] = useState<string[]>([]);
 
     const [loading, setLoading] = useState(false);
 
@@ -51,6 +52,34 @@ const MateriLatihanGuru: React.FC<MateriLatihanGuruProps> = ({ onBack, user }) =
                 const parsed = typeof lRes.value === 'string' ? JSON.parse(lRes.value) : lRes.value;
                 setLatihanList(parsed);
                 updateLatihanDataGlobal(parsed);
+            }
+
+            // Fetch Teacher Assignments (Plotting) to filter classes
+            const { data: plottingData } = await supabase
+                .from('app_settings')
+                .select('value')
+                .eq('key', 'teacher_assignments_v2')
+                .single();
+
+            if (plottingData?.value) {
+                const assignments = typeof plottingData.value === 'string' ? JSON.parse(plottingData.value) : plottingData.value;
+                const teacherId = user?.id?.toString() || '';
+                const teacherName = user?.nama || '';
+
+                // Filter assignments for this teacher
+                const myAssignments = assignments.filter((ta: any) =>
+                    ta.teacherId?.toString() === teacherId || ta.teacherName === teacherName
+                );
+
+                // Get unique class names
+                const myClasses = Array.from(new Set(myAssignments.map((ta: any) => ta.classNama))).sort() as string[];
+                setAssignedClasses(myClasses);
+
+                // If there's at least one assigned class, set it as default in the form
+                if (myClasses.length > 0) {
+                    setMateriForm(prev => ({ ...prev, classId: myClasses[0] }));
+                    setLatihanForm(prev => ({ ...prev, classId: myClasses[0] }));
+                }
             }
         } catch (err) {
             logger.warn("Could not fetch materi/latihan from cloud");
@@ -452,7 +481,11 @@ const MateriLatihanGuru: React.FC<MateriLatihanGuruProps> = ({ onBack, user }) =
                                             onChange={(e) => setMateriForm({ ...materiForm, classId: e.target.value })}
                                             className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-700 text-sm cursor-pointer appearance-none"
                                         >
-                                            {classesDataGlobal.map(c => <option key={c.id} value={c.nama}>{c.nama}</option>)}
+                                            {assignedClasses.length > 0 ? (
+                                                assignedClasses.map(clsName => <option key={clsName} value={clsName}>{clsName}</option>)
+                                            ) : (
+                                                <option value={defaultClass}>{defaultClass}</option>
+                                            )}
                                         </select>
                                     </div>
                                     <div>
@@ -522,7 +555,11 @@ const MateriLatihanGuru: React.FC<MateriLatihanGuruProps> = ({ onBack, user }) =
                                         onChange={(e) => setLatihanForm({ ...latihanForm, classId: e.target.value })}
                                         className="w-24 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-700 text-sm cursor-pointer appearance-none text-center"
                                     >
-                                        {classesDataGlobal.map(c => <option key={c.id} value={c.nama}>{c.nama}</option>)}
+                                        {assignedClasses.length > 0 ? (
+                                            assignedClasses.map(clsName => <option key={clsName} value={clsName}>{clsName}</option>)
+                                        ) : (
+                                            <option value={defaultClass}>{defaultClass}</option>
+                                        )}
                                     </select>
                                 </div>
                             </div>
